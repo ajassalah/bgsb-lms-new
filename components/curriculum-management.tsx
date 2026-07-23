@@ -360,7 +360,9 @@ function ModuleContent({ module }: { module: ModuleRow }) {
                 </div>
                 {x.content_type === "document" && (
                   <a
-                    href={`${x.content_url}?download=${encodeURIComponent(x.title)}`}
+                    href={`${x.content_url}?download=${encodeURIComponent(
+                      downloadName(x.title, x.content_url),
+                    )}`}
                     download
                     title="Download document"
                   >
@@ -544,6 +546,16 @@ function EditorModal({
     </div>
   );
 }
+function downloadName(title: string, url: string) {
+  const cleanUrl = url.split("?")[0];
+  const storedName = decodeURIComponent(cleanUrl.split("/").pop() || "");
+  const extension = storedName.match(/\.([a-z0-9]{1,10})$/i)?.[1];
+  const safeTitle =
+    title.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-").trim() || "document";
+
+  return extension ? `${safeTitle}.${extension}` : safeTitle;
+}
+
 function Page({
   children,
   ...p
