@@ -3,3 +3,8 @@
 @tailwind utilities;
 @layer base { *{@apply border-slate-200} body{@apply bg-cream text-slate-900 antialiased} }
 @layer components { .btn{@apply inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition} .btn-primary{@apply btn bg-red text-white hover:bg-red/90} .btn-secondary{@apply btn border bg-white text-navy hover:bg-slate-50} .card{@apply rounded-2xl border bg-white p-6 shadow-soft} .field{@apply w-full rounded-xl border bg-white px-4 py-3 outline-none ring-red/20 focus:ring-4} }
+[aria-label="Hide sidebar"],[aria-label="Show sidebar"]{display:none!important}
+div:has(> input[name="tags"]){display:none!important}
+td.relative > div.absolute{z-index:100!important}
+section:has(table){overflow:visible!important}
+@media (min-width:1024px){div.overflow-x-auto:has(> table),div.overflow-x-auto.overflow-y-visible:has(> table){overflow:visible!important}}

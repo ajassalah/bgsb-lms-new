@@ -1,0 +1,3 @@
+'use client';
+import {useEffect,useRef} from 'react';import videojs from 'video.js';import 'video.js/dist/video-js.css';
+export function VideoPlayer({src}:{src:string}){const ref=useRef<HTMLDivElement>(null);useEffect(()=>{if(!ref.current)return;const el=document.createElement('video-js');el.classList.add('vjs-big-play-centered','vjs-fluid');ref.current.appendChild(el);const player=videojs(el,{controls:true,responsive:true,fluid:true,playbackRates:[.75,1,1.25,1.5,2],sources:[{src,type:'video/mp4'}]});return()=>player.dispose()},[src]);return <div ref={ref} className="medium-video overflow-hidden rounded-t-xl bg-black"/>}
