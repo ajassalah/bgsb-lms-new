@@ -1,5 +1,259 @@
-'use client';
-import {useState} from 'react';import {Edit3,MoreVertical,Plus,Trash2,X} from 'lucide-react';import {toast} from 'sonner';
-export type AdminCategory={id:string;name:string;courseCount:number;active:boolean};
-export function CategoryManagement({initialCategories}:{initialCategories:AdminCategory[]}){const [categories,setCategories]=useState(initialCategories),[modal,setModal]=useState<AdminCategory|null|undefined>(undefined),[menu,setMenu]=useState<string|null>(null);async function toggle(item:AdminCategory){const active=!item.active;setCategories(x=>x.map(c=>c.id===item.id?{...c,active}:c));const res=await fetch(`/api/admin/categories/${item.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({is_active:active})});if(!res.ok){setCategories(x=>x.map(c=>c.id===item.id?item:c));toast.error('Status update failed')}}async function remove(item:AdminCategory){setMenu(null);if(!confirm(`Delete category “${item.name}”?`))return;const res=await fetch(`/api/admin/categories/${item.id}`,{method:'DELETE'});if(res.ok){setCategories(x=>x.filter(c=>c.id!==item.id));toast.success('Category deleted')}else{const body=await res.json().catch(()=>({}));toast.error(body.error||'Category cannot be deleted while it contains courses')}}return <><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-slate-400">Courses / Category</p><h1 className="mt-1 text-2xl font-bold text-navy">Categories</h1><p className="mt-2 text-sm text-slate-500">Create and organize the categories available throughout the course builder.</p></div><button onClick={()=>setModal(null)} className="btn-primary gap-2 rounded-lg py-2.5"><Plus className="size-4"/>Add New Category</button></div><section className="mt-7 overflow-hidden rounded-xl border bg-white"><div className="overflow-x-auto"><table className="min-w-[700px] w-full text-left text-sm"><thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400"><tr><th className="px-6 py-4">#</th><th className="px-6 py-4">Title</th><th className="px-6 py-4">Total Course</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Action</th></tr></thead><tbody className="divide-y">{categories.map((item,index)=><tr className="hover:bg-slate-50" key={item.id}><td className="px-6 py-4 text-slate-400">{index+1}</td><td className="px-6 py-4 font-semibold text-navy">{item.name}</td><td className="px-6 py-4"><span className="rounded-lg bg-blue-50 px-3 py-1.5 font-bold text-blue-700">{item.courseCount}</span></td><td className="px-6 py-4"><div className="flex items-center gap-3"><button onClick={()=>toggle(item)} aria-label={`Toggle ${item.name}`} className={`relative h-6 w-11 rounded-full transition ${item.active?'bg-emerald-500':'bg-slate-300'}`}><span className={`absolute top-1 size-4 rounded-full bg-white shadow transition ${item.active?'left-6':'left-1'}`}/></button><span className={`text-xs font-semibold ${item.active?'text-emerald-700':'text-slate-400'}`}>{item.active?'Active':'Inactive'}</span></div></td><td className="relative px-6 py-4 text-right"><button onClick={()=>setMenu(menu===item.id?null:item.id)} className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500"><MoreVertical className="size-4"/></button>{menu===item.id&&<div className="absolute right-6 top-14 z-20 w-40 overflow-hidden rounded-lg border bg-white py-1 text-left shadow-xl"><button onClick={()=>{setModal(item);setMenu(null)}} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"><Edit3 className="size-4 text-blue-600"/>Edit</button><button onClick={()=>remove(item)} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"><Trash2 className="size-4"/>Delete</button></div>}</td></tr>)}{!categories.length&&<tr><td colSpan={5} className="p-16 text-center text-slate-400">No categories have been created.</td></tr>}</tbody></table></div></section>{modal!==undefined&&<CategoryModal item={modal} close={()=>setModal(undefined)} saved={item=>{setCategories(x=>modal?x.map(c=>c.id===item.id?item:c):[item,...x]);setModal(undefined)}}/>}</>}
-function CategoryModal({item,close,saved}:{item:AdminCategory|null;close:()=>void;saved:(item:AdminCategory)=>void}){const [busy,setBusy]=useState(false);async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);const name=String(new FormData(e.currentTarget).get('name'));const res=await fetch(item?`/api/admin/categories/${item.id}`:'/api/admin/categories',{method:item?'PATCH':'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name})});if(res.ok){const data=await res.json();saved(item?{...item,name:data.name}:{...data,courseCount:0,active:true});toast.success(item?'Category updated':'Category created')}else{const body=await res.json().catch(()=>({}));toast.error(body.error||'Could not save category');setBusy(false)}}return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4"><form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between"><div><h2 className="text-xl font-bold text-navy">{item?'Edit Category':'Add New Category'}</h2><p className="mt-1 text-sm text-slate-400">This category will appear in the course builder.</p></div><button type="button" onClick={close}><X/></button></div><label className="mt-6 block text-sm font-semibold">Category name<input name="name" defaultValue={item?.name} className="field mt-2" required autoFocus/></label><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={close} className="btn-secondary">Cancel</button><button disabled={busy} className="btn-primary">{busy?'Saving…':'Save Category'}</button></div></form></div>}
+"use client";
+import { useState } from "react";
+import { Edit3, MoreVertical, Plus, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "./confirm-dialog";
+export type AdminCategory = {
+  id: string;
+  name: string;
+  courseCount: number;
+  active: boolean;
+};
+export function CategoryManagement({
+  initialCategories,
+}: {
+  initialCategories: AdminCategory[];
+}) {
+  const [categories, setCategories] = useState(initialCategories),
+    [modal, setModal] = useState<AdminCategory | null | undefined>(undefined),
+    [menu, setMenu] = useState<string | null>(null),
+    [deleting, setDeleting] = useState<AdminCategory | null>(null);
+  async function toggle(item: AdminCategory) {
+    const active = !item.active;
+    setCategories((x) =>
+      x.map((c) => (c.id === item.id ? { ...c, active } : c)),
+    );
+    const res = await fetch(`/api/admin/categories/${item.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ is_active: active }),
+    });
+    if (!res.ok) {
+      setCategories((x) => x.map((c) => (c.id === item.id ? item : c)));
+      toast.error("Status update failed");
+    }
+  }
+  async function remove(item: AdminCategory) {
+    setMenu(null);
+    const res = await fetch(`/api/admin/categories/${item.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setCategories((x) => x.filter((c) => c.id !== item.id));
+      setDeleting(null);
+      toast.success("Category deleted");
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast.error(
+        body.error || "Category cannot be deleted while it contains courses",
+      );
+    }
+  }
+  return (
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-slate-400">Courses / Category</p>
+          <h1 className="mt-1 text-2xl font-bold text-navy">Categories</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Create and organize the categories available throughout the course
+            builder.
+          </p>
+        </div>
+        <button
+          onClick={() => setModal(null)}
+          className="btn-primary gap-2 rounded-lg py-2.5"
+        >
+          <Plus className="size-4" />
+          Add New Category
+        </button>
+      </div>
+      <section className="mt-7 overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="min-w-[700px] w-full text-left text-sm">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400">
+              <tr>
+                <th className="px-6 py-4">#</th>
+                <th className="px-6 py-4">Title</th>
+                <th className="px-6 py-4">Total Course</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {categories.map((item, index) => (
+                <tr className="hover:bg-slate-50" key={item.id}>
+                  <td className="px-6 py-4 text-slate-400">{index + 1}</td>
+                  <td className="px-6 py-4 font-semibold text-navy">
+                    {item.name}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-bold text-blue-700">
+                      {item.courseCount}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggle(item)}
+                        aria-label={`Toggle ${item.name}`}
+                        className={`relative h-6 w-11 rounded-full transition ${item.active ? "bg-emerald-500" : "bg-slate-300"}`}
+                      >
+                        <span
+                          className={`absolute top-1 size-4 rounded-full bg-white shadow transition ${item.active ? "left-6" : "left-1"}`}
+                        />
+                      </button>
+                      <span
+                        className={`text-xs font-semibold ${item.active ? "text-emerald-700" : "text-slate-400"}`}
+                      >
+                        {item.active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="relative px-6 py-4 text-right">
+                    <button
+                      onClick={() => setMenu(menu === item.id ? null : item.id)}
+                      className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500"
+                    >
+                      <MoreVertical className="size-4" />
+                    </button>
+                    {menu === item.id && (
+                      <div className="absolute right-6 top-14 z-20 w-40 overflow-hidden rounded-lg border bg-white py-1 text-left shadow-xl">
+                        <button
+                          onClick={() => {
+                            setModal(item);
+                            setMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                        >
+                          <Edit3 className="size-4 text-blue-600" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleting(item);
+                            setMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!categories.length && (
+                <tr>
+                  <td colSpan={5} className="p-16 text-center text-slate-400">
+                    No categories have been created.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete Category?"
+        description={`Are you sure you want to delete ${deleting?.name || "this category"}? This action cannot be undone.`}
+        confirmLabel="Delete Category"
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => deleting && remove(deleting)}
+      />
+      {modal !== undefined && (
+        <CategoryModal
+          item={modal}
+          close={() => setModal(undefined)}
+          saved={(item) => {
+            setCategories((x) =>
+              modal
+                ? x.map((c) => (c.id === item.id ? item : c))
+                : [item, ...x],
+            );
+            setModal(undefined);
+          }}
+        />
+      )}
+    </>
+  );
+}
+function CategoryModal({
+  item,
+  close,
+  saved,
+}: {
+  item: AdminCategory | null;
+  close: () => void;
+  saved: (item: AdminCategory) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    const name = String(new FormData(e.currentTarget).get("name"));
+    const res = await fetch(
+      item ? `/api/admin/categories/${item.id}` : "/api/admin/categories",
+      {
+        method: item ? "PATCH" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      },
+    );
+    if (res.ok) {
+      const data = await res.json();
+      saved(
+        item
+          ? { ...item, name: data.name }
+          : { ...data, courseCount: 0, active: true },
+      );
+      toast.success(item ? "Category updated" : "Category created");
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.error || "Could not save category");
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-navy">
+              {item ? "Edit Category" : "Add New Category"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              This category will appear in the course builder.
+            </p>
+          </div>
+          <button type="button" onClick={close}>
+            <X />
+          </button>
+        </div>
+        <label className="mt-6 block text-sm font-semibold">
+          Category name
+          <input
+            name="name"
+            defaultValue={item?.name}
+            className="field mt-2"
+            required
+            autoFocus
+          />
+        </label>
+        <div className="mt-6 flex justify-end gap-2">
+          <button type="button" onClick={close} className="btn-secondary">
+            Cancel
+          </button>
+          <button disabled={busy} className="btn-primary">
+            {busy ? "Saving…" : "Save Category"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

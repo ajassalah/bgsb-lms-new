@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { VideoPlayer } from "./video-player";
+import { ConfirmDialog } from "./confirm-dialog";
 type Lesson = {
   id: string;
   title: string;
@@ -50,10 +51,16 @@ type Modal = {
 export function CurriculumManagement({
   courseId,
   courseTitle,
+  thumbnailUrl,
+  videoSource,
+  videoUrl,
   initialModules,
 }: {
   courseId: string;
   courseTitle: string;
+  thumbnailUrl?: string | null;
+  videoSource?: string | null;
+  videoUrl?: string | null;
   initialModules: ModuleRow[];
 }) {
   const [modules, setModules] = useState(initialModules),
@@ -61,7 +68,8 @@ export function CurriculumManagement({
     [menu, setMenu] = useState<string | null>(null),
     [lessonMenu, setLessonMenu] = useState<string | null>(null),
     [page, setPage] = useState(1),
-    [drag, setDrag] = useState<string | null>(null);
+    [drag, setDrag] = useState<string | null>(null),
+    [deleting, setDeleting] = useState<ModuleRow | null>(null);
   const pages = Math.max(1, Math.ceil(modules.length / 10)),
     visible = modules.slice((page - 1) * 10, page * 10);
   async function reorder(target: string) {
@@ -88,9 +96,11 @@ export function CurriculumManagement({
     }
   }
   async function remove(m: ModuleRow) {
-    if (!confirm(`Delete “${m.title}”?`)) return;
     const res = await fetch(`/api/admin/modules/${m.id}`, { method: "DELETE" });
-    if (res.ok) setModules((x) => x.filter((y) => y.id !== m.id));
+    if (res.ok) {
+      setModules((x) => x.filter((y) => y.id !== m.id));
+      setDeleting(null);
+    }
   }
   function saved(item: any) {
     if (!modal) return;
@@ -98,7 +108,10 @@ export function CurriculumManagement({
       setModules((x) =>
         modal.module
           ? x.map((y) => (y.id === item.id ? { ...y, title: item.title } : y))
-          : [...x, { ...item, courseId, lessons: [], quizzes: [], assignments: [] }],
+          : [
+              ...x,
+              { ...item, courseId, lessons: [], quizzes: [], assignments: [] },
+            ],
       );
     else if (modal.module)
       setModules((x) =>
@@ -137,6 +150,41 @@ export function CurriculumManagement({
           Add Module
         </button>
       </div>
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt={`${courseTitle} thumbnail`}
+          className="mt-7 h-72 w-full rounded-2xl border bg-white object-contain p-2 shadow-sm lg:h-96"
+        />
+      )}
+      {videoUrl && (
+        <section className="mt-5 w-full overflow-hidden rounded-2xl border bg-white shadow-sm">
+          {videoSource === "upload" ? (
+            <VideoPlayer src={videoUrl} />
+          ) : youtubeEmbed(videoUrl) ? (
+            <iframe
+              src={youtubeEmbed(videoUrl)!}
+              title={`${courseTitle} course video`}
+              className="aspect-video w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Course Video
+              </p>
+              <a
+                href={videoUrl}
+                target="_blank"
+                className="mt-2 block break-all text-sm font-semibold text-blue-600"
+              >
+                {videoUrl}
+              </a>
+            </div>
+          )}
+        </section>
+      )}
       <div className="mt-7 space-y-5">
         {visible.map((m) => (
           <section
@@ -256,7 +304,10 @@ export function CurriculumManagement({
                       )}
                     </div>
                     <button
-                      onClick={() => remove(m)}
+                      onClick={() => {
+                        setDeleting(m);
+                        setMenu(null);
+                      }}
                       className="action-row text-red"
                     >
                       <Trash2 />
@@ -297,6 +348,14 @@ export function CurriculumManagement({
           saved={saved}
         />
       )}
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete Module?"
+        description={`Are you sure you want to delete ${deleting?.title || "this module"} and its lessons? This action cannot be undone.`}
+        confirmLabel="Delete Module"
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => deleting && remove(deleting)}
+      />
       <style jsx global>{`
         .action-row {
           display: flex;
@@ -320,7 +379,11 @@ export function CurriculumManagement({
 function ModuleContent({ module }: { module: ModuleRow }) {
   const videos = module.lessons.filter((x) => x.content_type === "video"),
     medium = module.lessons.filter((x) => x.content_type !== "video");
-  if (!module.lessons.length && !module.quizzes.length && !module.assignments.length)
+  if (
+    !module.lessons.length &&
+    !module.quizzes.length &&
+    !module.assignments.length
+  )
     return (
       <div className="p-5 text-sm text-slate-400">
         No lessons or quizzes in this section.
@@ -554,6 +617,18 @@ function downloadName(title: string, url: string) {
     title.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-").trim() || "document";
 
   return extension ? `${safeTitle}.${extension}` : safeTitle;
+}
+
+function youtubeEmbed(url: string) {
+  try {
+    const parsed = new URL(url),
+      id = parsed.hostname.includes("youtu.be")
+        ? parsed.pathname.slice(1)
+        : parsed.searchParams.get("v");
+    return id ? `https://www.youtube.com/embed/${id}` : null;
+  } catch {
+    return null;
+  }
 }
 
 function Page({

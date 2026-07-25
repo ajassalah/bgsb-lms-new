@@ -1,9 +1,334 @@
-'use client';
-import {useState} from 'react';import {useRouter} from 'next/navigation';import {ArrowLeft,ArrowRight,Check,Image as ImageIcon,Upload,Video} from 'lucide-react';import {toast} from 'sonner';import {CourseEditor} from './course-editor';
-type Option={id:string;name:string};
-export function CourseBuilder({categories,organizations,instructors,subjects,tags}:{categories:Option[];organizations:Option[];instructors:Option[];subjects:string[];tags:string[]}){const [step,setStep]=useState(1),[busy,setBusy]=useState(false),[description,setDescription]=useState(''),[basic,setBasic]=useState<Record<string,string>>({}),[videoSource,setVideoSource]=useState('youtube'),router=useRouter();function next(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBasic(Object.fromEntries(new FormData(e.currentTarget)) as Record<string,string>);setStep(2);window.scrollTo({top:0,behavior:'smooth'})}async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);const media=new FormData(e.currentTarget),payload=new FormData();Object.entries(basic).forEach(([k,v])=>payload.set(k,v));payload.set('description',description);payload.set('video_source',videoSource);for(const name of ['video','thumbnail']){const file=media.get(name);if(file instanceof File&&file.size)payload.set(name,file)}payload.set('video_link',String(media.get('video_link')||''));const res=await fetch('/api/admin/courses',{method:'POST',body:payload});if(res.ok){toast.success('Course created successfully');router.push('/dashboard/super-admin/courses');router.refresh()}else{const body=await res.json().catch(()=>({}));toast.error(body.error||'Course creation failed');setBusy(false)}}return <><div className="mb-7"><p className="text-sm text-slate-400">Courses / Add New Course</p><h1 className="mt-1 text-2xl font-bold text-[#17233c]">Add New Course</h1><p className="mt-2 text-sm text-slate-500">Complete both steps to publish a new course in the LMS.</p></div><div className="mb-7 rounded-xl border bg-white p-5"><div className="relative mx-auto flex max-w-2xl items-center justify-between"><div className="absolute left-12 right-12 top-5 h-0.5 bg-slate-200"><div className={`h-full bg-red transition-all ${step===2?'w-full':'w-0'}`}/></div><Step active={true} done={step>1} n={1} label="Basic Information"/><Step active={step===2} done={false} n={2} label="Media & Images"/></div></div>{step===1?<form onSubmit={next} className="rounded-xl border bg-white p-5 sm:p-7"><Section title="Basic Information" subtitle="Enter the course identity, ownership and academic details."/><div className="mt-7 grid gap-5 md:grid-cols-2"><Field label="Course Title" name="title" required/><Select label="Select Category" name="category_id" options={categories}/><Select label="Course Type" name="course_type" values={['Online','Onsite','Hybrid']}/><Select label="Language" name="language" values={['English','Sinhala','Tamil']}/><Select label="Select Subject" name="subject" values={subjects.length?subjects:['Business','Finance','Information Technology','Marketing']}/><Select label="Course Level" name="level" values={['Beginner','Intermediate','Advanced']}/><Select label="Select Organization" name="organization_id" options={organizations} optional/><Select label="Instructor" name="instructor_id" options={instructors} optional/><Field label="Course Duration" name="duration_weeks" type="number" placeholder="Duration in weeks" min="1"/><div><label className="text-sm font-semibold text-slate-700">Course Tag</label><input name="tags" list="course-tags" className="field mt-2" placeholder="Enter tags separated by commas"/><datalist id="course-tags">{tags.map(x=><option value={x} key={x}/>)}</datalist></div></div><label className="mt-5 block text-sm font-semibold text-slate-700">Short Description<textarea name="short_description" className="field mt-2 min-h-24 resize-y" maxLength={300} placeholder="A concise course overview..." required/></label><div className="mt-5"><label className="mb-2 block text-sm font-semibold text-slate-700">Description</label><CourseEditor value={description} onChange={setDescription}/></div><div className="mt-7 flex justify-end"><button className="btn-primary gap-2">Next: Media & Images <ArrowRight className="size-4"/></button></div></form>:<form onSubmit={submit} className="rounded-xl border bg-white p-5 sm:p-7"><Section title="Media & Images" subtitle="Add the course introduction video and catalogue thumbnail."/><div className="mt-7 grid gap-6 lg:grid-cols-2"><div><label className="text-sm font-semibold text-slate-700">Video Source</label><select className="field mt-2" value={videoSource} onChange={e=>setVideoSource(e.target.value)}><option value="upload">Upload</option><option value="youtube">YouTube</option></select>{videoSource==='upload'?<UploadBox name="video" accept="video/mp4,video/webm" icon={Video} label="Upload course video" hint="MP4 or WebM, maximum 100 MB"/>:<label className="mt-5 block text-sm font-semibold text-slate-700">Video Link<input name="video_link" type="url" className="field mt-2" placeholder="https://youtube.com/watch?v=..." required/></label>}</div><div><label className="text-sm font-semibold text-slate-700">Thumbnail</label><UploadBox name="thumbnail" accept="image/jpeg,image/png,image/webp" icon={ImageIcon} label="Upload thumbnail image" hint="JPG, PNG or WebP" required/></div></div><div className="mt-8 flex flex-wrap justify-between gap-3"><button type="button" onClick={()=>setStep(1)} className="btn-secondary gap-2"><ArrowLeft className="size-4"/>Back</button><button disabled={busy} className="btn-primary gap-2"><Check className="size-4"/>{busy?'Submitting…':'Submit Course'}</button></div></form>}</>}
-function Step({active,done,n,label}:{active:boolean;done:boolean;n:number;label:string}){return <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-3 text-center"><span className={`grid size-10 place-items-center rounded-full border-2 font-bold ${active?'border-red bg-red text-white':'border-slate-200 bg-white text-slate-400'}`}>{done?<Check className="size-5"/>:n}</span><span className={`text-xs font-semibold sm:text-sm ${active?'text-navy':'text-slate-400'}`}>{n} - {label}</span></div>}
-function Section({title,subtitle}:{title:string;subtitle:string}){return <div className="border-b pb-5"><h2 className="text-xl font-bold text-navy">{title}</h2><p className="mt-1 text-sm text-slate-400">{subtitle}</p></div>}
-function Field({label,...props}:{label:string;name:string;[key:string]:any}){return <label className="text-sm font-semibold text-slate-700">{label}<input {...props} className="field mt-2"/></label>}
-function Select({label,name,options,values,optional}:{label:string;name:string;options?:Option[];values?:string[];optional?:boolean}){if(name==='subject'||name==='level')return null;return <label className="text-sm font-semibold text-slate-700">{label}<select name={name} className="field mt-2" required={!optional}><option value="">{optional?'None':'Choose an option'}</option>{options?.map(x=><option value={x.id} key={x.id}>{x.name}</option>)}{values?.map(x=><option value={x.toLowerCase()} key={x}>{x}</option>)}</select></label>}
-function UploadBox({name,accept,icon:Icon,label,hint,required}:{name:string;accept:string;icon:typeof Upload;label:string;hint:string;required?:boolean}){return <label className="mt-5 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-slate-50 p-6 text-center hover:border-red/40"><Icon className="mb-3 size-8 text-red"/><b className="text-sm text-navy">{label}</b><span className="mt-1 text-xs text-slate-400">{hint}</span><input name={name} type="file" accept={accept} required={required} className="mt-4 max-w-full text-xs"/></label>}
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, Check, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { CourseEditor } from "./course-editor";
+import { CourseMediaFields } from "./course-media-fields";
+type Option = { id: string; name: string };
+export function CourseBuilder({
+  categories,
+  organizations,
+  instructors,
+  subjects,
+  tags,
+}: {
+  categories: Option[];
+  organizations: Option[];
+  instructors: Option[];
+  subjects: string[];
+  tags: string[];
+}) {
+  const [step, setStep] = useState(1),
+    [busy, setBusy] = useState(false),
+    [description, setDescription] = useState(""),
+    [basic, setBasic] = useState<Record<string, string>>({}),
+    [videoSource, setVideoSource] = useState("youtube"),
+    router = useRouter();
+  function next(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBasic(
+      Object.fromEntries(new FormData(e.currentTarget)) as Record<
+        string,
+        string
+      >,
+    );
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    const media = new FormData(e.currentTarget),
+      payload = new FormData();
+    Object.entries(basic).forEach(([k, v]) => payload.set(k, v));
+    payload.set("description", description);
+    payload.set("video_source", videoSource);
+    for (const name of ["video", "thumbnail"]) {
+      const file = media.get(name);
+      if (file instanceof File && file.size) payload.set(name, file);
+    }
+    payload.set("video_link", String(media.get("video_link") || ""));
+    const res = await fetch("/api/admin/courses", {
+      method: "POST",
+      body: payload,
+    });
+    if (res.ok) {
+      toast.success("Course created successfully");
+      router.push("/dashboard/super-admin/courses");
+      router.refresh();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.error || "Course creation failed");
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <div className="mb-7">
+        <p className="text-sm text-slate-400">Courses / Add New Course</p>
+        <h1 className="mt-1 text-2xl font-bold text-[#17233c]">
+          Add New Course
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Complete both steps to publish a new course in the LMS.
+        </p>
+      </div>
+      <div className="mb-7 rounded-xl border bg-white p-5">
+        <div className="relative mx-auto flex max-w-2xl items-center justify-between">
+          <div className="absolute left-12 right-12 top-5 h-0.5 bg-slate-200">
+            <div
+              className={`h-full bg-red transition-all ${step === 2 ? "w-full" : "w-0"}`}
+            />
+          </div>
+          <Step active={true} done={step > 1} n={1} label="Basic Information" />
+          <Step active={step === 2} done={false} n={2} label="Media & Images" />
+        </div>
+      </div>
+      {step === 1 ? (
+        <form onSubmit={next} className="rounded-xl border bg-white p-5 sm:p-7">
+          <Section
+            title="Basic Information"
+            subtitle="Enter the course identity, ownership and academic details."
+          />
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            <Field label="Course Title" name="title" required />
+            <Select
+              label="Select Category"
+              name="category_id"
+              options={categories}
+            />
+            <Select
+              label="Course Type"
+              name="course_type"
+              values={["Online", "Onsite", "Hybrid"]}
+            />
+            <Select
+              label="Language"
+              name="language"
+              values={["English", "Sinhala", "Tamil"]}
+            />
+            <Select
+              label="Select Subject"
+              name="subject"
+              values={
+                subjects.length
+                  ? subjects
+                  : [
+                      "Business",
+                      "Finance",
+                      "Information Technology",
+                      "Marketing",
+                    ]
+              }
+            />
+            <Select
+              label="Course Level"
+              name="level"
+              values={["Beginner", "Intermediate", "Advanced"]}
+            />
+            <Select
+              label="Select Organization"
+              name="organization_id"
+              options={organizations}
+              optional
+            />
+            <Select
+              label="Instructor"
+              name="instructor_id"
+              options={instructors}
+              optional
+            />
+            <Field
+              label="Course Duration"
+              name="duration_weeks"
+              type="number"
+              placeholder="Duration in Month"
+              min="1"
+            />
+            <div>
+              <label className="text-sm font-semibold text-slate-700">
+                Course Tag
+              </label>
+              <input
+                name="tags"
+                list="course-tags"
+                className="field mt-2"
+                placeholder="Enter tags separated by commas"
+              />
+              <datalist id="course-tags">
+                {tags.map((x) => (
+                  <option value={x} key={x} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+          <label className="mt-5 block text-sm font-semibold text-slate-700">
+            Short Description
+            <textarea
+              name="short_description"
+              className="field mt-2 min-h-24 resize-y"
+              maxLength={300}
+              placeholder="A concise course overview..."
+              required
+            />
+          </label>
+          <div className="mt-5">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Description
+            </label>
+            <CourseEditor value={description} onChange={setDescription} />
+          </div>
+          <div className="mt-7 flex justify-end">
+            <button className="btn-primary gap-2">
+              Next: Media & Images <ArrowRight className="size-4" />
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form
+          onSubmit={submit}
+          className="rounded-xl border bg-white p-5 sm:p-7"
+        >
+          <Section
+            title="Media & Images"
+            subtitle="Add the course introduction video and catalogue thumbnail."
+          />
+          <div className="mt-7">
+            <CourseMediaFields
+              basic={basic}
+              videoSource={videoSource}
+              setVideoSource={setVideoSource}
+            />
+          </div>
+          <div className="mt-8 flex flex-wrap justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="btn-secondary gap-2"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </button>
+            <button disabled={busy} className="btn-primary gap-2">
+              <Check className="size-4" />
+              {busy ? "Submitting…" : "Submit Course"}
+            </button>
+          </div>
+        </form>
+      )}
+    </>
+  );
+}
+function Step({
+  active,
+  done,
+  n,
+  label,
+}: {
+  active: boolean;
+  done: boolean;
+  n: number;
+  label: string;
+}) {
+  return (
+    <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-3 text-center">
+      <span
+        className={`grid size-10 place-items-center rounded-full border-2 font-bold ${active ? "border-red bg-red text-white" : "border-slate-200 bg-white text-slate-400"}`}
+      >
+        {done ? <Check className="size-5" /> : n}
+      </span>
+      <span
+        className={`text-xs font-semibold sm:text-sm ${active ? "text-navy" : "text-slate-400"}`}
+      >
+        {n} - {label}
+      </span>
+    </div>
+  );
+}
+function Section({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="border-b pb-5">
+      <h2 className="text-xl font-bold text-navy">{title}</h2>
+      <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+    </div>
+  );
+}
+function Field({
+  label,
+  ...props
+}: {
+  label: string;
+  name: string;
+  [key: string]: any;
+}) {
+  return (
+    <label className="text-sm font-semibold text-slate-700">
+      {label}
+      <input {...props} className="field mt-2" />
+    </label>
+  );
+}
+function Select({
+  label,
+  name,
+  options,
+  values,
+  optional,
+}: {
+  label: string;
+  name: string;
+  options?: Option[];
+  values?: string[];
+  optional?: boolean;
+}) {
+  if (name === "subject" || name === "level") return null;
+  return (
+    <label className="text-sm font-semibold text-slate-700">
+      {label}
+      <select name={name} className="field mt-2" required={!optional}>
+        <option value="">{optional ? "None" : "Choose an option"}</option>
+        {options?.map((x) => (
+          <option value={x.id} key={x.id}>
+            {x.name}
+          </option>
+        ))}
+        {values?.map((x) => (
+          <option value={x.toLowerCase()} key={x}>
+            {x}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+function UploadBox({
+  name,
+  accept,
+  icon: Icon,
+  label,
+  hint,
+  required,
+}: {
+  name: string;
+  accept: string;
+  icon: typeof Upload;
+  label: string;
+  hint: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="mt-5 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-slate-50 p-6 text-center hover:border-red/40">
+      <Icon className="mb-3 size-8 text-red" />
+      <b className="text-sm text-navy">{label}</b>
+      <span className="mt-1 text-xs text-slate-400">{hint}</span>
+      <input
+        name={name}
+        type="file"
+        accept={accept}
+        required={required}
+        className="mt-4 max-w-full text-xs"
+      />
+    </label>
+  );
+}

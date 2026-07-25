@@ -1,0 +1,11 @@
+alter table profiles add column if not exists designation text;
+alter table profiles add column if not exists website text;
+alter table profiles add column if not exists expertises text[] default '{}';
+alter table profiles add column if not exists facebook_url text;
+alter table profiles add column if not exists twitter_url text;
+alter table profiles add column if not exists instagram_url text;
+alter table profiles add column if not exists linkedin_url text;
+alter table profiles add column if not exists youtube_url text;
+alter table profiles add column if not exists followers_count int not null default 0;
+alter table profiles add column if not exists following_count int not null default 0;
+alter table profiles add column if not exists last_login_at timestamptz;
