@@ -19,7 +19,7 @@ export default async function EditStaff({
         db
           .from("profiles")
           .select(
-            "id,first_name,last_name,phone_country_code,phone,email,organization_id,designation,website,expertises,address,country,about,nic_passport,facebook_url,twitter_url,instagram_url,linkedin_url,youtube_url,avatar_url,date_of_birth,gender,education_background,professional_details,resume_url,staff_role",
+            "id,first_name,last_name,phone_country_code,phone,whatsapp_number,email,organization_id,designation,website,expertises,address,country,about,nic_passport,facebook_url,twitter_url,instagram_url,linkedin_url,youtube_url,avatar_url,date_of_birth,gender,education_background,professional_details,resume_url,staff_role",
           )
           .eq("id", params.id)
           .eq("role", "admin_staff")

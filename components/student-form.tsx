@@ -18,6 +18,7 @@ export type StudentFormValue = {
   phone: string | null;
   email: string;
   avatar_url: string | null;
+  whatsapp_number: string | null;
 };
 export function StudentForm({ student }: { student?: StudentFormValue }) {
   const initialCountry =
@@ -29,6 +30,11 @@ export function StudentForm({ student }: { student?: StudentFormValue }) {
     [countryOpen, setCountryOpen] = useState(false),
     [image, setImage] = useState(student?.avatar_url || ""),
     [removeAvatar, setRemoveAvatar] = useState(false),
+    [whatsappMode, setWhatsappMode] = useState(
+      student?.whatsapp_number && student.whatsapp_number !== student.phone
+        ? "new"
+        : "same",
+    ),
     [busy, setBusy] = useState(false),
     router = useRouter(),
     visible = useMemo(
@@ -243,6 +249,28 @@ export function StudentForm({ student }: { student?: StudentFormValue }) {
             type="email"
             defaultValue={student?.email || ""}
           />
+          <label className="text-sm font-semibold">
+            WhatsApp Number{" "}
+            <span className="font-normal text-slate-400">(Optional)</span>
+            <select
+              name="whatsapp_mode"
+              value={whatsappMode}
+              onChange={(e) => setWhatsappMode(e.target.value)}
+              className="field mt-2"
+            >
+              <option value="same">Same as Phone Number</option>
+              <option value="new">New</option>
+            </select>
+            {whatsappMode === "new" && (
+              <input
+                name="whatsapp_number"
+                type="tel"
+                defaultValue={student?.whatsapp_number || ""}
+                className="field mt-2"
+                placeholder="WhatsApp number with country code"
+              />
+            )}
+          </label>
         </div>
       </section>
       <div className="flex justify-end">

@@ -26,13 +26,6 @@ type Counts = {
   enrollments: number;
   completed: number;
 };
-const recent = [
-  ["Olivia Martin", "Enrolled in Strategic Leadership", "2 minutes ago", "OM"],
-  ["Daniel Silva", "Completed Financial Management", "18 minutes ago", "DS"],
-  ["Aisha Rahman", "Joined Digital Marketing Strategy", "1 hour ago", "AR"],
-  ["Marcus Lee", "Submitted an assignment", "3 hours ago", "ML"],
-];
-
 export function SuperAdminHome({
   counts,
   bestCourses,
@@ -40,6 +33,8 @@ export function SuperAdminHome({
   movement,
   admin,
   appointments,
+  recentActivity,
+  upcomingSessions,
 }: {
   counts: Counts;
   bestCourses: { title: string; enrollments: number }[];
@@ -54,9 +49,23 @@ export function SuperAdminHome({
     status: string;
     meetingUrl: string | null;
   }[];
+  recentActivity: {
+    id: string;
+    name: string;
+    avatar: string | null;
+    event: string;
+    date: string;
+  }[];
+  upcomingSessions: {
+    id: string;
+    title: string;
+    start: string;
+    meetingUrl: string | null;
+  }[];
 }) {
   const [now, setNow] = useState(() => new Date());
   const [month, setMonth] = useState(() => new Date());
+  const [videoFinished, setVideoFinished] = useState(false);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000);
     return () => window.clearInterval(timer);
@@ -235,11 +244,28 @@ export function SuperAdminHome({
         </div>
         <div className="order-1 mt-7 grid gap-5 xl:grid-cols-[3fr_1fr]">
           <section className="relative min-h-[300px] overflow-hidden rounded-2xl bg-navy p-7 text-white shadow-sm sm:p-9">
+            <img
+              src="/Thumimage.jpeg"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 size-full scale-105 object-cover blur-[3px]"
+            />
+            <video
+              src="/thum_video.mp4"
+              poster="/Thumimage.jpeg"
+              autoPlay
+              muted
+              playsInline
+              onEnded={() => setVideoFinished(true)}
+              onError={() => setVideoFinished(true)}
+              className={`absolute inset-0 size-full object-cover transition-opacity duration-700 ${videoFinished ? "opacity-0" : "opacity-100"}`}
+            />
+            <div className="absolute inset-0 bg-navy/70" />
             <div className="absolute -right-16 -top-20 size-64 rounded-full bg-red/25" />
             <div className="absolute -bottom-24 -left-16 size-64 rounded-full bg-white/5" />
             <div className="relative flex h-full flex-col justify-between gap-10">
               <div className="flex items-start justify-between gap-5">
-                <div>
+                <div className="rounded-2xl border border-white/10 bg-black/15 p-4 backdrop-blur-md sm:p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
                     Sri Lanka time
                   </p>
@@ -265,10 +291,10 @@ export function SuperAdminHome({
                   <img
                     src={admin.avatarUrl}
                     alt={admin.name}
-                    className="size-20 rounded-2xl border-2 border-white/20 object-cover sm:size-24"
+                    className="size-28 rounded-2xl border-2 border-white/30 object-cover shadow-2xl sm:size-36"
                   />
                 ) : (
-                  <span className="grid size-20 place-items-center rounded-2xl bg-white/10 text-3xl font-bold sm:size-24">
+                  <span className="grid size-28 place-items-center rounded-2xl bg-white/10 text-4xl font-bold shadow-2xl sm:size-36">
                     {firstName[0]?.toUpperCase()}
                   </span>
                 )}
@@ -420,6 +446,7 @@ export function SuperAdminHome({
                           timeZone: "Asia/Colombo",
                           day: "2-digit",
                           month: "short",
+                          year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -448,21 +475,24 @@ export function SuperAdminHome({
         </div>
       </div>
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <section className="rounded-xl border bg-white p-6">
+        <section className="min-w-0 overflow-hidden rounded-xl border bg-white p-4 sm:p-6">
           <h2 className="font-bold text-[#17233c]">Best Courses</h2>
           <p className="mt-1 text-xs text-slate-400">
             Top five courses by student enrollments
           </p>
           <div className="mt-5 divide-y">
             {bestCourses.map((course, index) => (
-              <div key={course.title} className="flex items-center gap-4 py-3">
+              <div
+                key={course.title}
+                className="flex min-w-0 items-center gap-2 py-3 sm:gap-4"
+              >
                 <span className="grid size-9 place-items-center rounded-lg bg-navy text-xs font-bold text-white">
                   {index + 1}
                 </span>
                 <b className="min-w-0 flex-1 truncate text-sm text-navy">
                   {course.title}
                 </b>
-                <span className="rounded-full bg-red/10 px-3 py-1 text-xs font-bold text-red">
+                <span className="shrink-0 rounded-full bg-red/10 px-2 py-1 text-[10px] font-bold text-red sm:px-3 sm:text-xs">
                   Enroll · {course.enrollments}
                 </span>
               </div>
@@ -474,7 +504,7 @@ export function SuperAdminHome({
             )}
           </div>
         </section>
-        <section className="rounded-xl border bg-white p-6">
+        <section className="min-w-0 overflow-hidden rounded-xl border bg-white p-4 sm:p-6">
           <h2 className="font-bold text-[#17233c]">Manpower Information</h2>
           <p className="mt-1 text-xs text-slate-400">
             Current platform user totals
@@ -571,48 +601,122 @@ export function SuperAdminHome({
             <button className="text-xs font-semibold text-red">View all</button>
           </div>
           <div className="divide-y">
-            {recent.map(([name, event, time, initials]) => (
-              <div className="flex items-center gap-4 px-6 py-4" key={name}>
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-navy">
-                  {initials}
-                </span>
+            {recentActivity.map((activity) => (
+              <div
+                className="flex items-center gap-4 px-4 py-4 sm:px-6"
+                key={activity.id}
+              >
+                {activity.avatar ? (
+                  <img
+                    src={activity.avatar}
+                    alt=""
+                    className="size-10 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-navy">
+                    {activity.name
+                      .split(/\s+/)
+                      .map((x) => x[0])
+                      .join("")
+                      .slice(0, 2)}
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
-                  <b className="block text-sm text-[#17233c]">{name}</b>
-                  <p className="truncate text-xs text-slate-500">{event}</p>
+                  <b className="block text-sm text-[#17233c]">
+                    {activity.name}
+                  </b>
+                  <p className="truncate text-xs text-slate-500">
+                    {activity.event}
+                  </p>
                 </div>
                 <span className="hidden text-[11px] text-slate-400 sm:block">
-                  {time}
+                  {new Date(activity.date).toLocaleString("en-LK", {
+                    timeZone: "Asia/Colombo",
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
             ))}
+            {!recentActivity.length && (
+              <p className="p-8 text-center text-sm text-slate-400">
+                No recent activity.
+              </p>
+            )}
           </div>
         </section>
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-bold text-[#17233c]">Upcoming sessions</h2>
           <p className="mt-1 text-xs text-slate-400">Classes scheduled next</p>
-          {[
-            ["Strategic Leadership", "Today · 4:00 PM"],
-            ["Digital Marketing", "Tomorrow · 10:30 AM"],
-            ["Financial Management", "Fri · 2:00 PM"],
-          ].map(([title, time], i) => (
-            <div className="mt-5 flex gap-3" key={title}>
+          {upcomingSessions.map((session, i) => (
+            <div className="mt-5 flex items-center gap-3" key={session.id}>
               <span
                 className={`grid size-10 shrink-0 place-items-center rounded-lg ${i === 0 ? "bg-red text-white" : "bg-slate-100 text-navy"}`}
               >
                 <CalendarClock className="size-4" />
               </span>
-              <div>
-                <b className="block text-sm text-[#17233c]">{title}</b>
+              <div className="min-w-0 flex-1">
+                <b className="block truncate text-sm text-[#17233c]">
+                  {session.title}
+                </b>
                 <span className="flex items-center gap-1 text-[11px] text-slate-400">
                   <Clock3 className="size-3" />
-                  {time}
+                  {new Date(session.start).toLocaleString("en-LK", {
+                    timeZone: "Asia/Colombo",
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
+              {session.meetingUrl && (
+                <a
+                  href={session.meetingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg bg-red px-3 py-2 text-xs font-bold text-white"
+                >
+                  Join
+                </a>
+              )}
             </div>
           ))}
-          <button className="mt-6 w-full rounded-lg border py-2.5 text-xs font-semibold text-navy">
+          {!upcomingSessions.length && (
+            <p className="py-8 text-center text-sm text-slate-400">
+              No upcoming sessions.
+            </p>
+          )}
+          {false &&
+            [
+              ["Strategic Leadership", "Today · 4:00 PM"],
+              ["Digital Marketing", "Tomorrow · 10:30 AM"],
+              ["Financial Management", "Fri · 2:00 PM"],
+            ].map(([title, time], i) => (
+              <div className="mt-5 flex gap-3" key={title}>
+                <span
+                  className={`grid size-10 shrink-0 place-items-center rounded-lg ${i === 0 ? "bg-red text-white" : "bg-slate-100 text-navy"}`}
+                >
+                  <CalendarClock className="size-4" />
+                </span>
+                <div>
+                  <b className="block text-sm text-[#17233c]">{title}</b>
+                  <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <Clock3 className="size-3" />
+                    {time}
+                  </span>
+                </div>
+              </div>
+            ))}
+          <a
+            href="/dashboard/super-admin/calendar"
+            className="mt-6 block w-full rounded-lg border py-2.5 text-center text-xs font-semibold text-navy"
+          >
             Open calendar
-          </button>
+          </a>
         </section>
       </div>
     </>

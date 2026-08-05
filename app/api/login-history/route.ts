@@ -16,6 +16,14 @@ export async function POST(req: Request) {
     .from("profiles")
     .update({ last_login_at: new Date().toISOString() })
     .eq("id", user.id);
+  await admin
+    .from("admin_activity_logs")
+    .insert({
+      actor_id: user.id,
+      action: "login",
+      entity_type: "session",
+      description: "Logged in to the platform",
+    });
   if (profile?.role !== "student") return Response.json({ ok: true });
   const ua = req.headers.get("user-agent") || "",
     browser = /Edg\//.test(ua)
@@ -48,5 +56,21 @@ export async function POST(req: Request) {
   await admin
     .from("student_login_history")
     .insert({ student_id: user.id, browser, platform, ip_address: ip });
+  return Response.json({ ok: true });
+}
+export async function DELETE() {
+  const db = createClient(),
+    {
+      data: { user },
+    } = await db.auth.getUser();
+  if (!user) return Response.json({ ok: true });
+  await createAdminClient()
+    .from("admin_activity_logs")
+    .insert({
+      actor_id: user.id,
+      action: "logout",
+      entity_type: "session",
+      description: "Logged out of the platform",
+    });
   return Response.json({ ok: true });
 }

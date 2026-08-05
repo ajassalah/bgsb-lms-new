@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronDown,
   CircleHelp,
+  CreditCard,
   ClipboardCheck,
   FileBarChart,
   GraduationCap,
@@ -33,6 +34,8 @@ import {
   X,
 } from "lucide-react";
 import { SignOut } from "./signout";
+import { GlobalActionConfirmation } from "./global-action-confirmation";
+import { FloatingActionMenus } from "./floating-action-menus";
 
 const groups = [
   {
@@ -56,6 +59,7 @@ const groups = [
       ["Staff", UserCog, "/dashboard/super-admin/staff"],
     ],
   },
+  { label: "Sales", items: [["Sales", CreditCard, "#"]] },
   {
     label: "Communication",
     items: [
@@ -119,6 +123,9 @@ export function SuperAdminShell({
   const [systemOpen, setSystemOpen] = useState(
     pathname.startsWith("/dashboard/super-admin/settings"),
   );
+  const [salesOpen, setSalesOpen] = useState(
+    pathname.startsWith("/dashboard/super-admin/sales"),
+  );
   useEffect(() => setMobile(false), [pathname]);
   useEffect(() => {
     const saved = window.localStorage.getItem("bgsb-admin-theme");
@@ -151,10 +158,23 @@ export function SuperAdminShell({
       document.body.style.overflow = "";
     };
   }, [mobile]);
+  function markNotifications(ids: string[]) {
+    if (!ids.length) return;
+    setNotifications((items) => items.filter((item) => !ids.includes(item.id)));
+    fetch("/api/admin/notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ids }),
+      keepalive: true,
+    }).catch(() => {});
+  }
   return (
     <div
+      data-admin-shell
       className={`min-h-screen max-w-full bg-[#f5f6fa] ${darkMode ? "admin-dark" : ""}`}
     >
+      <GlobalActionConfirmation />
+      <FloatingActionMenus />
       {mobile && (
         <button
           aria-label="Close sidebar"
@@ -306,6 +326,37 @@ export function SuperAdminShell({
                         </div>
                       )}
                     </div>
+                  ) : label === "Sales" ? (
+                    <div key={label}>
+                      <button
+                        onClick={() => setSalesOpen((x) => !x)}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${pathname.startsWith("/dashboard/super-admin/sales") ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+                      >
+                        <Icon className="size-[18px]" />
+                        <span className={sidebar ? "" : "lg:hidden"}>
+                          Sales
+                        </span>
+                        <ChevronDown
+                          className={`ml-auto size-3.5 ${salesOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {salesOpen && sidebar && (
+                        <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                          {[
+                            ["Payment", "payments"],
+                            ["Invoice", "invoices"],
+                          ].map(([name, slug]) => (
+                            <Link
+                              key={slug}
+                              href={`/dashboard/super-admin/sales/${slug}`}
+                              className={`block rounded-lg px-3 py-2 text-[13px] ${pathname.endsWith(slug) ? "bg-red text-white" : "text-white/45"}`}
+                            >
+                              {name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : label === "System settings" ? (
                     <div key={label}>
                       <button
@@ -329,6 +380,14 @@ export function SuperAdminShell({
                           >
                             <Settings className="size-3.5" />
                             Email Configuration
+                          </Link>
+                          <Link
+                            href="/dashboard/super-admin/settings/activity"
+                            onClick={() => setMobile(false)}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname === "/dashboard/super-admin/settings/activity" ? "bg-red text-white" : "text-white/45 hover:bg-white/5"}`}
+                          >
+                            <Activity className="size-3.5" />
+                            Recent Activity
                           </Link>
                         </div>
                       )}
@@ -386,7 +445,7 @@ export function SuperAdminShell({
               className="flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold text-navy"
             >
               <PlusCircle className="size-4 text-red" />
-              <span className="hidden sm:inline">Shortcuts</span>
+              <span className="hidden sm:inline">Create</span>
               <ChevronDown className="size-3" />
             </button>
             {shortcutsOpen && (
@@ -404,6 +463,10 @@ export function SuperAdminShell({
                     "/dashboard/super-admin/announcements/new",
                   ],
                   ["Add FAQ", "/dashboard/super-admin/support/faq/new"],
+                  [
+                    "Add Email Template",
+                    "/dashboard/super-admin/email-templates/new",
+                  ],
                 ].map(([label, url]) => (
                   <Link
                     key={url}
@@ -445,24 +508,41 @@ export function SuperAdminShell({
                   setAccountOpen(false);
                   setShortcutsOpen(false);
                 }}
-                className="relative grid size-10 place-items-center rounded-lg border text-slate-500"
+                className={`relative grid size-11 place-items-center rounded-lg border ${notifications.length ? "text-red" : "text-slate-500"}`}
               >
-                <Bell className="size-4" />
+                <Bell
+                  className={`size-6 ${notifications.length ? "fill-red/10" : ""}`}
+                />
                 {notifications.length > 0 && (
                   <span className="absolute right-2 top-2 size-2 rounded-full bg-red ring-2 ring-white" />
                 )}
               </button>
               {notificationsOpen && (
                 <div className="absolute right-0 top-12 z-[190] w-[300px] max-w-[85vw] rounded-xl border bg-white p-2 shadow-2xl">
-                  <div className="border-b px-3 py-2">
+                  <div className="flex items-center justify-between border-b px-3 py-2">
                     <b className="text-sm text-navy">Notifications</b>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={() =>
+                          markNotifications(
+                            notifications.map((item) => item.id),
+                          )
+                        }
+                        className="text-[11px] font-bold text-red"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.map((item) => (
                       <Link
                         key={item.id}
                         href={item.url}
-                        onClick={() => setNotificationsOpen(false)}
+                        onClick={() => {
+                          markNotifications([item.id]);
+                          setNotificationsOpen(false);
+                        }}
                         className="block rounded-lg px-3 py-3 hover:bg-slate-50"
                       >
                         <b className="line-clamp-2 text-xs text-navy">

@@ -41,7 +41,22 @@ div:has(> input[name="tags"]) {
   display: none !important;
 }
 td.relative > div.absolute {
-  z-index: 100 !important;
+  z-index: 500 !important;
+}
+td.relative:has(> div.absolute) {
+  z-index: 490 !important;
+}
+tr:has(td.relative > div.absolute) {
+  position: relative;
+  z-index: 480 !important;
+}
+tbody:has(td.relative > div.absolute),
+table:has(td.relative > div.absolute) {
+  overflow: visible !important;
+}
+[class*="relative"]:has(> [class*="absolute"][class*="shadow-xl"]),
+[class*="relative"]:has(> [class*="absolute"][class*="shadow-2xl"]) {
+  z-index: 490 !important;
 }
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
@@ -136,9 +151,28 @@ td.relative > div.absolute {
   .fixed.inset-0 label[class*="min-h-"] {
     min-height: 7rem !important;
   }
+  .fixed.inset-0[role="dialog"] > div,
+  .fixed.inset-0 > section,
+  .fixed.inset-0 > form {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: 90vh !important;
+    overflow-y: auto;
+    padding: 1rem !important;
+  }
+  [class*="absolute"][class*="shadow-2xl"],
+  [class*="absolute"][class*="shadow-xl"] {
+    max-width: min(16rem, calc(100vw - 1.5rem)) !important;
+  }
 }
 @media (min-width: 1024px) {
   section:has(table) {
+    overflow: visible !important;
+  }
+  section:has(table) > div,
+  .overflow-hidden:has(table),
+  .overflow-hidden:has(table) > div,
+  [class*="rounded"]:has(> table),
+  [class*="rounded"]:has(> div > table) {
     overflow: visible !important;
   }
   div.overflow-x-auto:has(> table),
@@ -202,18 +236,34 @@ td.relative > div.absolute {
 .admin-dark [class*="hover:bg-slate-50"]:hover {
   background-color: #172438 !important;
 }
-.admin-dark .bg-blue-50 { background-color: #102746 !important; }
-.admin-dark .bg-violet-50 { background-color: #251c45 !important; }
-.admin-dark .bg-amber-50 { background-color: #342711 !important; }
-.admin-dark .bg-emerald-50 { background-color: #0f3028 !important; }
+.admin-dark .bg-blue-50 {
+  background-color: #102746 !important;
+}
+.admin-dark .bg-violet-50 {
+  background-color: #251c45 !important;
+}
+.admin-dark .bg-amber-50 {
+  background-color: #342711 !important;
+}
+.admin-dark .bg-emerald-50 {
+  background-color: #0f3028 !important;
+}
 .admin-dark .text-blue-600,
-.admin-dark .text-blue-700 { color: #7db5ff !important; }
+.admin-dark .text-blue-700 {
+  color: #7db5ff !important;
+}
 .admin-dark .text-violet-600,
-.admin-dark .text-violet-700 { color: #b69cff !important; }
+.admin-dark .text-violet-700 {
+  color: #b69cff !important;
+}
 .admin-dark .text-amber-600,
-.admin-dark .text-amber-700 { color: #f7c75d !important; }
+.admin-dark .text-amber-700 {
+  color: #f7c75d !important;
+}
 .admin-dark .text-emerald-600,
-.admin-dark .text-emerald-700 { color: #64d8b4 !important; }
+.admin-dark .text-emerald-700 {
+  color: #64d8b4 !important;
+}
 .admin-dark input,
 .admin-dark select,
 .admin-dark textarea {

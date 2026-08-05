@@ -6,6 +6,10 @@ export function SignOut({ light = false }: { light?: boolean }) {
     <button
       className={`flex w-full items-center gap-3 text-sm ${light ? "rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50" : "text-white/60 hover:text-white"}`}
       onClick={async () => {
+        await fetch("/api/login-history", {
+          method: "DELETE",
+          keepalive: true,
+        }).catch(() => {});
         await createClient().auth.signOut();
         location.href = "/login";
       }}

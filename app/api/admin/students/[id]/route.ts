@@ -49,8 +49,10 @@ export async function PATCH(
         nic_passport: z.string().trim().min(2),
         phone_country_code: z.string().min(1),
         phone: z.string().trim().min(5),
-      email: z.string().email(),
-      remove_avatar: z.string().optional(),
+        whatsapp_mode: z.enum(["same", "new"]).optional(),
+        whatsapp_number: z.string().optional(),
+        email: z.string().email(),
+        remove_avatar: z.string().optional(),
       })
       .safeParse(Object.fromEntries(form));
   if (!parsed.success)
@@ -84,11 +86,15 @@ export async function PATCH(
       nic_passport: parsed.data.nic_passport,
       phone_country_code: parsed.data.phone_country_code,
       phone: `${parsed.data.phone_country_code}${parsed.data.phone}`,
+      whatsapp_number:
+        parsed.data.whatsapp_mode === "new"
+          ? parsed.data.whatsapp_number || null
+          : `${parsed.data.phone_country_code}${parsed.data.phone}`,
       email: parsed.data.email.toLowerCase(),
-    ...(avatar_url ? { avatar_url } : {}),
-    ...(!avatar_url && parsed.data.remove_avatar === "true"
-      ? { avatar_url: null }
-      : {}),
+      ...(avatar_url ? { avatar_url } : {}),
+      ...(!avatar_url && parsed.data.remove_avatar === "true"
+        ? { avatar_url: null }
+        : {}),
     },
     result = await admin
       .from("profiles")
@@ -101,6 +107,19 @@ export async function PATCH(
     email: parsed.data.email,
     user_metadata: { full_name: values.full_name },
   });
+  const {
+    data: { user },
+  } = await createClient().auth.getUser();
+  if (user)
+    await admin
+      .from("admin_activity_logs")
+      .insert({
+        actor_id: user.id,
+        action: "update",
+        entity_type: "student",
+        entity_id: params.id,
+        description: `Updated student ${values.full_name}`,
+      });
   return Response.json({ ok: true });
 }
 export async function DELETE(
@@ -110,6 +129,9 @@ export async function DELETE(
   if (!(await authorized()))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await createClient().auth.getUser();
   for (const [table, column] of [
     ["assignment_submissions", "student_id"],
     ["quiz_attempts", "student_id"],
@@ -121,6 +143,16 @@ export async function DELETE(
   ] as const)
     await admin.from(table).delete().eq(column, params.id);
   const { error } = await admin.auth.admin.deleteUser(params.id);
+  if (!error && user)
+    await admin
+      .from("admin_activity_logs")
+      .insert({
+        actor_id: user.id,
+        action: "delete",
+        entity_type: "student",
+        entity_id: params.id,
+        description: "Deleted a student account",
+      });
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json({ ok: true });

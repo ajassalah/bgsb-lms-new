@@ -1,5 +1,15 @@
 "use client";
-import { Edit3, Eye, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Edit3,
+  Eye,
+  Mail,
+  MessageCircle,
+  MoreVertical,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,22 +22,29 @@ export type InstructorRow = {
   last_login_at: string | null;
   status: string;
   avatar_url: string | null;
+  whatsapp_number: string | null;
 };
 export function InstructorManagement({
   initialRows,
   entity = "Instructor",
   basePath = "/dashboard/super-admin/instructors",
   profileRole = "instructor",
+  emailTemplates = [],
+  fromEmail = "Not configured",
 }: {
   initialRows: InstructorRow[];
   entity?: "Instructor" | "Staff";
   basePath?: string;
   profileRole?: "instructor" | "admin_staff";
+  emailTemplates?: { id: string; subject: string }[];
+  fromEmail?: string;
 }) {
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<InstructorRow | null>(null),
+    [emailing, setEmailing] = useState<InstructorRow | null>(null),
+    [sending, setSending] = useState(false),
     router = useRouter(),
     visible = useMemo(
       () =>
@@ -39,6 +56,24 @@ export function InstructorManagement({
       [rows, query],
     );
   useEffect(() => setRows(initialRows), [initialRows]);
+  async function sendEmail(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!emailing) return;
+    setSending(true);
+    const template_id = String(
+      new FormData(event.currentTarget).get("template_id") || "",
+    );
+    const res = await fetch("/api/admin/send-student-email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ student_id: emailing.id, template_id }),
+    });
+    setSending(false);
+    if (res.ok) {
+      toast.success("Email sent successfully");
+      setEmailing(null);
+    } else toast.error((await res.json()).error || "Email failed");
+  }
   async function toggle(row: InstructorRow) {
     const status = row.status === "active" ? "suspended" : "active";
     setRows((x) => x.map((y) => (y.id === row.id ? { ...y, status } : y)));
@@ -53,7 +88,10 @@ export function InstructorManagement({
     if (!res.ok) {
       setRows((x) => x.map((y) => (y.id === row.id ? row : y)));
       toast.error("Status update failed");
-    } else { toast.success(`${entity} status updated`); router.refresh(); }
+    } else {
+      toast.success(`${entity} status updated`);
+      router.refresh();
+    }
   }
   async function remove() {
     if (!deleting) return;
@@ -160,7 +198,7 @@ export function InstructorManagement({
                       </button>
                     </div>
                     {menu === r.id && (
-                      <div className="absolute right-4 top-14 z-50 w-40 rounded-xl border bg-white py-1 shadow-xl">
+                      <div className="absolute right-4 top-14 z-[190] w-48 rounded-xl border bg-white py-1 shadow-2xl">
                         <button
                           onClick={() => router.push(`${basePath}/${r.id}`)}
                           className="instructor-action"
@@ -187,6 +225,27 @@ export function InstructorManagement({
                           <Trash2 />
                           Delete
                         </button>
+                        <button
+                          onClick={() => {
+                            setEmailing(r);
+                            setMenu(null);
+                          }}
+                          className="instructor-action"
+                        >
+                          <Mail />
+                          Send Email
+                        </button>
+                        {r.whatsapp_number && (
+                          <a
+                            href={`https://wa.me/${r.whatsapp_number.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="instructor-action text-emerald-600"
+                          >
+                            <MessageCircle />
+                            WhatsApp
+                          </a>
+                        )}
                       </div>
                     )}
                   </td>
@@ -204,6 +263,64 @@ export function InstructorManagement({
         onCancel={() => setDeleting(null)}
         onConfirm={remove}
       />
+      {emailing && (
+        <div className="fixed inset-0 z-[220] grid place-items-center bg-black/50 p-3 backdrop-blur-sm">
+          <form
+            onSubmit={sendEmail}
+            className="relative w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={() => setEmailing(null)}
+              className="absolute right-3 top-3"
+            >
+              <X className="size-4" />
+            </button>
+            <h2 className="text-lg font-bold text-navy">Send Email</h2>
+            <div className="mt-5 space-y-4">
+              <label className="block text-sm font-semibold">
+                From
+                <input
+                  value={fromEmail}
+                  readOnly
+                  className="field mt-2 bg-slate-50"
+                />
+              </label>
+              <label className="block text-sm font-semibold">
+                To
+                <input
+                  value={emailing.email}
+                  readOnly
+                  className="field mt-2 bg-slate-50"
+                />
+              </label>
+              <label className="block text-sm font-semibold">
+                Subject
+                <select name="template_id" required className="field mt-2">
+                  <option value="">Select email template</option>
+                  {emailTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.subject}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEmailing(null)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button disabled={sending} className="btn-primary">
+                {sending ? "Sending…" : "Send Email"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       <style jsx global>{`
         .instructor-action {
           display: flex;

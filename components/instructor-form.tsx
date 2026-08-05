@@ -25,6 +25,7 @@ export type InstructorValue = {
   last_name: string | null;
   phone_country_code: string | null;
   phone: string | null;
+  whatsapp_number: string | null;
   email: string;
   organization_id: string | null;
   designation: string | null;
@@ -77,6 +78,12 @@ export function InstructorForm({
     [countryQuery, setCountryQuery] = useState(""),
     [image, setImage] = useState(instructor?.avatar_url || ""),
     [removeAvatar, setRemoveAvatar] = useState(false),
+    [whatsappMode, setWhatsappMode] = useState(
+      instructor?.whatsapp_number &&
+        instructor.whatsapp_number !== instructor.phone
+        ? "new"
+        : "same",
+    ),
     [education, setEducation] = useState<Education[]>(
       instructor?.education_background || [],
     ),
@@ -213,6 +220,27 @@ export function InstructorForm({
               type="email"
               value={instructor?.email}
             />
+            <label className="text-sm font-semibold">
+              WhatsApp Number{" "}
+              <span className="font-normal text-slate-400">(Optional)</span>
+              <select
+                name="whatsapp_mode"
+                value={whatsappMode}
+                onChange={(e) => setWhatsappMode(e.target.value)}
+                className="field mt-2"
+              >
+                <option value="same">Same as Phone Number</option>
+                <option value="new">New</option>
+              </select>
+              {whatsappMode === "new" && (
+                <input
+                  name="whatsapp_number"
+                  defaultValue={instructor?.whatsapp_number || ""}
+                  className="field mt-2"
+                  placeholder="WhatsApp number with country code"
+                />
+              )}
+            </label>
             <label className="text-sm font-semibold">
               Organization
               <select

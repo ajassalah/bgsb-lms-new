@@ -57,6 +57,7 @@ export function CalendarManagement({
   );
   const [appointments, setAppointments] = useState(initialAppointments);
   const [editing, setEditing] = useState<CalendarAppointment | null>(null);
+  const [showForm, setShowForm] = useState(Boolean(initialSelected));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const days = useMemo(() => {
@@ -108,6 +109,7 @@ export function CalendarManagement({
     );
     formElement.reset();
     setEditing(null);
+    setShowForm(false);
     router.refresh();
   }
   async function remove(id: string) {
@@ -132,254 +134,271 @@ export function CalendarManagement({
           </p>
         </div>
         <button
-          onClick={() =>
-            document
-              .getElementById("appointment-form")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
           className="btn-primary gap-2"
         >
           <CalendarPlus className="size-4" />
           Create Appointment
         </button>
       </div>
-      <section className="mt-7 rounded-2xl border bg-white p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() =>
-              setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
-            }
-            className="grid size-9 place-items-center rounded-lg border"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <h2 className="font-bold text-navy">
-            {month.toLocaleDateString("en-GB", {
-              month: "long",
-              year: "numeric",
-            })}
-          </h2>
-          <button
-            onClick={() =>
-              setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
-            }
-            className="grid size-9 place-items-center rounded-lg border"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-        <div className="mt-5 grid grid-cols-7 gap-1 sm:gap-2">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((x) => (
-            <div
-              key={x}
-              className="py-2 text-center text-[10px] font-bold uppercase text-slate-400"
-            >
-              {x}
-            </div>
-          ))}
-          {days.map((day, index) => {
-            if (!day)
-              return (
-                <div
-                  key={`blank-${index}`}
-                  className="min-h-14 rounded-lg bg-slate-50/50 sm:min-h-24"
-                />
-              );
-            const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const rows = appointments.filter(
-              (x) => dateKey(x.scheduled_start) === key,
-            );
-            return (
-              <button
-                key={key}
-                onClick={() => setSelected(key)}
-                className={`min-h-14 rounded-lg border p-1.5 text-left align-top sm:min-h-24 sm:p-2 ${selected === key ? "border-red ring-2 ring-red/10" : "border-slate-100"}`}
-              >
-                <span
-                  className={`grid size-6 place-items-center rounded-full text-xs ${dateKey(new Date()) === key ? "bg-red font-bold text-white" : "text-slate-600"}`}
-                >
-                  {day}
-                </span>
-                {rows.slice(0, 2).map((x) => (
-                  <span
-                    key={x.id}
-                    className="mt-1 block truncate rounded bg-red/10 px-1.5 py-1 text-[9px] font-semibold text-red"
-                  >
-                    {x.title}
-                  </span>
-                ))}
-                {rows.length > 2 && (
-                  <span className="text-[9px] text-slate-400">
-                    +{rows.length - 2} more
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_1.25fr]">
-        <section
-          id="appointment-form"
-          className="rounded-2xl border bg-white p-5 sm:p-6"
-        >
+      <div className="mt-7 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,.75fr)]">
+        <section className="min-w-0 rounded-2xl border bg-white p-3 sm:p-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-bold text-navy">
-              {editing ? "Edit Appointment" : "Create Appointment"}
-            </h2>
-            {editing && (
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="text-xs font-semibold text-slate-500"
-              >
-                Cancel edit
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-slate-400">
-            All dates and times use Sri Lanka time.
-          </p>
-          <form
-            key={editing?.id || selected}
-            onSubmit={createAppointment}
-            className="mt-5 space-y-4"
-          >
-            <label className="block text-sm font-semibold text-navy">
-              Title
-              <input
-                name="title"
-                required
-                defaultValue={editing?.title || ""}
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
-                placeholder="Appointment title"
-              />
-            </label>
-            <label className="block text-sm font-semibold text-navy">
-              Start date and time
-              <input
-                name="scheduled_start"
-                type="datetime-local"
-                required
-                defaultValue={
-                  editing
-                    ? dateTimeInput(editing.scheduled_start)
-                    : `${selected}T09:00`
-                }
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
-              />
-            </label>
-            <label className="block text-sm font-semibold text-navy">
-              End date and time{" "}
-              <span className="font-normal text-slate-400">(optional)</span>
-              <input
-                name="scheduled_end"
-                type="datetime-local"
-                defaultValue={dateTimeInput(editing?.scheduled_end)}
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
-              />
-            </label>
-            <label className="block text-sm font-semibold text-navy">
-              Description{" "}
-              <span className="font-normal text-slate-400">(optional)</span>
-              <textarea
-                name="description"
-                rows={3}
-                defaultValue={editing?.description || ""}
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
-              />
-            </label>
-            {error && <p className="text-sm text-red">{error}</p>}
-            <button disabled={busy} className="btn-primary w-full">
-              {busy
-                ? "Saving…"
-                : editing
-                  ? "Update Appointment"
-                  : "Create Appointment"}
+            <button
+              onClick={() =>
+                setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
+              }
+              className="grid size-9 place-items-center rounded-lg border"
+            >
+              <ChevronLeft className="size-4" />
             </button>
-          </form>
-        </section>
-        <section className="rounded-2xl border bg-white p-5 sm:p-6">
-          <h2 className="font-bold text-navy">All Scheduled Events</h2>
-          <div className="mt-4 space-y-3">
-            {scheduledRows.map((row) => (
-              <article
-                key={row.id}
-                className="flex gap-3 rounded-xl border p-4"
+            <h2 className="font-bold text-navy">
+              {month.toLocaleDateString("en-GB", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+            <button
+              onClick={() =>
+                setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
+              }
+              className="grid size-9 place-items-center rounded-lg border"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+          <div className="mt-5 grid grid-cols-7 gap-1 sm:gap-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((x) => (
+              <div
+                key={x}
+                className="py-2 text-center text-[10px] font-bold uppercase text-slate-400"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red/10 text-red">
-                  <Clock3 className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <b className="text-sm text-navy">{row.title}</b>
+                {x}
+              </div>
+            ))}
+            {days.map((day, index) => {
+              if (!day)
+                return (
+                  <div
+                    key={`blank-${index}`}
+                    className="min-h-14 rounded-lg bg-slate-50/50 sm:min-h-24"
+                  />
+                );
+              const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const rows = appointments.filter(
+                (x) => dateKey(x.scheduled_start) === key,
+              );
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelected(key)}
+                  className={`min-h-14 rounded-lg border p-1.5 text-left align-top sm:min-h-24 sm:p-2 ${selected === key ? "border-red ring-2 ring-red/10" : "border-slate-100"}`}
+                >
+                  <span
+                    className={`grid size-6 place-items-center rounded-full text-xs ${dateKey(new Date()) === key ? "bg-red font-bold text-white" : "text-slate-600"}`}
+                  >
+                    {day}
+                  </span>
+                  {rows.slice(0, 2).map((x) => (
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${row.source === "live_class" ? "bg-blue-50 text-blue-700" : "bg-red/10 text-red"}`}
+                      key={x.id}
+                      className="mt-1 block truncate rounded bg-red/10 px-1.5 py-1 text-[9px] font-semibold text-red"
                     >
-                      {row.source === "live_class"
-                        ? "Live class"
-                        : "Appointment"}
+                      {x.title}
                     </span>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {new Date(row.scheduled_start).toLocaleTimeString("en-LK", {
-                      timeZone: "Asia/Colombo",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {row.scheduled_end
-                      ? ` – ${new Date(row.scheduled_end).toLocaleTimeString("en-LK", { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit" })}`
-                      : ""}
-                  </p>
-                  {row.description && (
-                    <p className="mt-2 text-xs text-slate-400">
-                      {row.description}
-                    </p>
+                  ))}
+                  {rows.length > 2 && (
+                    <span className="text-[9px] text-slate-400">
+                      +{rows.length - 2} more
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <div className="contents">
+          {showForm && (
+            <div className="fixed inset-0 z-[210] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm">
+              <section
+                id="appointment-form"
+                className="my-auto max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-white p-4 shadow-2xl sm:p-6"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-bold text-navy">
+                    {editing ? "Edit Appointment" : "Create Appointment"}
+                  </h2>
+                  {editing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(null);
+                        setShowForm(false);
+                      }}
+                      className="text-xs font-semibold text-slate-500"
+                    >
+                      Cancel edit
+                    </button>
                   )}
                 </div>
-                {row.source !== "live_class" && (
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      onClick={() => {
-                        setEditing(row);
-                        setSelected(dateKey(row.scheduled_start));
-                        document
-                          .getElementById("appointment-form")
-                          ?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      aria-label="Edit appointment"
-                      className="grid size-9 place-items-center rounded-lg text-navy hover:bg-slate-100"
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                    <button
-                      onClick={() => remove(row.id)}
-                      aria-label="Delete appointment"
-                      className="grid size-9 place-items-center rounded-lg text-red hover:bg-red/10"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                <p className="mt-1 text-xs text-slate-400">
+                  All dates and times use Sri Lanka time.
+                </p>
+                <form
+                  key={editing?.id || selected}
+                  onSubmit={createAppointment}
+                  className="mt-5 space-y-4"
+                >
+                  <label className="block text-sm font-semibold text-navy">
+                    Title
+                    <input
+                      name="title"
+                      required
+                      defaultValue={editing?.title || ""}
+                      className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                      placeholder="Appointment title"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold text-navy">
+                    Start date and time
+                    <input
+                      name="scheduled_start"
+                      type="datetime-local"
+                      required
+                      defaultValue={
+                        editing
+                          ? dateTimeInput(editing.scheduled_start)
+                          : `${selected}T09:00`
+                      }
+                      className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold text-navy">
+                    End date and time{" "}
+                    <span className="font-normal text-slate-400">
+                      (optional)
+                    </span>
+                    <input
+                      name="scheduled_end"
+                      type="datetime-local"
+                      defaultValue={dateTimeInput(editing?.scheduled_end)}
+                      className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold text-navy">
+                    Description{" "}
+                    <span className="font-normal text-slate-400">
+                      (optional)
+                    </span>
+                    <textarea
+                      name="description"
+                      rows={3}
+                      defaultValue={editing?.description || ""}
+                      className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                    />
+                  </label>
+                  {error && <p className="text-sm text-red">{error}</p>}
+                  <button disabled={busy} className="btn-primary w-full">
+                    {busy
+                      ? "Saving…"
+                      : editing
+                        ? "Update Appointment"
+                        : "Create Appointment"}
+                  </button>
+                </form>
+              </section>
+            </div>
+          )}
+          <section className="min-w-0 rounded-2xl border bg-white p-4 sm:p-5">
+            <h2 className="font-bold text-navy">All Scheduled Events</h2>
+            <div className="mt-4 max-h-[650px] space-y-3 overflow-y-auto pr-1">
+              {scheduledRows.map((row) => (
+                <article
+                  key={row.id}
+                  className="flex gap-3 rounded-xl border p-4"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red/10 text-red">
+                    <Clock3 className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <b className="text-sm text-navy">{row.title}</b>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${row.source === "live_class" ? "bg-blue-50 text-blue-700" : "bg-red/10 text-red"}`}
+                      >
+                        {row.source === "live_class"
+                          ? "Live class"
+                          : "Appointment"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(row.scheduled_start).toLocaleString(
+                        "en-LK",
+                        {
+                          timeZone: "Asia/Colombo",
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
+                      {row.scheduled_end
+                        ? ` – ${new Date(row.scheduled_end).toLocaleTimeString("en-LK", { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit" })}`
+                        : ""}
+                    </p>
+                    {row.description && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        {row.description}
+                      </p>
+                    )}
                   </div>
-                )}
-                {row.source === "live_class" && row.meeting_url && (
-                  <a
-                    href={row.meeting_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-lg bg-red px-3 py-2 text-xs font-bold text-white"
-                  >
-                    Join
-                  </a>
-                )}
-              </article>
-            ))}
-            {!scheduledRows.length && (
-              <p className="rounded-xl bg-slate-50 p-8 text-center text-sm text-slate-400">
-                No scheduled events.
-              </p>
-            )}
-          </div>
-        </section>
+                  {row.source !== "live_class" && (
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => {
+                          setEditing(row);
+                          setSelected(dateKey(row.scheduled_start));
+                          setShowForm(true);
+                        }}
+                        aria-label="Edit appointment"
+                        className="grid size-9 place-items-center rounded-lg text-navy hover:bg-slate-100"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                      <button
+                        onClick={() => remove(row.id)}
+                        aria-label="Delete appointment"
+                        className="grid size-9 place-items-center rounded-lg text-red hover:bg-red/10"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  )}
+                  {row.source === "live_class" && row.meeting_url && (
+                    <a
+                      href={row.meeting_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-lg bg-red px-3 py-2 text-xs font-bold text-white"
+                    >
+                      Join
+                    </a>
+                  )}
+                </article>
+              ))}
+              {!scheduledRows.length && (
+                <p className="rounded-xl bg-slate-50 p-8 text-center text-sm text-slate-400">
+                  No scheduled events.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
       </div>
     </>
   );

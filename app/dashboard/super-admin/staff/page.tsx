@@ -8,11 +8,23 @@ import {
 
 export default async function StaffPage() {
   const profile = await requireProfile("super_admin"),
-    { data } = await createClient()
-      .from("profiles")
-      .select("id,full_name,email,phone,last_login_at,status,avatar_url")
-      .eq("role", "admin_staff")
-      .order("created_at", { ascending: false });
+    db = createClient(),
+    [{ data }, { data: templates }, { data: configuration }] =
+      await Promise.all([
+        db
+          .from("profiles")
+          .select(
+            "id,full_name,email,phone,whatsapp_number,last_login_at,status,avatar_url",
+          )
+          .eq("role", "admin_staff")
+          .order("created_at", { ascending: false }),
+        db.from("email_templates").select("id,subject").order("subject"),
+        db
+          .from("email_configuration")
+          .select("from_email")
+          .eq("id", 1)
+          .maybeSingle(),
+      ]);
   return (
     <SuperAdminShell name={profile.full_name}>
       <InstructorManagement
@@ -20,6 +32,8 @@ export default async function StaffPage() {
         entity="Staff"
         basePath="/dashboard/super-admin/staff"
         profileRole="admin_staff"
+        emailTemplates={templates || []}
+        fromEmail={configuration?.from_email || "Not configured"}
       />
     </SuperAdminShell>
   );

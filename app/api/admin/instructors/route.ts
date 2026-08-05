@@ -6,6 +6,8 @@ const schema = z.object({
   last_name: z.string().trim().min(1),
   phone_country_code: z.string().min(1),
   phone: z.string().trim().min(5),
+  whatsapp_mode: z.enum(["same", "new"]).optional(),
+  whatsapp_number: z.string().optional(),
   email: z.string().email(),
   organization_id: z.string().uuid().or(z.literal("")).optional(),
   designation: z.string().trim().min(2),
@@ -114,6 +116,10 @@ export async function POST(req: Request) {
         last_name: d.last_name,
         phone_country_code: d.phone_country_code,
         phone: `${d.phone_country_code}${d.phone}`,
+        whatsapp_number:
+          d.whatsapp_mode === "new"
+            ? d.whatsapp_number || null
+            : `${d.phone_country_code}${d.phone}`,
         email: d.email.toLowerCase(),
         organization_id: d.organization_id || null,
         designation: d.designation,
@@ -148,18 +154,16 @@ export async function POST(req: Request) {
       string,
       { view: boolean; create: boolean; edit: boolean; delete: boolean }
     >;
-    await admin
-      .from("admin_permissions")
-      .insert(
-        Object.entries(permissions).map(([module, flags]) => ({
-          admin_staff_id: data.id,
-          module,
-          can_view: flags.view,
-          can_create: flags.create,
-          can_edit: flags.edit,
-          can_delete: flags.delete,
-        })),
-      );
+    await admin.from("admin_permissions").insert(
+      Object.entries(permissions).map(([module, flags]) => ({
+        admin_staff_id: data.id,
+        module,
+        can_view: flags.view,
+        can_create: flags.create,
+        can_edit: flags.edit,
+        can_delete: flags.delete,
+      })),
+    );
   }
   return error
     ? Response.json({ error: error.message }, { status: 400 })

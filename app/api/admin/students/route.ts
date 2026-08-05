@@ -27,6 +27,8 @@ export async function POST(req: Request) {
         nic_passport: z.string().trim().min(2),
         phone_country_code: z.string().min(1),
         phone: z.string().trim().min(5),
+        whatsapp_mode: z.enum(["same", "new"]).optional(),
+        whatsapp_number: z.string().optional(),
         email: z.string().email(),
       })
       .safeParse(Object.fromEntries(form));
@@ -78,6 +80,10 @@ export async function POST(req: Request) {
       nic_passport: parsed.data.nic_passport,
       phone_country_code: parsed.data.phone_country_code,
       phone: `${parsed.data.phone_country_code}${parsed.data.phone}`,
+      whatsapp_number:
+        parsed.data.whatsapp_mode === "new"
+          ? parsed.data.whatsapp_number || null
+          : `${parsed.data.phone_country_code}${parsed.data.phone}`,
       email: parsed.data.email.toLowerCase(),
       avatar_url,
       status: "active",
@@ -87,7 +93,16 @@ export async function POST(req: Request) {
       .insert(values)
       .select("id,full_name,email,phone,country,status,avatar_url")
       .single();
-  return result.error
-    ? Response.json({ error: result.error.message }, { status: 400 })
-    : Response.json(result.data);
+  if (result.error)
+    return Response.json({ error: result.error.message }, { status: 400 });
+  await admin
+    .from("admin_activity_logs")
+    .insert({
+      actor_id: user.id,
+      action: "create",
+      entity_type: "student",
+      entity_id: result.data.id,
+      description: `Created student ${values.full_name}`,
+    });
+  return Response.json(result.data);
 }

@@ -12,7 +12,7 @@ export default async function EditStudent({
     { data } = await createClient()
       .from("profiles")
       .select(
-        "id,first_name,last_name,address,date_of_birth,gender,country,about,nic_passport,phone_country_code,phone,email,avatar_url",
+        "id,first_name,last_name,address,date_of_birth,gender,country,about,nic_passport,phone_country_code,phone,email,avatar_url,whatsapp_number",
       )
       .eq("id", params.id)
       .eq("role", "student")
