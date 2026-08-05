@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 async function auth() {
   const db = createClient(),
     {
@@ -27,11 +28,24 @@ export async function POST(req: Request) {
         title: z.string().trim().min(2),
         description: z.string().trim().min(2),
         meeting_url: z.string().url(),
+        scheduled_start: z.string().min(1),
+        scheduled_end: z.string().min(1),
       })
       .safeParse(Object.fromEntries(form));
   if (!parsed.success)
     return Response.json(
       { error: "Enter valid live class details" },
+      { status: 400 },
+    );
+  const scheduledStart = new Date(parsed.data.scheduled_start),
+    scheduledEnd = new Date(parsed.data.scheduled_end);
+  if (
+    Number.isNaN(scheduledStart.getTime()) ||
+    Number.isNaN(scheduledEnd.getTime()) ||
+    scheduledEnd <= scheduledStart
+  )
+    return Response.json(
+      { error: "Scheduled end must be after the start time" },
       { status: 400 },
     );
   if (!instructorIds.length)
@@ -100,20 +114,22 @@ export async function POST(req: Request) {
     return Response.json({ error: uploadError.message }, { status: 400 });
   const thumbnail_url = admin.storage.from("course-media").getPublicUrl(path)
       .data.publicUrl,
-    now = new Date(),
-    end = new Date(now.getTime() + 60 * 60 * 1000),
     { data, error } = await admin
       .from("live_sessions")
       .insert({
-        ...parsed.data,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        meeting_url: parsed.data.meeting_url,
         thumbnail_url,
         course_id: courseIds[0],
         instructor_id: instructorIds[0],
-        scheduled_start: now.toISOString(),
-        scheduled_end: end.toISOString(),
+        scheduled_start: scheduledStart.toISOString(),
+        scheduled_end: scheduledEnd.toISOString(),
         status: "scheduled",
       })
-      .select("id,title,description,meeting_url,thumbnail_url")
+      .select(
+        "id,title,description,meeting_url,thumbnail_url,scheduled_start,scheduled_end",
+      )
       .single();
   if (!error && data) {
     const assignments = await Promise.all([
@@ -150,7 +166,8 @@ export async function POST(req: Request) {
     if (assignmentError)
       return Response.json({ error: assignmentError.message }, { status: 400 });
   }
-  return error
-    ? Response.json({ error: error.message }, { status: 400 })
-    : Response.json(data);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/calendar");
+  return Response.json(data);
 }

@@ -41,6 +41,19 @@ export default async function Dashboard({
         .from("profiles")
         .select("*", { count: "exact", head: true })
         .in("role", ["super_admin", "admin_staff"]),
+      db
+        .from("live_sessions")
+        .select("id,title,scheduled_start,scheduled_end,status,meeting_url")
+        .order("scheduled_start", { ascending: true })
+        .limit(200),
+      db
+        .from("calendar_appointments")
+        .select("id,title,scheduled_start,scheduled_end")
+        .order("scheduled_start", { ascending: true })
+        .limit(200),
+      db.from("profiles").select("created_at").eq("role", "student"),
+      db.from("profiles").select("created_at").eq("role", "instructor"),
+      db.from("courses").select("created_at").eq("status", "published"),
     ]);
     const counts = {
       students: queries[0].count || 0,
@@ -67,6 +80,30 @@ export default async function Dashboard({
           counts={counts}
           bestCourses={bestCourses}
           manpower={manpower}
+          movement={{
+            students: (queries[11].data || []).map((x) => x.created_at),
+            instructors: (queries[12].data || []).map((x) => x.created_at),
+            courses: (queries[13].data || []).map((x) => x.created_at),
+          }}
+          admin={{ name: p.full_name, avatarUrl: p.avatar_url || null }}
+          appointments={[
+            ...(queries[9].data || []).map((session) => ({
+              id: `class-${session.id}`,
+              title: session.title,
+              start: session.scheduled_start,
+              end: session.scheduled_end,
+              status: session.status,
+              meetingUrl: session.meeting_url || null,
+            })),
+            ...(queries[10].data || []).map((appointment) => ({
+              id: `appointment-${appointment.id}`,
+              title: appointment.title,
+              start: appointment.scheduled_start,
+              end: appointment.scheduled_end || appointment.scheduled_start,
+              status: "appointment",
+              meetingUrl: null,
+            })),
+          ]}
         />
       </SuperAdminShell>
     );

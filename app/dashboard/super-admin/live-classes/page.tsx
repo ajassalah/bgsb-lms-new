@@ -15,7 +15,7 @@ export default async function LiveClasses() {
       db
         .from("live_sessions")
         .select(
-          "id,title,description,meeting_url,thumbnail_url,course_id,live_session_instructors(instructor_id,instructor:profiles!live_session_instructors_instructor_id_fkey(full_name)),live_session_staff(staff_id,staff:profiles!live_session_staff_staff_id_fkey(full_name)),live_session_courses(course_id),live_session_students(student_id)",
+          "id,title,description,meeting_url,thumbnail_url,course_id,scheduled_start,scheduled_end,live_session_instructors(instructor_id,instructor:profiles!live_session_instructors_instructor_id_fkey(full_name)),live_session_staff(staff_id,staff:profiles!live_session_staff_staff_id_fkey(full_name)),live_session_courses(course_id),live_session_students(student_id)",
         )
         .order("scheduled_start", { ascending: false }),
       db

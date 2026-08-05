@@ -15,6 +15,11 @@ create table if not exists live_session_students(
 alter table live_session_courses enable row level security;
 alter table live_session_students enable row level security;
 
+drop policy if exists live_session_courses_read on live_session_courses;
+drop policy if exists live_session_courses_admin on live_session_courses;
+drop policy if exists live_session_students_read on live_session_students;
+drop policy if exists live_session_students_admin on live_session_students;
+
 create policy live_session_courses_read on live_session_courses
 for select using(app_role() in('super_admin','admin_staff') or exists(
   select 1 from live_session_instructors i

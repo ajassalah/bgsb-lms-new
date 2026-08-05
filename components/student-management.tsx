@@ -1,6 +1,6 @@
 "use client";
 import { Edit3, Eye, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -33,6 +33,7 @@ export function StudentManagement({
         ),
       [rows, query],
     );
+  useEffect(() => setRows(initialStudents), [initialStudents]);
   async function status(student: StudentRow) {
     const next = student.status === "active" ? "suspended" : "active";
     setRows((x) =>
@@ -46,7 +47,7 @@ export function StudentManagement({
     if (!res.ok) {
       setRows((x) => x.map((y) => (y.id === student.id ? student : y)));
       toast.error("Status update failed");
-    }
+    } else { toast.success("Student status updated"); router.refresh(); }
   }
   async function remove() {
     if (!deleting) return;

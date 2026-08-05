@@ -103,14 +103,14 @@ export function CourseEditForm({
         <p className="text-sm text-slate-400">Courses / Edit Course</p>
         <h1 className="mt-1 text-2xl font-bold text-navy">Edit Course</h1>
       </div>
-      <div className="mb-7 rounded-xl border bg-white p-5">
+      <div className="mb-7 overflow-hidden rounded-xl border bg-white p-3 sm:p-5">
         <div className="mx-auto flex max-w-2xl justify-between">
           <Step active n={1} label="Basic Information" done={step === 2} />
           <Step active={step === 2} n={2} label="Media & Images" />
         </div>
       </div>
       {step === 1 ? (
-        <form onSubmit={next} className="rounded-xl border bg-white p-6">
+        <form onSubmit={next} className="rounded-xl border bg-white p-4 sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <Field
               label="Course Title"
@@ -200,7 +200,7 @@ export function CourseEditForm({
             existingThumbnail={course.thumbnail_url}
             existingVideo={course.video_url}
           />
-          <div className="mt-7 flex justify-between">
+          <div className="mt-7 flex flex-col-reverse gap-3 min-[380px]:flex-row min-[380px]:justify-between">
             <button
               type="button"
               onClick={() => setStep(1)}

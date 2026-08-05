@@ -1,6 +1,6 @@
 "use client";
 import { Edit3, Eye, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -38,6 +38,7 @@ export function InstructorManagement({
         ),
       [rows, query],
     );
+  useEffect(() => setRows(initialRows), [initialRows]);
   async function toggle(row: InstructorRow) {
     const status = row.status === "active" ? "suspended" : "active";
     setRows((x) => x.map((y) => (y.id === row.id ? { ...y, status } : y)));
@@ -52,7 +53,7 @@ export function InstructorManagement({
     if (!res.ok) {
       setRows((x) => x.map((y) => (y.id === row.id ? row : y)));
       toast.error("Status update failed");
-    }
+    } else { toast.success(`${entity} status updated`); router.refresh(); }
   }
   async function remove() {
     if (!deleting) return;

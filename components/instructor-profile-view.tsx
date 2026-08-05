@@ -44,6 +44,8 @@ type Live = {
   thumbnail: string | null;
   description: string;
   link: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
 };
 export function InstructorProfileView({
   instructor,
@@ -65,7 +67,7 @@ export function InstructorProfileView({
         <p className="text-sm text-slate-400">{entity} / View</p>
         <h1 className="mt-1 text-2xl font-bold text-navy">{entity} Profile</h1>
       </div>
-      <div className="mt-7 grid gap-6 xl:grid-cols-[370px_1fr]">
+      <div className="mt-7 grid min-w-0 gap-6 xl:grid-cols-[370px_minmax(0,1fr)]">
         <aside className="h-fit rounded-2xl border bg-white p-6">
           {instructor.avatar_url ? (
             <img
@@ -123,7 +125,7 @@ export function InstructorProfileView({
             <Info label="About" value={instructor.about} />
           </section>
         </aside>
-        <main className="min-w-0 rounded-2xl border bg-white">
+        <main className="min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white">
           <div className="flex gap-2 overflow-x-auto border-b p-2">
             <button
               onClick={() => setTab("courses")}
@@ -156,7 +158,7 @@ export function InstructorProfileView({
               Documents
             </button>
           </div>
-          <div className="grid gap-5 p-6 md:grid-cols-2">
+          <div className="grid gap-5 p-4 sm:p-6 md:grid-cols-2">
             {tab === "courses" &&
               courses.map((c) => (
                 <article
@@ -182,40 +184,7 @@ export function InstructorProfileView({
                   </div>
                 </article>
               ))}
-            {tab === "live" &&
-              liveClasses.map((l) => (
-                <article
-                  key={l.id}
-                  className="overflow-hidden rounded-xl border"
-                >
-                  {l.thumbnail ? (
-                    <img
-                      src={l.thumbnail}
-                      alt=""
-                      className="h-40 w-full object-cover"
-                    />
-                  ) : (
-                    <span className="grid h-40 place-items-center bg-slate-100">
-                      <Radio className="text-slate-300" />
-                    </span>
-                  )}
-                  <div className="p-4">
-                    <b className="text-navy">{l.title}</b>
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                      {l.description}
-                    </p>
-                    {l.link && (
-                      <a
-                        href={l.link}
-                        target="_blank"
-                        className="mt-3 block text-sm font-semibold text-blue-600"
-                      >
-                        Open Live Class
-                      </a>
-                    )}
-                  </div>
-                </article>
-              ))}
+            {tab === "live" && <LiveClassSections rows={liveClasses} />}
             {tab === "education" &&
               instructor.education.map((e, i) => (
                 <article key={i} className="rounded-xl border bg-slate-50 p-5">
@@ -287,6 +256,76 @@ export function InstructorProfileView({
         </main>
       </div>
     </>
+  );
+}
+
+function LiveClassSections({ rows }: { rows: Live[] }) {
+  const now = Date.now(),
+    groups = [
+      [
+        "Scheduled Classes",
+        rows.filter((row) => new Date(row.scheduled_end).getTime() >= now),
+      ],
+      [
+        "Expired Classes",
+        rows.filter((row) => new Date(row.scheduled_end).getTime() < now),
+      ],
+    ] as const;
+  return (
+    <div className="space-y-8 md:col-span-2">
+      {groups.map(([title, classes]) => (
+        <section key={title}>
+          <h3 className="font-bold text-navy">{title}</h3>
+          <div className="mt-4 grid gap-5 md:grid-cols-2">
+            {classes.map((liveClass) => (
+              <article
+                key={liveClass.id}
+                className="overflow-hidden rounded-xl border"
+              >
+                {liveClass.thumbnail ? (
+                  <img
+                    src={liveClass.thumbnail}
+                    alt=""
+                    className="h-40 w-full object-cover"
+                  />
+                ) : (
+                  <span className="grid h-40 place-items-center bg-slate-100">
+                    <Radio className="text-slate-300" />
+                  </span>
+                )}
+                <div className="p-4">
+                  <b className="text-navy">{liveClass.title}</b>
+                  <p className="mt-2 text-xs font-semibold text-slate-400">
+                    {new Date(liveClass.scheduled_start).toLocaleString(
+                      "en-GB",
+                    )}{" "}
+                    –{" "}
+                    {new Date(liveClass.scheduled_end).toLocaleString("en-GB")}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                    {liveClass.description}
+                  </p>
+                  {liveClass.link && (
+                    <a
+                      href={liveClass.link}
+                      target="_blank"
+                      className="mt-3 block text-sm font-semibold text-blue-600"
+                    >
+                      Open Live Class
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+            {!classes.length && (
+              <p className="text-sm text-slate-400">
+                No {title.toLowerCase()}.
+              </p>
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 function Info({

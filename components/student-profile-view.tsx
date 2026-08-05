@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  Radio,
   Search,
   ShieldCheck,
 } from "lucide-react";
@@ -48,25 +49,42 @@ type Login = {
   ip: string;
   date: string;
 };
+type LiveClass = {
+  id: string;
+  title: string;
+  thumbnail: string | null;
+  description: string;
+  link: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
+};
 export function StudentProfileView({
   student,
   courses,
   certificates,
   payments,
   logins,
+  liveClasses,
 }: {
   student: Student;
   courses: Course[];
   certificates: Certificate[];
   payments: Payment[];
   logins: Login[];
+  liveClasses: LiveClass[];
 }) {
   const [tab, setTab] = useState<
-    "identification" | "courses" | "certificates" | "payments" | "logins"
+    | "identification"
+    | "courses"
+    | "live"
+    | "certificates"
+    | "payments"
+    | "logins"
   >("identification");
   const tabs = [
     ["identification", "Identification"],
     ["courses", "Enrolled Courses"],
+    ["live", "Live Classes"],
     ["certificates", "Certificate"],
     ["payments", "Payment History"],
     ["logins", "Login History"],
@@ -77,7 +95,7 @@ export function StudentProfileView({
         <p className="text-sm text-slate-400">Manage Students / View</p>
         <h1 className="mt-1 text-2xl font-bold text-navy">Student Profile</h1>
       </div>
-      <div className="mt-7 grid gap-6 xl:grid-cols-[310px_1fr]">
+      <div className="mt-7 grid min-w-0 gap-6 xl:grid-cols-[310px_minmax(0,1fr)]">
         <aside className="h-fit rounded-2xl border bg-white p-6 text-center">
           {student.avatar_url ? (
             <img
@@ -111,7 +129,7 @@ export function StudentProfileView({
             {student.about && <Info label="About" value={student.about} />}
           </div>
         </aside>
-        <main className="min-w-0 rounded-2xl border bg-white">
+        <main className="min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white">
           <div className="flex overflow-x-auto border-b p-2">
             {tabs.map(([key, label]) => (
               <button
@@ -126,6 +144,7 @@ export function StudentProfileView({
           <div className="p-5 sm:p-6">
             {tab === "identification" && <Identification student={student} />}{" "}
             {tab === "courses" && <Courses rows={courses} />}{" "}
+            {tab === "live" && <LiveClasses rows={liveClasses} />}{" "}
             {tab === "certificates" && <Certificates rows={certificates} />}{" "}
             {tab === "payments" && <PaymentTable rows={payments} />}{" "}
             {tab === "logins" && <LoginTable rows={logins} />}
@@ -133,6 +152,76 @@ export function StudentProfileView({
         </main>
       </div>
     </>
+  );
+}
+
+function LiveClasses({ rows }: { rows: LiveClass[] }) {
+  const now = Date.now(),
+    groups = [
+      [
+        "Scheduled Classes",
+        rows.filter((row) => new Date(row.scheduled_end).getTime() >= now),
+      ],
+      [
+        "Expired Classes",
+        rows.filter((row) => new Date(row.scheduled_end).getTime() < now),
+      ],
+    ] as const;
+  return (
+    <div className="space-y-8">
+      {groups.map(([title, classes]) => (
+        <section key={title}>
+          <h3 className="font-bold text-navy">{title}</h3>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {classes.map((liveClass) => (
+              <article
+                key={liveClass.id}
+                className="overflow-hidden rounded-xl border"
+              >
+                {liveClass.thumbnail ? (
+                  <img
+                    src={liveClass.thumbnail}
+                    alt=""
+                    className="h-40 w-full object-cover"
+                  />
+                ) : (
+                  <span className="grid h-40 place-items-center bg-slate-100">
+                    <Radio className="text-slate-300" />
+                  </span>
+                )}
+                <div className="p-4">
+                  <b className="text-navy">{liveClass.title}</b>
+                  <p className="mt-2 text-xs font-semibold text-slate-400">
+                    {new Date(liveClass.scheduled_start).toLocaleString(
+                      "en-GB",
+                    )}{" "}
+                    –{" "}
+                    {new Date(liveClass.scheduled_end).toLocaleString("en-GB")}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                    {liveClass.description}
+                  </p>
+                  {liveClass.link && (
+                    <a
+                      href={liveClass.link}
+                      target="_blank"
+                      className="mt-3 block text-sm font-semibold text-blue-600"
+                    >
+                      Open Live Class
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+            {!classes.length && (
+              <p className="text-sm text-slate-400">
+                No {title.toLowerCase()}.
+              </p>
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 function Info({

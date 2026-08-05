@@ -74,7 +74,7 @@ export function CourseBuilder({
           Complete both steps to publish a new course in the LMS.
         </p>
       </div>
-      <div className="mb-7 rounded-xl border bg-white p-5">
+      <div className="mb-7 overflow-hidden rounded-xl border bg-white p-3 sm:p-5">
         <div className="relative mx-auto flex max-w-2xl items-center justify-between">
           <div className="absolute left-12 right-12 top-5 h-0.5 bg-slate-200">
             <div

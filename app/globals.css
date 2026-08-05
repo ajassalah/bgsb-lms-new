@@ -1,10 +1,291 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base { *{@apply border-slate-200} body{@apply bg-cream text-slate-900 antialiased} }
-@layer components { .btn{@apply inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition} .btn-primary{@apply btn bg-red text-white hover:bg-red/90} .btn-secondary{@apply btn border bg-white text-navy hover:bg-slate-50} .card{@apply rounded-2xl border bg-white p-6 shadow-soft} .field{@apply w-full rounded-xl border bg-white px-4 py-3 outline-none ring-red/20 focus:ring-4} }
-[aria-label="Hide sidebar"],[aria-label="Show sidebar"]{display:none!important}
-div:has(> input[name="tags"]){display:none!important}
-td.relative > div.absolute{z-index:100!important}
-section:has(table){overflow:visible!important}
-@media (min-width:1024px){div.overflow-x-auto:has(> table),div.overflow-x-auto.overflow-y-visible:has(> table){overflow:visible!important}}
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  body {
+    @apply bg-cream text-slate-900 antialiased;
+  }
+  img,
+  video,
+  canvas,
+  iframe {
+    max-width: 100%;
+  }
+}
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition;
+  }
+  .btn-primary {
+    @apply btn bg-red text-white hover:bg-red/90;
+  }
+  .btn-secondary {
+    @apply btn border bg-white text-navy hover:bg-slate-50;
+  }
+  .card {
+    @apply rounded-2xl border bg-white p-6 shadow-soft;
+  }
+  .field {
+    @apply w-full min-w-0 rounded-xl border bg-white px-4 py-3 outline-none ring-red/20 focus:ring-4;
+  }
+}
+div:has(> input[name="tags"]) {
+  display: none !important;
+}
+td.relative > div.absolute {
+  z-index: 100 !important;
+}
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+.admin-sidebar-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.admin-sidebar-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+@media (max-width: 639px) {
+  .card {
+    padding: 1rem;
+  }
+  .btn {
+    min-height: 2.75rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  [data-mobile-table-wrap="true"] {
+    overflow: visible !important;
+  }
+  table[data-mobile-cards="true"] {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    background: transparent;
+  }
+  table[data-mobile-cards="true"] thead {
+    display: none;
+  }
+  table[data-mobile-cards="true"] tbody {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+  }
+  table[data-mobile-cards="true"] tbody tr {
+    display: block;
+    overflow: visible;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.875rem;
+    background: white;
+    padding: 0.35rem 0.75rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+  table[data-mobile-cards="true"] tbody td {
+    display: grid;
+    min-height: 2.5rem;
+    grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    border: 0;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.65rem 0;
+    white-space: normal;
+    text-align: right;
+  }
+  table[data-mobile-cards="true"] tbody td:last-child {
+    border-bottom: 0;
+  }
+  table[data-mobile-cards="true"] tbody td::before {
+    content: attr(data-mobile-label);
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+  table[data-mobile-cards="true"] tbody td[data-mobile-full="true"] {
+    display: block;
+    padding: 1.5rem 0;
+    text-align: center;
+  }
+  table[data-mobile-cards="true"] tbody td[data-mobile-full="true"]::before {
+    display: none;
+  }
+  table[data-mobile-cards="true"] tbody td > * {
+    min-width: 0;
+    margin-left: auto;
+  }
+  table[data-mobile-cards="true"] td.relative > div.absolute {
+    position: static !important;
+    width: 10rem;
+    margin-top: 0;
+    margin-left: auto;
+  }
+  .fixed.inset-0 label[class*="min-h-"] {
+    min-height: 7rem !important;
+  }
+}
+@media (min-width: 1024px) {
+  section:has(table) {
+    overflow: visible !important;
+  }
+  div.overflow-x-auto:has(> table),
+  div.overflow-x-auto.overflow-y-visible:has(> table) {
+    overflow: visible !important;
+  }
+}
+
+/* Super administrator light/dark appearance. */
+.admin-dark {
+  color-scheme: dark;
+  background: #07111f !important;
+  color: #d7e0ec;
+}
+.admin-dark body {
+  background: #07111f !important;
+  color: #d7e0ec;
+}
+.admin-dark header,
+.admin-dark main section,
+.admin-dark main > div > section,
+.admin-dark .card,
+.admin-dark [role="dialog"] > div,
+.admin-dark .bg-white,
+.admin-dark [class*="bg-white/"] {
+  background-color: #0f1b2d !important;
+  border-color: #263449 !important;
+}
+.admin-dark main {
+  background: #07111f;
+}
+.admin-dark .text-navy,
+.admin-dark .text-\[\#17233c\],
+.admin-dark [class*="text-[#17233c]"],
+.admin-dark h1,
+.admin-dark h2,
+.admin-dark h3,
+.admin-dark h4,
+.admin-dark label,
+.admin-dark strong,
+.admin-dark b {
+  color: #f1f5f9 !important;
+}
+.admin-dark p:not(.text-red):not([class*="text-emerald"]),
+.admin-dark td {
+  color: #bdc9d9;
+}
+.admin-dark .text-slate-500,
+.admin-dark .text-slate-600 {
+  color: #bdc9d9 !important;
+}
+.admin-dark .text-slate-400 {
+  color: #98a8be !important;
+}
+.admin-dark .text-slate-300 {
+  color: #8393aa !important;
+}
+.admin-dark .bg-slate-50,
+.admin-dark .bg-slate-100,
+.admin-dark [class*="bg-slate-50/"],
+.admin-dark [class*="hover:bg-slate-50"]:hover {
+  background-color: #172438 !important;
+}
+.admin-dark .bg-blue-50 { background-color: #102746 !important; }
+.admin-dark .bg-violet-50 { background-color: #251c45 !important; }
+.admin-dark .bg-amber-50 { background-color: #342711 !important; }
+.admin-dark .bg-emerald-50 { background-color: #0f3028 !important; }
+.admin-dark .text-blue-600,
+.admin-dark .text-blue-700 { color: #7db5ff !important; }
+.admin-dark .text-violet-600,
+.admin-dark .text-violet-700 { color: #b69cff !important; }
+.admin-dark .text-amber-600,
+.admin-dark .text-amber-700 { color: #f7c75d !important; }
+.admin-dark .text-emerald-600,
+.admin-dark .text-emerald-700 { color: #64d8b4 !important; }
+.admin-dark input,
+.admin-dark select,
+.admin-dark textarea {
+  border-color: #334155 !important;
+  background-color: #111f32 !important;
+  color: #e2e8f0 !important;
+}
+.admin-dark input::placeholder,
+.admin-dark textarea::placeholder {
+  color: #718198 !important;
+  opacity: 1;
+}
+.admin-dark option {
+  background: #111f32;
+  color: #e2e8f0;
+}
+.admin-dark button:not(.btn-primary),
+.admin-dark a {
+  border-color: #334155;
+}
+.admin-dark table thead,
+.admin-dark table tbody,
+.admin-dark table tr,
+.admin-dark table td,
+.admin-dark table th {
+  border-color: #263449 !important;
+}
+.admin-dark table thead,
+.admin-dark table thead tr {
+  background: #172438 !important;
+}
+.admin-dark table tbody tr:hover {
+  background: #132238 !important;
+}
+.admin-dark hr,
+.admin-dark .divide-y > :not([hidden]) ~ :not([hidden]),
+.admin-dark .border-b,
+.admin-dark .border-t {
+  border-color: #263449 !important;
+}
+.admin-dark .shadow-xl,
+.admin-dark .shadow-2xl,
+.admin-dark .shadow-soft {
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.38) !important;
+}
+.admin-dark .ck.ck-editor__main > .ck-editor__editable,
+.admin-dark .ck.ck-toolbar,
+.admin-dark .ck.ck-dropdown__panel,
+.admin-dark .ck.ck-list {
+  border-color: #334155 !important;
+  background: #111f32 !important;
+  color: #e2e8f0 !important;
+}
+.admin-dark .ck.ck-button {
+  color: #cbd5e1 !important;
+}
+.admin-dark .ck.ck-button:hover {
+  background: #223149 !important;
+}
+.admin-dark table[data-mobile-cards="true"] tbody,
+.admin-dark table[data-mobile-cards="true"] tbody tr {
+  background: #0f1b2d !important;
+  border-color: #263449 !important;
+}
+.admin-dark table[data-mobile-cards="true"] tbody td::before {
+  color: #98a8be !important;
+}
+.admin-dark .theme-toggle {
+  border-color: #3b4960;
+  background: #07111f !important;
+}
+.admin-dark .theme-toggle > span {
+  background: #c62828 !important;
+  color: white !important;
+}

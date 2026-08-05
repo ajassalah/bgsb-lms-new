@@ -20,12 +20,12 @@ export function ConfirmDialog({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="relative my-auto w-full max-w-sm rounded-xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-6">
         <button
           onClick={onCancel}
           aria-label="Close"
@@ -33,19 +33,19 @@ export function ConfirmDialog({
         >
           <X className="size-5" />
         </button>
-        <span className="mx-auto grid size-14 place-items-center rounded-full bg-red/10 text-red">
+        <span className="mx-auto grid size-12 place-items-center rounded-full bg-red/10 text-red sm:size-14">
           <Trash2 className="size-6" />
         </span>
         <h2
           id="confirm-title"
-          className="mt-4 text-center text-xl font-bold text-navy"
+          className="mt-3 text-center text-lg font-bold text-navy sm:mt-4 sm:text-xl"
         >
           {title}
         </h2>
         <p className="mt-2 text-center text-sm leading-6 text-slate-500">
           {description}
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid gap-3 min-[380px]:grid-cols-2">
           <button disabled={busy} onClick={onCancel} className="btn-secondary">
             Cancel
           </button>

@@ -46,6 +46,7 @@ export function CourseManagement({
     [deleting, setDeleting] = useState<AdminCourse | null>(null);
   const searchRef = useRef<HTMLInputElement>(null),
     router = useRouter();
+  useEffect(() => setCourses(initialCourses), [initialCourses]);
   useEffect(() => {
     if (filters) searchRef.current?.focus();
   }, [filters]);
@@ -75,7 +76,7 @@ export function CourseManagement({
     if (!res.ok) {
       setCourses((x) => x.map((y) => (y.id === c.id ? c : y)));
       toast.error("Update failed");
-    } else toast.success(`Course ${next}`);
+    } else { toast.success(`Course ${next}`); router.refresh(); }
   }
   async function remove(c: AdminCourse) {
     setMenu(null);

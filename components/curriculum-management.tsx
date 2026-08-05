@@ -545,10 +545,10 @@ function EditorModal({
         ? ".mp3,audio/mpeg"
         : "*/*";
   return (
-    <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm sm:p-4">
       <form
         onSubmit={submit}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6"
+        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 sm:max-w-lg sm:rounded-2xl sm:p-6"
       >
         <div className="flex justify-between">
           <h2 className="text-xl font-bold text-navy">{heading}</h2>

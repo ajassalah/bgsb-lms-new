@@ -23,7 +23,7 @@ export default async function StaffView({
       db
         .from("live_session_staff")
         .select(
-          "session:live_sessions(id,title,thumbnail_url,description,meeting_url,live_session_courses(course:courses(id,title,thumbnail_url,status)))",
+          "session:live_sessions(id,title,thumbnail_url,description,meeting_url,scheduled_start,scheduled_end,live_session_courses(course:courses(id,title,thumbnail_url,status)))",
         )
         .eq("staff_id", params.id),
     ]);
@@ -78,6 +78,8 @@ export default async function StaffView({
           thumbnail: session.thumbnail_url,
           description: session.description || "",
           link: session.meeting_url,
+          scheduled_start: session.scheduled_start,
+          scheduled_end: session.scheduled_end,
         }))}
       />
     </SuperAdminShell>

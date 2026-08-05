@@ -27,7 +27,7 @@ export default async function InstructorView({
       db
         .from("live_session_instructors")
         .select(
-          "session:live_sessions(id,title,thumbnail_url,description,meeting_url)",
+          "session:live_sessions(id,title,thumbnail_url,description,meeting_url,scheduled_start,scheduled_end)",
         )
         .eq("instructor_id", params.id),
     ]);
@@ -68,6 +68,8 @@ export default async function InstructorView({
           thumbnail: x.session?.thumbnail_url,
           description: x.session?.description || "",
           link: x.session?.meeting_url,
+          scheduled_start: x.session?.scheduled_start,
+          scheduled_end: x.session?.scheduled_end,
         }))}
       />
     </SuperAdminShell>

@@ -20,6 +20,8 @@ type Row = {
   description: string;
   meeting_url: string;
   thumbnail_url: string;
+  scheduled_start: string;
+  scheduled_end: string;
   instructor_ids: string[];
   instructor_names: string[];
   course_ids: string[];
@@ -49,7 +51,14 @@ export function LiveClassManagement({
   const [rows, setRows] = useState(initialRows),
     [editing, setEditing] = useState<Row | null | undefined>(undefined),
     [menu, setMenu] = useState<string | null>(null),
-    [deleting, setDeleting] = useState<Row | null>(null);
+    [deleting, setDeleting] = useState<Row | null>(null),
+    now = Date.now(),
+    scheduledRows = rows.filter(
+      (row) => new Date(row.scheduled_end).getTime() >= now,
+    ),
+    expiredRows = rows.filter(
+      (row) => new Date(row.scheduled_end).getTime() < now,
+    );
   async function remove(r: Row) {
     const res = await fetch(`/api/admin/live-classes/${r.id}`, {
       method: "DELETE",
@@ -72,100 +81,114 @@ export function LiveClassManagement({
           Create Live Class
         </button>
       </div>
-      <div className="mt-7 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {rows.map((r) => (
-          <article
-            key={r.id}
-            className="relative overflow-visible rounded-2xl border bg-white shadow-sm"
-          >
-            <img
-              src={r.thumbnail_url}
-              alt=""
-              className="h-52 w-full rounded-t-2xl object-cover"
-            />
-            <div className="p-5">
-              <div className="flex gap-3">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-bold text-navy">{r.title}</h2>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
-                    {r.description}
-                  </p>
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setMenu(menu === r.id ? null : r.id)}
-                    className="grid size-9 place-items-center rounded-lg border"
+      {[
+        ["Scheduled Classes", scheduledRows],
+        ["Expired Classes", expiredRows],
+      ].map(([title, groupRows]) => (
+        <section key={title as string} className="mt-8">
+          <h2 className="text-xl font-bold text-navy">{title as string}</h2>
+          <div className="mt-4 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {(groupRows as Row[]).map((r) => (
+              <article
+                key={r.id}
+                className="relative overflow-visible rounded-2xl border bg-white shadow-sm"
+              >
+                <img
+                  src={r.thumbnail_url}
+                  alt=""
+                  className="h-52 w-full rounded-t-2xl object-cover"
+                />
+                <div className="p-5">
+                  <div className="flex gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-lg font-bold text-navy">{r.title}</h2>
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+                        {r.description}
+                      </p>
+                    </div>
+                    <div className="relative">
+                      <button
+                        onClick={() => setMenu(menu === r.id ? null : r.id)}
+                        className="grid size-9 place-items-center rounded-lg border"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                      {menu === r.id && (
+                        <div className="absolute right-0 top-11 z-50 w-40 rounded-lg border bg-white py-1 shadow-xl">
+                          <a
+                            href={r.meeting_url}
+                            target="_blank"
+                            className="action-row"
+                          >
+                            <ExternalLink />
+                            View
+                          </a>
+                          <button
+                            onClick={() => {
+                              setEditing(r);
+                              setMenu(null);
+                            }}
+                            className="action-row"
+                          >
+                            <Edit3 />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeleting(r);
+                              setMenu(null);
+                            }}
+                            className="action-row text-red"
+                          >
+                            <Trash2 />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <a
+                    href={r.meeting_url}
+                    target="_blank"
+                    className="mt-4 block truncate text-sm font-semibold text-blue-600"
                   >
-                    <MoreVertical className="size-4" />
-                  </button>
-                  {menu === r.id && (
-                    <div className="absolute right-0 top-11 z-50 w-40 rounded-lg border bg-white py-1 shadow-xl">
-                      <a
-                        href={r.meeting_url}
-                        target="_blank"
-                        className="action-row"
-                      >
-                        <ExternalLink />
-                        View
-                      </a>
-                      <button
-                        onClick={() => {
-                          setEditing(r);
-                          setMenu(null);
-                        }}
-                        className="action-row"
-                      >
-                        <Edit3 />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeleting(r);
-                          setMenu(null);
-                        }}
-                        className="action-row text-red"
-                      >
-                        <Trash2 />
-                        Delete
-                      </button>
+                    {r.meeting_url}
+                  </a>
+                  <p className="mt-3 text-sm font-semibold text-slate-500">
+                    {new Date(r.scheduled_start).toLocaleString("en-GB")} –{" "}
+                    {new Date(r.scheduled_end).toLocaleString("en-GB")}
+                  </p>
+                  <div className="mt-3 flex items-start gap-2 text-sm text-slate-600">
+                    <UserRound className="mt-0.5 size-4 shrink-0 text-red" />
+                    <div>
+                      <span className="font-semibold text-navy">
+                        Instructors:{" "}
+                      </span>
+                      {r.instructor_names.length
+                        ? r.instructor_names.join(", ")
+                        : "Not assigned"}
+                    </div>
+                  </div>
+                  {r.staff_names.length > 0 && (
+                    <div className="mt-2 flex items-start gap-2 text-sm text-slate-600">
+                      <UserCog className="mt-0.5 size-4 shrink-0 text-red" />
+                      <div>
+                        <span className="font-semibold text-navy">Staff: </span>
+                        {r.staff_names.join(", ")}
+                      </div>
                     </div>
                   )}
                 </div>
+              </article>
+            ))}
+            {!(groupRows as Row[]).length && (
+              <div className="rounded-xl border border-dashed bg-white p-10 text-center text-slate-400 md:col-span-2 xl:col-span-3">
+                No {String(title).toLowerCase()}.
               </div>
-              <a
-                href={r.meeting_url}
-                target="_blank"
-                className="mt-4 block truncate text-sm font-semibold text-blue-600"
-              >
-                {r.meeting_url}
-              </a>
-              <div className="mt-3 flex items-start gap-2 text-sm text-slate-600">
-                <UserRound className="mt-0.5 size-4 shrink-0 text-red" />
-                <div>
-                  <span className="font-semibold text-navy">Instructors: </span>
-                  {r.instructor_names.length
-                    ? r.instructor_names.join(", ")
-                    : "Not assigned"}
-                </div>
-              </div>
-              {r.staff_names.length > 0 && (
-                <div className="mt-2 flex items-start gap-2 text-sm text-slate-600">
-                  <UserCog className="mt-0.5 size-4 shrink-0 text-red" />
-                  <div>
-                    <span className="font-semibold text-navy">Staff: </span>
-                    {r.staff_names.join(", ")}
-                  </div>
-                </div>
-              )}
-            </div>
-          </article>
-        ))}
-        {!rows.length && (
-          <div className="rounded-xl border border-dashed bg-white p-12 text-center text-slate-400 md:col-span-2 xl:col-span-3">
-            No live classes created yet.
+            )}
           </div>
-        )}
-      </div>
+        </section>
+      ))}
       <ConfirmDialog
         open={!!deleting}
         title="Delete Live Class?"
@@ -333,10 +356,10 @@ function Editor({
     }
   }
   return (
-    <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm sm:p-4">
       <form
         onSubmit={submit}
-        className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6"
+        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 sm:max-w-xl sm:rounded-2xl sm:p-6"
       >
         <div className="flex justify-between">
           <h2 className="text-xl font-bold text-navy">
@@ -432,6 +455,28 @@ function Editor({
             required
           />
         </label>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-semibold">
+            Scheduled Start
+            <input
+              name="scheduled_start"
+              type="datetime-local"
+              defaultValue={toDateTimeLocal(value?.scheduled_start)}
+              className="field mt-2"
+              required
+            />
+          </label>
+          <label className="block text-sm font-semibold">
+            Scheduled End
+            <input
+              name="scheduled_end"
+              type="datetime-local"
+              defaultValue={toDateTimeLocal(value?.scheduled_end)}
+              className="field mt-2"
+              required
+            />
+          </label>
+        </div>
         <label className="mt-5 block text-sm font-semibold">
           Live Class Link
           <input
@@ -443,7 +488,7 @@ function Editor({
             required
           />
         </label>
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end">
           <button type="button" onClick={close} className="btn-secondary">
             Cancel
           </button>
@@ -454,6 +499,13 @@ function Editor({
       </form>
     </div>
   );
+}
+
+function toDateTimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value),
+    offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
 function MultiSelect({

@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Edit3, MoreVertical, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useRouter } from "next/navigation";
 export type AdminCategory = {
   id: string;
   name: string;
@@ -18,6 +19,8 @@ export function CategoryManagement({
     [modal, setModal] = useState<AdminCategory | null | undefined>(undefined),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<AdminCategory | null>(null);
+  const router = useRouter();
+  useEffect(() => setCategories(initialCategories), [initialCategories]);
   async function toggle(item: AdminCategory) {
     const active = !item.active;
     setCategories((x) =>
@@ -31,7 +34,7 @@ export function CategoryManagement({
     if (!res.ok) {
       setCategories((x) => x.map((c) => (c.id === item.id ? item : c)));
       toast.error("Status update failed");
-    }
+    } else { toast.success("Category status updated"); router.refresh(); }
   }
   async function remove(item: AdminCategory) {
     setMenu(null);
@@ -217,10 +220,10 @@ function CategoryModal({
     }
   }
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4">
+    <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/60 p-3 sm:p-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-6"
       >
         <div className="flex items-start justify-between">
           <div>

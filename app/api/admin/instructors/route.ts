@@ -19,6 +19,8 @@ const schema = z.object({
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
   education_background: z.string(),
   professional_details: z.string(),
+  staff_role: z.string().optional(),
+  permissions: z.string().optional(),
   facebook_url: z.string().optional(),
   twitter_url: z.string().optional(),
   instagram_url: z.string().optional(),
@@ -128,6 +130,8 @@ export async function POST(req: Request) {
         gender: d.gender,
         education_background: JSON.parse(d.education_background),
         professional_details: JSON.parse(d.professional_details),
+        staff_role:
+          profileRole === "admin_staff" ? d.staff_role || "Staff" : null,
         resume_url,
         facebook_url: d.facebook_url || null,
         twitter_url: d.twitter_url || null,
@@ -139,6 +143,24 @@ export async function POST(req: Request) {
       })
       .select("id")
       .single();
+  if (!error && data && profileRole === "admin_staff" && d.permissions) {
+    const permissions = JSON.parse(d.permissions) as Record<
+      string,
+      { view: boolean; create: boolean; edit: boolean; delete: boolean }
+    >;
+    await admin
+      .from("admin_permissions")
+      .insert(
+        Object.entries(permissions).map(([module, flags]) => ({
+          admin_staff_id: data.id,
+          module,
+          can_view: flags.view,
+          can_create: flags.create,
+          can_edit: flags.edit,
+          can_delete: flags.delete,
+        })),
+      );
+  }
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json(data);

@@ -181,8 +181,8 @@ export function AssignmentManagement({
         </div>
       </section>
       {deleting && (
-        <div className="fixed inset-0 z-[150] grid place-items-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[150] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm sm:p-4">
+          <div className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-6">
             <span className="mx-auto grid size-14 place-items-center rounded-full bg-red/10 text-red">
               <Trash2 className="size-6" />
             </span>
@@ -194,7 +194,7 @@ export function AssignmentManagement({
               <b className="text-navy">{deleting.title}</b>? This action cannot
               be undone.
             </p>
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid gap-2 min-[380px]:grid-cols-2 sm:mt-6 sm:gap-3">
               <button
                 onClick={() => setDeleting(null)}
                 className="btn-secondary"

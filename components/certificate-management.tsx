@@ -240,10 +240,10 @@ function CertificateModal({
     }
   }
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4">
+    <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/60 p-3 sm:p-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-6"
       >
         <div className="flex justify-between">
           <div>

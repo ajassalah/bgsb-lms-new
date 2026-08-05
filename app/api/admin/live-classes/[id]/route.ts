@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 async function auth() {
   const db = createClient(),
     {
@@ -30,10 +31,23 @@ export async function PATCH(
       title: z.string().trim().min(2),
       description: z.string().trim().min(2),
       meeting_url: z.string().url(),
+      scheduled_start: z.string().min(1),
+      scheduled_end: z.string().min(1),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success)
     return Response.json({ error: "Invalid details" }, { status: 400 });
+  const scheduledStart = new Date(parsed.data.scheduled_start),
+    scheduledEnd = new Date(parsed.data.scheduled_end);
+  if (
+    Number.isNaN(scheduledStart.getTime()) ||
+    Number.isNaN(scheduledEnd.getTime()) ||
+    scheduledEnd <= scheduledStart
+  )
+    return Response.json(
+      { error: "Scheduled end must be after the start time" },
+      { status: 400 },
+    );
   if (!instructorIds.length)
     return Response.json(
       { error: "Select at least one instructor" },
@@ -47,7 +61,11 @@ export async function PATCH(
   const admin = createAdminClient(),
     file = form.get("thumbnail"),
     changes: Record<string, unknown> = {
-      ...parsed.data,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      meeting_url: parsed.data.meeting_url,
+      scheduled_start: scheduledStart.toISOString(),
+      scheduled_end: scheduledEnd.toISOString(),
       course_id: courseIds[0],
       instructor_id: instructorIds[0],
     };
@@ -110,7 +128,9 @@ export async function PATCH(
     .from("live_sessions")
     .update(changes)
     .eq("id", params.id)
-    .select("id,title,description,meeting_url,thumbnail_url")
+    .select(
+      "id,title,description,meeting_url,thumbnail_url,scheduled_start,scheduled_end",
+    )
     .single();
   if (!error) {
     const deletes = await Promise.all([
@@ -159,9 +179,10 @@ export async function PATCH(
     if (assignmentError)
       return Response.json({ error: assignmentError.message }, { status: 400 });
   }
-  return error
-    ? Response.json({ error: error.message }, { status: 400 })
-    : Response.json(data);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/calendar");
+  return Response.json(data);
 }
 export async function DELETE(
   _: Request,
@@ -173,7 +194,8 @@ export async function DELETE(
     .from("live_sessions")
     .delete()
     .eq("id", params.id);
-  return error
-    ? Response.json({ error: error.message }, { status: 400 })
-    : Response.json({ ok: true });
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/calendar");
+  return Response.json({ ok: true });
 }

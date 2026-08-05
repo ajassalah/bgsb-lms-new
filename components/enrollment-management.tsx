@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BookPlus,
   Check,
@@ -32,6 +33,7 @@ export function EnrollmentManagement({
   students: Option[];
   courses: Option[];
 }) {
+  const router = useRouter();
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
     [adding, setAdding] = useState(false),
@@ -39,6 +41,7 @@ export function EnrollmentManagement({
     [statusMenu, setStatusMenu] = useState<string | null>(null),
     [page, setPage] = useState(1),
     [deleting, setDeleting] = useState<EnrollmentRow | null>(null);
+  useEffect(() => setRows(initialRows), [initialRows]);
   const filtered = useMemo(
       () =>
         rows.filter((x) =>
@@ -68,7 +71,7 @@ export function EnrollmentManagement({
         x.map((y) => (y.id === row.id ? { ...y, status: old } : y)),
       );
       toast.error("Update failed");
-    }
+    } else { toast.success("Enrollment status updated"); router.refresh(); }
   }
   async function remove(row: EnrollmentRow) {
     const res = await fetch(`/api/admin/enrollments/${row.id}`, {
@@ -308,10 +311,10 @@ function Add({
     }
   }
   return (
-    <div className="fixed inset-0 z-[130] grid place-items-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 sm:p-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-md rounded-2xl bg-white p-6"
+        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 sm:max-w-md sm:rounded-2xl sm:p-6"
       >
         <div className="flex justify-between">
           <h2 className="text-xl font-bold text-navy">Add Student To Course</h2>

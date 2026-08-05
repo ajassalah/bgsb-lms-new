@@ -32,6 +32,8 @@ const schema = z.object({
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
   education_background: z.string(),
   professional_details: z.string(),
+  staff_role: z.string().optional(),
+  permissions: z.string().optional(),
   facebook_url: z.string().optional(),
   twitter_url: z.string().optional(),
   instagram_url: z.string().optional(),
@@ -130,6 +132,9 @@ export async function PATCH(
       gender: d.gender,
       education_background: JSON.parse(d.education_background),
       professional_details: JSON.parse(d.professional_details),
+      ...(profileRole === "admin_staff"
+        ? { staff_role: d.staff_role || "Staff" }
+        : {}),
       ...(resume_url ? { resume_url } : {}),
       facebook_url: d.facebook_url || null,
       twitter_url: d.twitter_url || null,
@@ -148,6 +153,25 @@ export async function PATCH(
       .eq("role", profileRole);
   if (result.error)
     return Response.json({ error: result.error.message }, { status: 400 });
+  if (profileRole === "admin_staff" && d.permissions) {
+    const permissions = JSON.parse(d.permissions) as Record<
+      string,
+      { view: boolean; create: boolean; edit: boolean; delete: boolean }
+    >;
+    await admin
+      .from("admin_permissions")
+      .delete()
+      .eq("admin_staff_id", params.id);
+    const rows = Object.entries(permissions).map(([module, flags]) => ({
+      admin_staff_id: params.id,
+      module,
+      can_view: flags.view,
+      can_create: flags.create,
+      can_edit: flags.edit,
+      can_delete: flags.delete,
+    }));
+    if (rows.length) await admin.from("admin_permissions").insert(rows);
+  }
   await admin.auth.admin.updateUserById(params.id, {
     email: d.email,
     user_metadata: { full_name: values.full_name },
