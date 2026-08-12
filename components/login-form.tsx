@@ -1,9 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { roleLabels, type Role } from "@/lib/types";
 import { toast } from "sonner";
-const choices = Object.entries(roleLabels) as [Role, string][];
 function timeout<T>(promise: PromiseLike<T>, ms = 15000): Promise<T> {
   return Promise.race([
     Promise.resolve(promise),
@@ -17,8 +15,7 @@ function timeout<T>(promise: PromiseLike<T>, ms = 15000): Promise<T> {
   ]);
 }
 export function LoginForm() {
-  const [role, setRole] = useState<Role>("student"),
-    [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (busy) return;
@@ -49,12 +46,6 @@ export function LoginForm() {
           "This account is not active. Please contact BGSB support.",
         );
       }
-      if (profile.role !== role) {
-        await db.auth.signOut();
-        throw new Error(
-          `This account is registered as ${roleLabels[profile.role as Role]}. Select the matching login role.`,
-        );
-      }
       await fetch("/api/login-history", { method: "POST" }).catch(() => null);
       toast.success("Signed in successfully");
       window.location.assign(`/dashboard/${profile.role.replace("_", "-")}`);
@@ -74,19 +65,6 @@ export function LoginForm() {
           Welcome back
         </p>
         <h1 className="mt-2 text-4xl font-bold text-navy">Sign in to BGSB</h1>
-      </div>
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-3">
-        {choices.map(([r, label]) => (
-          <button
-            type="button"
-            className={`rounded-xl px-2 py-2 text-xs font-semibold ${role === r ? "bg-white text-navy shadow" : "text-slate-500"}`}
-            onClick={() => setRole(r)}
-            disabled={busy}
-            key={r}
-          >
-            {label}
-          </button>
-        ))}
       </div>
       <form className="space-y-4" onSubmit={submit}>
         <label className="block text-sm font-semibold">
@@ -126,7 +104,7 @@ export function LoginForm() {
               Signing in…
             </span>
           ) : (
-            `Sign in as ${roleLabels[role]}`
+            "Login"
           )}
         </button>
       </form>

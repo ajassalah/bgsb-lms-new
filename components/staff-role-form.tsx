@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionMatrix, type PermissionSet } from "./permission-matrix";
+import { RoleCombobox } from "./role-combobox";
 export function StaffRoleForm({
   value,
 }: {
@@ -13,8 +14,24 @@ export function StaffRoleForm({
     [permissions, setPermissions] = useState<PermissionSet>(
       value?.permissions || {},
     ),
+    [roles, setRoles] = useState<
+      { name: string; permissions: PermissionSet }[]
+    >([]),
+    [customRole, setCustomRole] = useState(false),
     [busy, setBusy] = useState(false),
     router = useRouter();
+  useEffect(() => {
+    fetch("/api/admin/staff-roles")
+      .then((response) => response.json())
+      .then((body) => setRoles(body.items || []))
+      .catch(() => {});
+  }, []);
+  function selectRole(role: string) {
+    setCustomRole(false);
+    setName(role);
+    const preset = roles.find((item) => item.name === role);
+    if (preset) setPermissions(preset.permissions || {});
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -27,7 +44,7 @@ export function StaffRoleForm({
       },
     );
     if (res.ok) {
-      toast.success(value ? "Role updated" : "Role created");
+      toast.success(value ? "Role updated" : "Role permissions saved");
       router.push("/dashboard/super-admin/roles");
       router.refresh();
     } else {
@@ -51,12 +68,42 @@ export function StaffRoleForm({
         <section className="rounded-xl border bg-white p-4 sm:p-6">
           <label className="block max-w-md text-sm font-semibold">
             Role Name
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="field mt-2"
-              required
-            />
+            {customRole ? (
+              <input
+                autoFocus
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="field mt-2"
+                placeholder="Enter new role name"
+                required
+              />
+            ) : (
+              <RoleCombobox
+                value={name}
+                onChange={selectRole}
+                options={
+                  roles.length ? roles.map((role) => role.name) : undefined
+                }
+                onAddNew={() => {
+                  setCustomRole(true);
+                  setName("");
+                  setPermissions({});
+                }}
+              />
+            )}
+            {customRole && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomRole(false);
+                  setName("");
+                  setPermissions({});
+                }}
+                className="mt-3 text-xs font-bold text-red"
+              >
+                Select Existing Role
+              </button>
+            )}
           </label>
         </section>
         <section className="rounded-xl border bg-white p-4 sm:p-6">

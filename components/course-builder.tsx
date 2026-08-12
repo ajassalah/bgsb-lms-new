@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
 import { CourseMediaFields } from "./course-media-fields";
+import { InstructorPicker } from "./instructor-picker";
 type Option = { id: string; name: string };
 export function CourseBuilder({
   categories,
@@ -24,6 +25,7 @@ export function CourseBuilder({
     [description, setDescription] = useState(""),
     [basic, setBasic] = useState<Record<string, string>>({}),
     [videoSource, setVideoSource] = useState("youtube"),
+    [selectedInstructors, setSelectedInstructors] = useState<string[]>([]),
     router = useRouter();
   function next(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,6 +46,7 @@ export function CourseBuilder({
     Object.entries(basic).forEach(([k, v]) => payload.set(k, v));
     payload.set("description", description);
     payload.set("video_source", videoSource);
+    payload.set("instructor_ids", JSON.stringify(selectedInstructors));
     for (const name of ["video", "thumbnail"]) {
       const file = media.get(name);
       if (file instanceof File && file.size) payload.set(name, file);
@@ -133,11 +136,10 @@ export function CourseBuilder({
               options={organizations}
               optional
             />
-            <Select
-              label="Instructor"
-              name="instructor_id"
-              options={instructors}
-              optional
+            <InstructorPicker
+              instructors={instructors}
+              selected={selectedInstructors}
+              onChange={setSelectedInstructors}
             />
             <Field
               label="Course Duration"

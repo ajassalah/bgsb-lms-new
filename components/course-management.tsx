@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileQuestion,
   Filter,
+  GraduationCap,
   ListTree,
   MoreVertical,
   Plus,
@@ -18,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { BulkImportDialog } from "./bulk-import-dialog";
+import { useIsStaffPortal, useStaffCan } from "./staff-permission-context";
 
 export type AdminCourse = {
   id: string;
@@ -36,6 +39,19 @@ export function CourseManagement({
   initialCourses: AdminCourse[];
   categories: { id: string; name: string }[];
 }) {
+  const isStaff = useIsStaffPortal();
+  const basePath = isStaff
+    ? "/dashboard/admin-staff"
+    : "/dashboard/super-admin";
+  const canBulk = useStaffCan("courses", "bulk_import"),
+    canCreate = useStaffCan("courses", "create"),
+    canEdit = useStaffCan("courses", "edit"),
+    canStudents = useStaffCan("courses", "manage_student"),
+    canInstructors = useStaffCan("courses", "manage_instructor"),
+    canCurriculum = useStaffCan("courses", "curriculum"),
+    canFaq = useStaffCan("courses", "faq"),
+    canPublish = useStaffCan("courses", "published_toggle"),
+    canDelete = useStaffCan("courses", "delete");
   const [courses, setCourses] = useState(initialCourses),
     [query, setQuery] = useState(""),
     [category, setCategory] = useState("all"),
@@ -76,7 +92,10 @@ export function CourseManagement({
     if (!res.ok) {
       setCourses((x) => x.map((y) => (y.id === c.id ? c : y)));
       toast.error("Update failed");
-    } else { toast.success(`Course ${next}`); router.refresh(); }
+    } else {
+      toast.success(`Course ${next}`);
+      router.refresh();
+    }
   }
   async function remove(c: AdminCourse) {
     setMenu(null);
@@ -98,6 +117,13 @@ export function CourseManagement({
           </p>
         </div>
         <div className="flex gap-2">
+          {canBulk && (
+            <BulkImportDialog
+              label="Courses"
+              endpoint="/api/admin/bulk/courses"
+              template={`title,category,course_type,language,duration_months,short_description,description,status\nStrategic Leadership,Business,online,English,6,Leadership fundamentals,Complete leadership programme,draft`}
+            />
+          )}
           <button
             onClick={() => setFilters((x) => !x)}
             className={`flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold ${filters ? "border-red text-red" : "text-navy"}`}
@@ -105,13 +131,15 @@ export function CourseManagement({
             <Filter className="size-4" />
             Filter
           </button>
-          <button
-            onClick={() => router.push("/dashboard/super-admin/courses/new")}
-            className="btn-primary gap-2 rounded-lg py-2.5"
-          >
-            <Plus className="size-4" />
-            Add New Course
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => router.push(`${basePath}/courses/new`)}
+              className="btn-primary gap-2 rounded-lg py-2.5"
+            >
+              <Plus className="size-4" />
+              Add New Course
+            </button>
+          )}
         </div>
       </div>
       {filters && (
@@ -216,25 +244,34 @@ export function CourseManagement({
                     </span>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => toggle(c)}
-                      className={`relative h-6 w-11 rounded-full ${c.status === "published" ? "bg-emerald-500" : "bg-slate-300"}`}
-                    >
-                      <span
-                        className={`absolute top-1 size-4 rounded-full bg-white transition ${c.status === "published" ? "left-6" : "left-1"}`}
-                      />
-                    </button>
+                    {canPublish && (
+                      <button
+                        onClick={() => toggle(c)}
+                        className={`relative h-6 w-11 rounded-full ${c.status === "published" ? "bg-emerald-500" : "bg-slate-300"}`}
+                      >
+                        <span
+                          className={`absolute top-1 size-4 rounded-full bg-white transition ${c.status === "published" ? "left-6" : "left-1"}`}
+                        />
+                      </button>
+                    )}
                   </td>
                   <td className="relative p-4">
-                    <div className="flex justify-end">
-                      <button
-                        aria-label={`Actions for ${c.title}`}
-                        onClick={() => setMenu(menu === c.id ? null : c.id)}
-                        className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500 hover:bg-slate-50"
-                      >
-                        <MoreVertical className="size-4" />
-                      </button>
-                    </div>
+                    {(canEdit ||
+                      canStudents ||
+                      canInstructors ||
+                      canCurriculum ||
+                      canFaq ||
+                      canDelete) && (
+                      <div className="flex justify-end">
+                        <button
+                          aria-label={`Actions for ${c.title}`}
+                          onClick={() => setMenu(menu === c.id ? null : c.id)}
+                          className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500 hover:bg-slate-50"
+                        >
+                          <MoreVertical className="size-4" />
+                        </button>
+                      </div>
+                    )}
                     {menu === c.id && (
                       <ActionMenu
                         course={c}
@@ -242,6 +279,15 @@ export function CourseManagement({
                         remove={() => {
                           setMenu(null);
                           setDeleting(c);
+                        }}
+                        basePath={basePath}
+                        permissions={{
+                          canEdit,
+                          canStudents,
+                          canInstructors,
+                          canCurriculum,
+                          canFaq,
+                          canDelete,
                         }}
                       />
                     )}
@@ -299,41 +345,70 @@ function ActionMenu({
   course,
   close,
   remove,
+  basePath,
+  permissions,
 }: {
   course: AdminCourse;
   close: () => void;
   remove: () => void;
+  basePath: string;
+  permissions: {
+    canEdit: boolean;
+    canStudents: boolean;
+    canInstructors: boolean;
+    canCurriculum: boolean;
+    canFaq: boolean;
+    canDelete: boolean;
+  };
 }) {
   return (
     <div className="absolute right-4 top-14 z-[100] w-56 overflow-hidden rounded-xl border bg-white py-1 text-left shadow-2xl">
-      <a
-        href={`/dashboard/super-admin/courses/${course.id}/edit`}
-        onClick={close}
-        className="menu-action"
-      >
-        <Edit3 className="size-4 text-blue-600" />
-        Edit Course
-      </a>
-      <a
-        href={`/dashboard/super-admin/courses/${course.id}/students`}
-        onClick={close}
-        className="menu-action"
-      >
-        <Users className="size-4 text-blue-600" />
-        Manage Students
-      </a>
-      <a
-        href={`/dashboard/super-admin/courses/${course.id}/curriculum`}
-        onClick={close}
-        className="menu-action"
-      >
-        <ListTree className="size-4 text-blue-600" />
-        Curriculum
-      </a>
-      <button onClick={close} className="menu-action">
-        <FileQuestion className="size-4 text-blue-600" />
-        FAQ
-      </button>
+      {permissions.canEdit && (
+        <a
+          href={`${basePath}/courses/${course.id}/edit`}
+          onClick={close}
+          className="menu-action"
+        >
+          <Edit3 className="size-4 text-blue-600" />
+          Edit Course
+        </a>
+      )}
+      {permissions.canStudents && (
+        <a
+          href={`${basePath}/courses/${course.id}/students`}
+          onClick={close}
+          className="menu-action"
+        >
+          <Users className="size-4 text-blue-600" />
+          Manage Students
+        </a>
+      )}
+      {permissions.canInstructors && (
+        <a
+          href={`${basePath}/courses/${course.id}/instructors`}
+          onClick={close}
+          className="menu-action"
+        >
+          <GraduationCap className="size-4 text-blue-600" />
+          Manage Instructor
+        </a>
+      )}
+      {permissions.canCurriculum && (
+        <a
+          href={`${basePath}/courses/${course.id}/curriculum`}
+          onClick={close}
+          className="menu-action"
+        >
+          <ListTree className="size-4 text-blue-600" />
+          Curriculum
+        </a>
+      )}
+      {permissions.canFaq && (
+        <button onClick={close} className="menu-action">
+          <FileQuestion className="size-4 text-blue-600" />
+          FAQ
+        </button>
+      )}
       <a
         href={`/courses/${course.slug}`}
         target="_blank"
@@ -343,11 +418,18 @@ function ActionMenu({
         <ExternalLink className="size-4 text-emerald-600" />
         Visit Course
       </a>
-      <div className="my-1 border-t" />
-      <button onClick={remove} className="menu-action text-red hover:bg-red/5">
-        <Trash2 className="size-4" />
-        Delete Course
-      </button>
+      {permissions.canDelete && (
+        <>
+          <div className="my-1 border-t" />
+          <button
+            onClick={remove}
+            className="menu-action text-red hover:bg-red/5"
+          >
+            <Trash2 className="size-4" />
+            Delete Course
+          </button>
+        </>
+      )}
       <style jsx>{`
         .menu-action {
           display: flex;

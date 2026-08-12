@@ -1,18 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-async function allowed() {
+import { adminActorCan } from "@/lib/staff-permissions";
+async function allowed(module: string, action: string) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return false;
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return p?.role === "super_admin";
+  return adminActorCan(user.id, module, action);
 }
 const schema = z.object({
   first_name: z.string().trim().min(1),
@@ -47,13 +43,17 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await allowed()))
+  const profileRole =
+    new URL(req.url).searchParams.get("role") === "admin_staff"
+      ? "admin_staff"
+      : "instructor";
+  const module = profileRole === "admin_staff" ? "staff" : "instructors";
+  const action = req.headers.get("content-type")?.includes("application/json")
+    ? "status"
+    : "edit";
+  if (!(await allowed(module, action)))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient(),
-    profileRole =
-      new URL(req.url).searchParams.get("role") === "admin_staff"
-        ? "admin_staff"
-        : "instructor",
     entity = profileRole === "admin_staff" ? "staff" : "instructor";
   if (req.headers.get("content-type")?.includes("application/json")) {
     const parsed = z
@@ -162,7 +162,7 @@ export async function PATCH(
   if (profileRole === "admin_staff" && d.permissions) {
     const permissions = JSON.parse(d.permissions) as Record<
       string,
-      { view: boolean; create: boolean; edit: boolean; delete: boolean }
+      Record<string, boolean>
     >;
     await admin
       .from("admin_permissions")
@@ -171,10 +171,27 @@ export async function PATCH(
     const rows = Object.entries(permissions).map(([module, flags]) => ({
       admin_staff_id: params.id,
       module,
-      can_view: flags.view,
-      can_create: flags.create,
-      can_edit: flags.edit,
-      can_delete: flags.delete,
+      actions: flags,
+      can_view: Object.values(flags).some(Boolean),
+      can_create: [
+        "create",
+        "bulk_import",
+        "add_assignment",
+        "add_lesson",
+        "add_certificate",
+        "upload_file",
+        "create_folder",
+      ].some((action) => flags[action]),
+      can_edit: [
+        "edit",
+        "status",
+        "verification",
+        "verify_status",
+        "check",
+        "published_toggle",
+        "reply",
+      ].some((action) => flags[action]),
+      can_delete: !!flags.delete || !!flags.remove_certificate,
     }));
     if (rows.length) await admin.from("admin_permissions").insert(rows);
   }
@@ -188,13 +205,18 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await allowed()))
+  const profileRole =
+    new URL(req.url).searchParams.get("role") === "admin_staff"
+      ? "admin_staff"
+      : "instructor";
+  if (
+    !(await allowed(
+      profileRole === "admin_staff" ? "staff" : "instructors",
+      "delete",
+    ))
+  )
     return Response.json({ error: "Forbidden" }, { status: 403 });
-  const admin = createAdminClient(),
-    profileRole =
-      new URL(req.url).searchParams.get("role") === "admin_staff"
-        ? "admin_staff"
-        : "instructor";
+  const admin = createAdminClient();
   if (profileRole === "instructor") {
     await admin
       .from("live_sessions")

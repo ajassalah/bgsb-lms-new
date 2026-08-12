@@ -1,18 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { randomBytes } from "crypto";
+import { adminActorCan } from "@/lib/staff-permissions";
 export async function POST(req: Request) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: profile } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "super_admin")
+  if (!(await adminActorCan(user.id, "students", "create")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     parsed = z
@@ -38,12 +35,14 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   const admin = createAdminClient(),
-    { data: invited, error: inviteError } =
-      await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-        data: {
-          full_name: `${parsed.data.first_name} ${parsed.data.last_name}`,
-        },
-      });
+    { data: invited, error: inviteError } = await admin.auth.admin.createUser({
+      email: parsed.data.email,
+      password: `Pending@${randomBytes(12).toString("base64url")}`,
+      email_confirm: false,
+      user_metadata: {
+        full_name: `${parsed.data.first_name} ${parsed.data.last_name}`,
+      },
+    });
   if (inviteError || !invited.user)
     return Response.json(
       { error: inviteError?.message || "Could not create student account" },
@@ -87,6 +86,7 @@ export async function POST(req: Request) {
       email: parsed.data.email.toLowerCase(),
       avatar_url,
       status: "active",
+      verification_status: "pending",
     },
     result = await admin
       .from("profiles")
@@ -95,14 +95,12 @@ export async function POST(req: Request) {
       .single();
   if (result.error)
     return Response.json({ error: result.error.message }, { status: 400 });
-  await admin
-    .from("admin_activity_logs")
-    .insert({
-      actor_id: user.id,
-      action: "create",
-      entity_type: "student",
-      entity_id: result.data.id,
-      description: `Created student ${values.full_name}`,
-    });
+  await admin.from("admin_activity_logs").insert({
+    actor_id: user.id,
+    action: "create",
+    entity_type: "student",
+    entity_id: result.data.id,
+    description: `Created student ${values.full_name}`,
+  });
   return Response.json(result.data);
 }

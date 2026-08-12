@@ -12,6 +12,7 @@ import {
   CreditCard,
   ClipboardCheck,
   FileBarChart,
+  FolderLock,
   GraduationCap,
   LayoutDashboard,
   LibraryBig,
@@ -78,6 +79,7 @@ const groups = [
     label: "Platform",
     items: [
       ["Reports", FileBarChart, "/dashboard/super-admin/reports"],
+      ["Private File", FolderLock, "/dashboard/super-admin/private-files"],
       ["System settings", Settings, "#"],
       ["Help & support", CircleHelp, "#"],
     ],
@@ -110,6 +112,7 @@ export function SuperAdminShell({
     [notificationsOpen, setNotificationsOpen] = useState(false),
     [darkMode, setDarkMode] = useState(false),
     [themeReady, setThemeReady] = useState(false),
+    [unreadMessages, setUnreadMessages] = useState(0),
     [notifications, setNotifications] = useState<
       { id: string; title: string; url: string; date: string }[]
     >([]);
@@ -147,10 +150,22 @@ export function SuperAdminShell({
     }
   }, [darkMode, themeReady]);
   useEffect(() => {
-    fetch("/api/admin/notifications")
+    let active = true;
+    const refreshNotifications = () => fetch("/api/admin/notifications", { cache: "no-store" })
       .then((x) => x.json())
-      .then((x) => setNotifications(x.items || []))
+      .then((x) => { if (active) setNotifications(x.items || []); })
       .catch(() => {});
+    refreshNotifications();
+    const timer = window.setInterval(refreshNotifications, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [pathname]);
+  useEffect(() => {
+    let active = true;
+    const refreshUnread = () => fetch("/api/admin/messages/unread", { cache: "no-store" }).then((x) => x.json()).then((x) => { if (active) setUnreadMessages(x.count || 0); }).catch(() => {});
+    refreshUnread();
+    const timer = window.setInterval(refreshUnread, 15000);
+    window.addEventListener("messages-read", refreshUnread);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("messages-read", refreshUnread); };
   }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = mobile ? "hidden" : "";
@@ -397,12 +412,17 @@ export function SuperAdminShell({
                       href={href}
                       onClick={() => setMobile(false)}
                       key={label}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${sidebar ? "" : "lg:justify-center lg:px-0"} ${pathname === href ? "bg-red font-semibold text-white" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
+                      className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${sidebar ? "" : "lg:justify-center lg:px-0"} ${pathname === href ? "bg-red font-semibold text-white" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
                     >
                       <Icon className="size-[18px]" />
                       <span className={sidebar ? "" : "lg:hidden"}>
                         {label}
                       </span>
+                      {label === "Messages" && unreadMessages > 0 && (
+                        <span className={`${sidebar ? "ml-auto" : "absolute right-1 top-1"} grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}>
+                          {unreadMessages > 99 ? "99+" : unreadMessages}
+                        </span>
+                      )}
                       {["Organizations"].includes(label) && (
                         <ChevronDown className="ml-auto size-3.5 opacity-40" />
                       )}

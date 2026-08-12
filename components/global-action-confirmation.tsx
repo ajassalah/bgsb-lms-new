@@ -12,6 +12,8 @@ export function GlobalActionConfirmation() {
         form = submit.target as HTMLFormElement;
       if (
         !form?.closest("[data-admin-shell]") ||
+        !!form.closest("[data-message-center]") ||
+        form.dataset.skipConfirmation === "true" ||
         form.dataset.actionConfirmed === "true"
       )
         return;

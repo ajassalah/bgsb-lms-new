@@ -1,0 +1,2 @@
+import { DashboardShell } from "@/components/dashboard-shell"; import { requireProfile } from "@/lib/auth";
+export default async function StudentCourseFaq(){const p=await requireProfile("student");return <DashboardShell role="student" name={p.full_name} email={p.email} avatar={p.avatar_url}><p className="text-sm text-slate-400">My Courses / FAQ</p><h1 className="mt-1 text-2xl font-bold text-navy">Course FAQ</h1><section className="mt-6 rounded-2xl border bg-white p-10 text-center text-slate-400">Course questions and answers will appear here.</section></DashboardShell>}

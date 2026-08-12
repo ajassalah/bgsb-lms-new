@@ -2,6 +2,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import {
   FileText,
+  Edit3,
   Image as ImageIcon,
   Info,
   Mic,
@@ -10,10 +11,12 @@ import {
   Send,
   Star,
   StopCircle,
+  Trash2,
   Video,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type User = {
   id: string;
@@ -68,14 +71,21 @@ export function MessageCenter({
   const [selected, setSelected] = useState<User | null>(users[0] || null),
     [query, setQuery] = useState(""),
     [messages, setMessages] = useState<Message[]>([]),
+    [loadingMessages, setLoadingMessages] = useState(false),
+    [unreadByUser, setUnreadByUser] = useState<Record<string, number>>({}),
+    [presence, setPresence] = useState<Record<string, string | null>>(() => Object.fromEntries(users.map((user) => [user.id, user.lastLogin]))),
     [favorites, setFavorites] = useState(initialFavorites),
     [info, setInfo] = useState(false),
     [file, setFile] = useState<File | null>(null),
     [sending, setSending] = useState(false),
-    [recording, setRecording] = useState(false);
+    [recording, setRecording] = useState(false),
+    [editing, setEditing] = useState<Message | null>(null),
+    [editBody, setEditBody] = useState(""),
+    [deleting, setDeleting] = useState<Message | null>(null);
   const media = useRef<MediaRecorder | null>(null),
     chunks = useRef<Blob[]>([]),
-    bottom = useRef<HTMLDivElement | null>(null);
+    bottom = useRef<HTMLDivElement | null>(null),
+    selectedId = useRef<string | null>(users[0]?.id || null);
   const filtered = users.filter((u) =>
       `${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase()),
     ),
@@ -86,16 +96,39 @@ export function MessageCenter({
     });
     if (res.ok) {
       const data = await res.json();
+      if (selectedId.current !== id) return;
       setMessages(data.messages || []);
+      setUnreadByUser((counts) => ({ ...counts, [id]: 0 }));
+      window.dispatchEvent(new Event("messages-read"));
       setTimeout(() => bottom.current?.scrollIntoView(), 0);
     }
   }
   useEffect(() => {
     if (!selected) return;
-    load(selected.id);
+    selectedId.current = selected.id;
+    setMessages([]);
+    setLoadingMessages(true);
+    load(selected.id).finally(() => setLoadingMessages(false));
     const timer = setInterval(() => load(selected.id), 5000);
     return () => clearInterval(timer);
   }, [selected?.id]);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => fetch("/api/admin/messages/unread", { cache: "no-store" }).then((x) => x.json()).then((x) => { if (active) setUnreadByUser(x.byUser || {}); }).catch(() => {});
+    refresh();
+    const timer = window.setInterval(refresh, 10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
+  useEffect(() => {
+    let mounted = true;
+    const heartbeat = () => fetch("/api/admin/messages/presence", { method: "POST" }).catch(() => {});
+    const refreshPresence = () => fetch("/api/admin/messages/presence", { cache: "no-store" }).then((x) => x.json()).then((x) => { if (mounted) setPresence(Object.fromEntries((x.users || []).map((user: { id: string; last_login_at: string | null }) => [user.id, user.last_login_at]))); }).catch(() => {});
+    heartbeat();
+    refreshPresence();
+    const heartbeatTimer = window.setInterval(heartbeat, 60000);
+    const presenceTimer = window.setInterval(refreshPresence, 30000);
+    return () => { mounted = false; window.clearInterval(heartbeatTimer); window.clearInterval(presenceTimer); };
+  }, []);
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected) return;
@@ -115,6 +148,34 @@ export function MessageCenter({
     setFile(null);
     formElement.reset();
     setTimeout(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), 0);
+  }
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+    const res = await fetch(`/api/admin/messages/${editing.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ body: editBody }),
+    });
+    if (!res.ok) return toast.error((await res.json()).error || "Edit failed");
+    setMessages((rows) =>
+      rows.map((row) =>
+        row.id === editing.id ? { ...row, body: editBody.trim() } : row,
+      ),
+    );
+    setEditing(null);
+    toast.success("Message updated");
+  }
+  async function deleteMessage() {
+    if (!deleting) return;
+    const res = await fetch(`/api/admin/messages/${deleting.id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok)
+      return toast.error((await res.json()).error || "Delete failed");
+    setMessages((rows) => rows.filter((row) => row.id !== deleting.id));
+    setDeleting(null);
+    toast.success("Message deleted");
   }
   async function favourite(user: User) {
     const value = !favorites.includes(user.id);
@@ -155,10 +216,16 @@ export function MessageCenter({
     }
   }
   const active = (u: User) =>
-    !!u.lastLogin &&
-    Date.now() - new Date(u.lastLogin).getTime() < 5 * 60 * 1000;
+    !!presence[u.id] &&
+    Date.now() - new Date(presence[u.id]!).getTime() < 2 * 60 * 1000;
+  const lastSeen = (value: string | null) => value
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Colombo", dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+    : null;
   return (
-    <div className="-m-3 flex h-[calc(100vh-70px)] min-h-[620px] overflow-hidden border bg-white sm:-m-5 lg:-m-8 lg:h-[calc(100vh-78px)]">
+    <div
+      data-message-center
+      className="-m-3 flex h-[calc(100vh-70px)] min-h-[620px] overflow-hidden border bg-white sm:-m-5 lg:-m-8 lg:h-[calc(100vh-78px)]"
+    >
       <aside
         className={`${selected ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r md:w-80 lg:w-96`}
       >
@@ -174,7 +241,7 @@ export function MessageCenter({
                 onClick={() => setSelected(u)}
                 className="shrink-0 text-center"
               >
-                <Avatar user={u} />
+                <span className="relative inline-block"><Avatar user={u} />{unreadByUser[u.id] > 0 && <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-5 text-white">{unreadByUser[u.id] > 99 ? "99+" : unreadByUser[u.id]}</span>}</span>
                 <span className="mt-1 block max-w-14 truncate text-[9px] text-slate-500">
                   {u.name.split(" ")[0]}
                 </span>
@@ -215,6 +282,7 @@ export function MessageCenter({
                   {u.email}
                 </small>
               </span>
+              {unreadByUser[u.id] > 0 && <span className="ml-auto grid min-w-6 place-items-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-6 text-white">{unreadByUser[u.id] > 99 ? "99+" : unreadByUser[u.id]}</span>}
             </button>
           ))}
         </div>
@@ -236,8 +304,8 @@ export function MessageCenter({
               >
                 {active(selected)
                   ? "Active now"
-                  : selected.lastLogin
-                    ? `Last seen ${new Date(selected.lastLogin).toLocaleString("en-LK")}`
+                  : presence[selected.id] || selected.lastLogin
+                    ? `Last seen ${lastSeen(presence[selected.id] || selected.lastLogin)}`
                     : "Not logged in yet"}
               </span>
             </div>
@@ -249,6 +317,7 @@ export function MessageCenter({
             </button>
           </header>
           <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50/60 p-3 sm:p-6">
+            {loadingMessages && <div className="grid h-full place-items-center text-sm text-slate-400">Loading conversation...</div>}
             {messages.map((m) => {
               const mine = m.sender_id === currentUser.id,
                 person = mine ? currentUser : selected;
@@ -294,6 +363,29 @@ export function MessageCenter({
                     {m.body && (
                       <p className="whitespace-pre-wrap text-sm">{m.body}</p>
                     )}
+                    {mine && (
+                      <div className="mt-2 flex justify-end gap-1 border-t border-white/10 pt-1">
+                        {m.body && (
+                          <button
+                            onClick={() => {
+                              setEditing(m);
+                              setEditBody(m.body || "");
+                            }}
+                            className="grid size-7 place-items-center rounded hover:bg-white/10"
+                            aria-label="Edit message"
+                          >
+                            <Edit3 className="size-3" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setDeleting(m)}
+                          className="grid size-7 place-items-center rounded hover:bg-white/10"
+                          aria-label="Delete message"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
+                    )}
                     <time
                       className={`mt-1 block text-right text-[9px] ${mine ? "text-white/55" : "text-slate-400"}`}
                     >
@@ -319,6 +411,7 @@ export function MessageCenter({
             </div>
           )}
           <form
+            data-skip-confirmation="true"
             onSubmit={send}
             className="flex shrink-0 items-center gap-2 border-t p-3"
           >
@@ -411,6 +504,42 @@ export function MessageCenter({
           Select a user to start messaging.
         </div>
       )}
+      {editing && (
+        <div className="fixed inset-0 z-[230] grid place-items-center bg-black/50 p-3 backdrop-blur-sm">
+          <form
+            data-skip-confirmation="true"
+            onSubmit={saveEdit}
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+          >
+            <h2 className="text-lg font-bold text-navy">Edit Message</h2>
+            <textarea
+              autoFocus
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+              className="field mt-4 min-h-28"
+              required
+            />
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button className="btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      )}
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete Message?"
+        description="This message will be permanently removed from the conversation."
+        confirmLabel="Delete Message"
+        onCancel={() => setDeleting(null)}
+        onConfirm={deleteMessage}
+      />
     </div>
   );
 }

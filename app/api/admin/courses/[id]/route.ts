@@ -1,26 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-async function authorized() {
+import { adminActorCan } from "@/lib/staff-permissions";
+async function authorized(action: string) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return null;
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return p?.role === "super_admin" ? db : null;
+  return (await adminActorCan(user.id, "courses", action)) ? user : null;
 }
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await authorized()))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   if (req.headers.get("content-type")?.includes("application/json")) {
+    if (!(await authorized("published_toggle")))
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     const update = z
       .object({ status: z.enum(["draft", "published", "archived"]) })
       .safeParse(await req.json());
@@ -34,6 +30,8 @@ export async function PATCH(
       ? Response.json({ error: error.message }, { status: 400 })
       : Response.json({ ok: true });
   }
+  if (!(await authorized("edit")))
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     parsed = z
       .object({
@@ -43,6 +41,7 @@ export async function PATCH(
         language: z.string().min(1),
         organization_id: z.string().optional(),
         instructor_id: z.string().optional(),
+        instructor_ids: z.string().optional(),
         duration_weeks: z.coerce.number().int().positive(),
         tags: z.string().optional(),
         status: z.enum(["draft", "published", "archived"]),
@@ -73,6 +72,10 @@ export async function PATCH(
     return admin.storage.from("course-media").getPublicUrl(path).data.publicUrl;
   }
   try {
+    const instructorIds = z
+      .array(z.string().uuid())
+      .catch([])
+      .parse(JSON.parse(parsed.data.instructor_ids || "[]"));
     const thumbnail_url = await upload("thumbnail"),
       uploaded = await upload("video"),
       values: any = {
@@ -81,7 +84,7 @@ export async function PATCH(
         course_type: parsed.data.course_type,
         language: parsed.data.language,
         organization_id: parsed.data.organization_id || null,
-        instructor_id: parsed.data.instructor_id || null,
+        instructor_id: instructorIds[0] || null,
         duration_weeks: parsed.data.duration_weeks,
         tags: (parsed.data.tags || "")
           .split(",")
@@ -102,9 +105,28 @@ export async function PATCH(
       .from("courses")
       .update(values)
       .eq("id", params.id);
-    return error
-      ? Response.json({ error: error.message }, { status: 400 })
-      : Response.json({ ok: true });
+    if (error) return Response.json({ error: error.message }, { status: 400 });
+    await admin.from("course_instructors").delete().eq("course_id", params.id);
+    if (instructorIds.length) {
+      const {
+        data: { user },
+      } = await createClient().auth.getUser();
+      const { error: assignmentError } = await admin
+        .from("course_instructors")
+        .insert(
+          instructorIds.map((instructor_id) => ({
+            course_id: params.id,
+            instructor_id,
+            assigned_by: user?.id || null,
+          })),
+        );
+      if (assignmentError)
+        return Response.json(
+          { error: assignmentError.message },
+          { status: 400 },
+        );
+    }
+    return Response.json({ ok: true });
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "Update failed" },
@@ -116,9 +138,12 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  const db = await authorized();
-  if (!db) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { error } = await db.from("courses").delete().eq("id", params.id);
+  if (!(await authorized("delete")))
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  const { error } = await createAdminClient()
+    .from("courses")
+    .delete()
+    .eq("id", params.id);
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json({ ok: true });

@@ -40,7 +40,7 @@ export function LiveClassManagement({
   initialRows: Row[];
   instructors: { id: string; name: string }[];
   staff: Option[];
-  courses: { id: string; name: string; instructorId: string | null }[];
+  courses: { id: string; name: string; instructorIds: string[] }[];
   students: {
     id: string;
     name: string;
@@ -85,19 +85,23 @@ export function LiveClassManagement({
         ["Scheduled Classes", scheduledRows],
         ["Expired Classes", expiredRows],
       ].map(([title, groupRows]) => (
-        <section key={title as string} className="mt-8">
-          <h2 className="text-xl font-bold text-navy">{title as string}</h2>
+        <section key={title as string} className="mt-8 px-3 sm:px-0">
+          <h2 className="rounded-xl bg-white px-5 py-4 text-xl font-bold text-navy">
+            {title as string}
+          </h2>
           <div className="mt-4 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {(groupRows as Row[]).map((r) => (
               <article
                 key={r.id}
-                className="relative overflow-visible rounded-2xl border bg-white shadow-sm"
+                className="relative min-w-0 overflow-visible rounded-2xl border bg-white shadow-sm"
               >
-                <img
-                  src={r.thumbnail_url}
-                  alt=""
-                  className="h-52 w-full rounded-t-2xl object-cover"
-                />
+                <div className="aspect-video w-full overflow-hidden rounded-t-2xl bg-slate-100">
+                  <img
+                    src={r.thumbnail_url}
+                    alt=""
+                    className="block size-full object-cover"
+                  />
+                </div>
                 <div className="p-5">
                   <div className="flex gap-3">
                     <div className="min-w-0 flex-1">
@@ -244,7 +248,7 @@ function Editor({
 }: {
   instructors: { id: string; name: string }[];
   staff: Option[];
-  courses: { id: string; name: string; instructorId: string | null }[];
+  courses: { id: string; name: string; instructorIds: string[] }[];
   students: {
     id: string;
     name: string;
@@ -272,8 +276,7 @@ function Editor({
   const eligibleInstructorIds = new Set(
       courses
         .filter((course) => selectedCourses.includes(course.id))
-        .map((course) => course.instructorId)
-        .filter(Boolean),
+        .flatMap((course) => course.instructorIds),
     ),
     availableInstructors = instructors.filter((instructor) =>
       eligibleInstructorIds.has(instructor.id),
@@ -292,8 +295,7 @@ function Editor({
     const nextInstructorIds = new Set(
         courses
           .filter((course) => next.includes(course.id))
-          .map((course) => course.instructorId)
-          .filter(Boolean),
+          .flatMap((course) => course.instructorIds),
       ),
       nextStudentIds = new Set(
         students

@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
 import { CourseMediaFields } from "./course-media-fields";
+import { InstructorPicker } from "./instructor-picker";
 type Option = { id: string; name: string };
 type Course = {
   id: string;
@@ -25,6 +26,7 @@ type Course = {
   language: string;
   organization_id: string | null;
   instructor_id: string | null;
+  instructor_ids?: string[];
   duration_weeks: number | null;
   tags: string[] | null;
   video_source: string | null;
@@ -47,6 +49,10 @@ export function CourseEditForm({
     [basic, setBasic] = useState<Record<string, string>>({}),
     [description, setDescription] = useState(course.description || ""),
     [videoSource, setVideoSource] = useState(course.video_source || "youtube"),
+    [selectedInstructors, setSelectedInstructors] = useState<string[]>(
+      course.instructor_ids ||
+        (course.instructor_id ? [course.instructor_id] : []),
+    ),
     router = useRouter();
   function next(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,6 +72,7 @@ export function CourseEditForm({
     Object.entries(basic).forEach(([k, v]) => payload.set(k, v));
     payload.set("description", description);
     payload.set("video_source", videoSource);
+    payload.set("instructor_ids", JSON.stringify(selectedInstructors));
     const media = new FormData(e.currentTarget);
     for (const key of ["thumbnail", "video"]) {
       const f = media.get(key);
@@ -142,12 +149,10 @@ export function CourseEditForm({
               options={organizations}
               optional
             />
-            <Select
-              label="Instructor"
-              name="instructor_id"
-              value={course.instructor_id || ""}
-              options={instructors}
-              optional
+            <InstructorPicker
+              instructors={instructors}
+              selected={selectedInstructors}
+              onChange={setSelectedInstructors}
             />
             <Field
               label="Course Duration"

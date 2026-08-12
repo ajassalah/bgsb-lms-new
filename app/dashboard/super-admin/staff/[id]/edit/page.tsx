@@ -31,7 +31,7 @@ export default async function EditStaff({
           .order("name"),
         db
           .from("admin_permissions")
-          .select("module,can_view,can_create,can_edit,can_delete")
+          .select("module,actions,can_view,can_create,can_edit,can_delete")
           .eq("admin_staff_id", params.id),
       ]);
   if (!staff) notFound();
@@ -46,12 +46,14 @@ export default async function EditStaff({
         initialPermissions={Object.fromEntries(
           (permissionRows || []).map((row) => [
             row.module,
-            {
-              view: row.can_view,
-              create: row.can_create,
-              edit: row.can_edit,
-              delete: row.can_delete,
-            },
+            row.actions && Object.keys(row.actions).length
+              ? row.actions
+              : {
+                  view: row.can_view,
+                  create: row.can_create,
+                  edit: row.can_edit,
+                  delete: row.can_delete,
+                },
           ]),
         )}
       />

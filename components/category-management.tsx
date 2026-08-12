@@ -4,6 +4,7 @@ import { Edit3, MoreVertical, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useRouter } from "next/navigation";
+import { useStaffCan } from "./staff-permission-context";
 export type AdminCategory = {
   id: string;
   name: string;
@@ -15,6 +16,10 @@ export function CategoryManagement({
 }: {
   initialCategories: AdminCategory[];
 }) {
+  const canCreate = useStaffCan("categories", "create"),
+    canEdit = useStaffCan("categories", "edit"),
+    canDelete = useStaffCan("categories", "delete"),
+    canStatus = useStaffCan("categories", "status");
   const [categories, setCategories] = useState(initialCategories),
     [modal, setModal] = useState<AdminCategory | null | undefined>(undefined),
     [menu, setMenu] = useState<string | null>(null),
@@ -34,7 +39,10 @@ export function CategoryManagement({
     if (!res.ok) {
       setCategories((x) => x.map((c) => (c.id === item.id ? item : c)));
       toast.error("Status update failed");
-    } else { toast.success("Category status updated"); router.refresh(); }
+    } else {
+      toast.success("Category status updated");
+      router.refresh();
+    }
   }
   async function remove(item: AdminCategory) {
     setMenu(null);
@@ -63,13 +71,15 @@ export function CategoryManagement({
             builder.
           </p>
         </div>
-        <button
-          onClick={() => setModal(null)}
-          className="btn-primary gap-2 rounded-lg py-2.5"
-        >
-          <Plus className="size-4" />
-          Add New Category
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setModal(null)}
+            className="btn-primary gap-2 rounded-lg py-2.5"
+          >
+            <Plus className="size-4" />
+            Add New Category
+          </button>
+        )}
       </div>
       <section className="mt-7 overflow-hidden rounded-xl border bg-white">
         <div className="overflow-x-auto">
@@ -97,15 +107,17 @@ export function CategoryManagement({
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => toggle(item)}
-                        aria-label={`Toggle ${item.name}`}
-                        className={`relative h-6 w-11 rounded-full transition ${item.active ? "bg-emerald-500" : "bg-slate-300"}`}
-                      >
-                        <span
-                          className={`absolute top-1 size-4 rounded-full bg-white shadow transition ${item.active ? "left-6" : "left-1"}`}
-                        />
-                      </button>
+                      {canStatus && (
+                        <button
+                          onClick={() => toggle(item)}
+                          aria-label={`Toggle ${item.name}`}
+                          className={`relative h-6 w-11 rounded-full transition ${item.active ? "bg-emerald-500" : "bg-slate-300"}`}
+                        >
+                          <span
+                            className={`absolute top-1 size-4 rounded-full bg-white shadow transition ${item.active ? "left-6" : "left-1"}`}
+                          />
+                        </button>
+                      )}
                       <span
                         className={`text-xs font-semibold ${item.active ? "text-emerald-700" : "text-slate-400"}`}
                       >
@@ -114,34 +126,42 @@ export function CategoryManagement({
                     </div>
                   </td>
                   <td className="relative px-6 py-4 text-right">
-                    <button
-                      onClick={() => setMenu(menu === item.id ? null : item.id)}
-                      className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500"
-                    >
-                      <MoreVertical className="size-4" />
-                    </button>
+                    {(canEdit || canDelete) && (
+                      <button
+                        onClick={() =>
+                          setMenu(menu === item.id ? null : item.id)
+                        }
+                        className="grid size-9 place-items-center rounded-lg border bg-white text-slate-500"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                    )}
                     {menu === item.id && (
                       <div className="absolute right-6 top-14 z-20 w-40 overflow-hidden rounded-lg border bg-white py-1 text-left shadow-xl">
-                        <button
-                          onClick={() => {
-                            setModal(item);
-                            setMenu(null);
-                          }}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
-                        >
-                          <Edit3 className="size-4 text-blue-600" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeleting(item);
-                            setMenu(null);
-                          }}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"
-                        >
-                          <Trash2 className="size-4" />
-                          Delete
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              setModal(item);
+                              setMenu(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                          >
+                            <Edit3 className="size-4 text-blue-600" />
+                            Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              setDeleting(item);
+                              setMenu(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"
+                          >
+                            <Trash2 className="size-4" />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>

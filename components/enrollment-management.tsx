@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Edit3,
   MoreVertical,
   Search,
   Trash2,
@@ -15,11 +16,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useStaffCan } from "./staff-permission-context";
 export type EnrollmentRow = {
   id: string;
   student: string;
   studentEmail: string;
+  studentId: string;
   course: string;
+  courseId: string;
   date: string;
   status: string;
 };
@@ -34,9 +38,14 @@ export function EnrollmentManagement({
   courses: Option[];
 }) {
   const router = useRouter();
+  const canCreate = useStaffCan("enrollment", "create");
+  const canEdit = useStaffCan("enrollment", "edit");
+  const canStatus = useStaffCan("enrollment", "status");
+  const canDelete = useStaffCan("enrollment", "delete");
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
     [adding, setAdding] = useState(false),
+    [editing, setEditing] = useState<EnrollmentRow | null>(null),
     [menu, setMenu] = useState<string | null>(null),
     [statusMenu, setStatusMenu] = useState<string | null>(null),
     [page, setPage] = useState(1),
@@ -71,7 +80,10 @@ export function EnrollmentManagement({
         x.map((y) => (y.id === row.id ? { ...y, status: old } : y)),
       );
       toast.error("Update failed");
-    } else { toast.success("Enrollment status updated"); router.refresh(); }
+    } else {
+      toast.success("Enrollment status updated");
+      router.refresh();
+    }
   }
   async function remove(row: EnrollmentRow) {
     const res = await fetch(`/api/admin/enrollments/${row.id}`, {
@@ -90,10 +102,12 @@ export function EnrollmentManagement({
           <p className="text-sm text-slate-400">Academic / Enrollment</p>
           <h1 className="mt-1 text-2xl font-bold text-navy">Enrollment</h1>
         </div>
-        <button onClick={() => setAdding(true)} className="btn-primary gap-2">
-          <UserPlus className="size-4" />
-          Add Student To Course
-        </button>
+        {canCreate && (
+          <button onClick={() => setAdding(true)} className="btn-primary gap-2">
+            <UserPlus className="size-4" />
+            Add Student To Course
+          </button>
+        )}
       </div>
       <section className="mt-7 overflow-visible rounded-xl border bg-white">
         <div className="border-b p-5">
@@ -137,59 +151,77 @@ export function EnrollmentManagement({
                     <Badge value={r.status} />
                   </td>
                   <td className="relative p-4">
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => {
-                          setMenu(menu === r.id ? null : r.id);
-                          setStatusMenu(null);
-                        }}
-                        className="grid size-9 place-items-center rounded-lg border"
-                      >
-                        <MoreVertical className="size-4" />
-                      </button>
-                    </div>
-                    {menu === r.id && (
-                      <div className="absolute right-4 top-14 z-[100] w-44 rounded-lg border bg-white py-1 shadow-xl">
-                        <div className="relative">
-                          <button
-                            onClick={() =>
-                              setStatusMenu(statusMenu === r.id ? null : r.id)
-                            }
-                            className="row-action"
-                          >
-                            <Check />
-                            Status
-                            <ChevronRight className="ml-auto" />
-                          </button>
-                          {statusMenu === r.id && (
-                            <div className="absolute right-full top-0 mr-1 w-40 rounded-lg border bg-white py-1 shadow-xl">
-                              <button
-                                onClick={() => status(r, "approved")}
-                                className="row-action"
-                              >
-                                <Check className="text-emerald-600" />
-                                Approved
-                              </button>
-                              <button
-                                onClick={() => status(r, "declined")}
-                                className="row-action"
-                              >
-                                <XCircle className="text-red" />
-                                Decline
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                    {(canEdit || canStatus || canDelete) && (
+                      <div className="flex justify-end">
                         <button
                           onClick={() => {
-                            setDeleting(r);
-                            setMenu(null);
+                            setMenu(menu === r.id ? null : r.id);
+                            setStatusMenu(null);
                           }}
-                          className="row-action text-red"
+                          className="grid size-9 place-items-center rounded-lg border"
                         >
-                          <Trash2 />
-                          Delete
+                          <MoreVertical className="size-4" />
                         </button>
+                      </div>
+                    )}
+                    {menu === r.id && (
+                      <div className="absolute right-4 top-14 z-[100] w-44 rounded-lg border bg-white py-1 shadow-xl">
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              setEditing(r);
+                              setMenu(null);
+                            }}
+                            className="row-action"
+                          >
+                            <Edit3 />
+                            Edit
+                          </button>
+                        )}
+                        {canStatus && (
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setStatusMenu(statusMenu === r.id ? null : r.id)
+                              }
+                              className="row-action"
+                            >
+                              <Check />
+                              Status
+                              <ChevronRight className="ml-auto" />
+                            </button>
+                            {statusMenu === r.id && (
+                              <div className="absolute right-full top-0 mr-1 w-40 rounded-lg border bg-white py-1 shadow-xl">
+                                <button
+                                  onClick={() => status(r, "approved")}
+                                  className="row-action"
+                                >
+                                  <Check className="text-emerald-600" />
+                                  Approved
+                                </button>
+                                <button
+                                  onClick={() => status(r, "declined")}
+                                  className="row-action"
+                                >
+                                  <XCircle className="text-red" />
+                                  Decline
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              setDeleting(r);
+                              setMenu(null);
+                            }}
+                            className="row-action text-red"
+                          >
+                            <Trash2 />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -237,6 +269,21 @@ export function EnrollmentManagement({
           saved={(r) => {
             setRows((x) => [r, ...x]);
             setAdding(false);
+          }}
+        />
+      )}
+      {editing && (
+        <EditEnrollment
+          row={editing}
+          students={students}
+          courses={courses}
+          close={() => setEditing(null)}
+          saved={(updated) => {
+            setRows((current) =>
+              current.map((row) => (row.id === updated.id ? updated : row)),
+            );
+            setEditing(null);
+            router.refresh();
           }}
         />
       )}
@@ -341,6 +388,116 @@ function Add({
         <button disabled={busy} className="btn-primary mt-5 w-full gap-2">
           <BookPlus className="size-4" />
           {busy ? "Adding…" : "Add Student"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function EditEnrollment({
+  row,
+  students,
+  courses,
+  close,
+  saved,
+}: {
+  row: EnrollmentRow;
+  students: Option[];
+  courses: Option[];
+  close: () => void;
+  saved: (row: EnrollmentRow) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const response = await fetch(`/api/admin/enrollments/${row.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      toast.error(body.error || "Enrollment update failed");
+      setBusy(false);
+      return;
+    }
+    const student = students.find((item) => item.id === values.student_id),
+      course = courses.find((item) => item.id === values.course_id);
+    saved({
+      ...row,
+      studentId: String(values.student_id),
+      courseId: String(values.course_id),
+      student: student?.name.replace(/\s*\([^)]*\)\s*$/, "") || row.student,
+      studentEmail:
+        student?.name.match(/\(([^)]+)\)\s*$/)?.[1] || row.studentEmail,
+      course: course?.name || row.course,
+      status: String(values.status),
+    });
+    toast.success("Enrollment updated");
+  }
+  return (
+    <div className="fixed inset-0 z-[140] grid place-items-center bg-black/50 p-3">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md rounded-2xl bg-white p-5 sm:p-6"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-slate-400">Enrollment</p>
+            <h2 className="text-xl font-bold text-navy">Edit Enrollment</h2>
+          </div>
+          <button type="button" onClick={close}>
+            <X />
+          </button>
+        </div>
+        <label className="mt-6 block text-sm font-bold">
+          Student
+          <select
+            name="student_id"
+            defaultValue={row.studentId}
+            className="field mt-2"
+            required
+          >
+            {students.map((item) => (
+              <option value={item.id} key={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="mt-4 block text-sm font-bold">
+          Course
+          <select
+            name="course_id"
+            defaultValue={row.courseId}
+            className="field mt-2"
+            required
+          >
+            {courses.map((item) => (
+              <option value={item.id} key={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="mt-4 block text-sm font-bold">
+          Status
+          <select
+            name="status"
+            defaultValue={row.status}
+            className="field mt-2"
+          >
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="declined">Declined</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+        <button disabled={busy} className="btn-primary mt-6 w-full gap-2">
+          <Edit3 className="size-4" />
+          {busy ? "Saving..." : "Update Enrollment"}
         </button>
       </form>
     </div>

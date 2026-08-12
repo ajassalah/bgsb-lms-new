@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 async function authorized() {
   const db = createClient();
@@ -13,15 +14,32 @@ async function authorized() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return data && ["super_admin", "admin_staff"].includes(data.role) ? db : null;
+  return data &&
+    ["super_admin", "admin_staff", "instructor", "student"].includes(data.role)
+    ? { db, user, role: data.role }
+    : null;
 }
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } },
 ) {
-  const db = await authorized();
-  if (!db) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const actor = await authorized();
+  if (!actor) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
+  if (["instructor", "student"].includes(actor.role)) {
+    const { data: owned } = await admin
+      .from("calendar_appointments")
+      .select("id")
+      .eq("id", params.id)
+      .eq("created_by", actor.user.id)
+      .maybeSingle();
+    if (!owned)
+      return Response.json(
+        { error: "You can edit only your own appointments" },
+        { status: 403 },
+      );
+  }
   const parsed = z
     .object({
       title: z.string().trim().min(2),
@@ -44,7 +62,7 @@ export async function PATCH(
       { error: "End time must be after the start time" },
       { status: 400 },
     );
-  const { data, error } = await db
+  const { data, error } = await admin
     .from("calendar_appointments")
     .update({
       title: parsed.data.title,
@@ -59,6 +77,7 @@ export async function PATCH(
   if (error) return Response.json({ error: error.message }, { status: 400 });
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/calendar");
+  revalidatePath("/dashboard/instructor/calendar");
   return Response.json(data);
 }
 
@@ -66,24 +85,29 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  const db = createClient();
-  const {
-    data: { user },
-  } = await db.auth.getUser();
-  if (!user) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { data: profile } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!profile || !["super_admin", "admin_staff"].includes(profile.role))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { error } = await db
+  const actor = await authorized();
+  if (!actor) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const admin = createAdminClient();
+  if (actor.role === "instructor") {
+    const { data: owned } = await admin
+      .from("calendar_appointments")
+      .select("id")
+      .eq("id", params.id)
+      .eq("created_by", actor.user.id)
+      .maybeSingle();
+    if (!owned)
+      return Response.json(
+        { error: "You can delete only your own appointments" },
+        { status: 403 },
+      );
+  }
+  const { error } = await admin
     .from("calendar_appointments")
     .delete()
     .eq("id", params.id);
   if (error) return Response.json({ error: error.message }, { status: 400 });
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/calendar");
+  revalidatePath("/dashboard/instructor/calendar");
   return Response.json({ ok: true });
 }

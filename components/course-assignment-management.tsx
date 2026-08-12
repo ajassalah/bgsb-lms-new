@@ -9,8 +9,10 @@ export type AssignmentCourseRow = {
 };
 export function CourseAssignmentManagement({
   initialRows,
+  basePath = "/dashboard/super-admin/assignments",
 }: {
   initialRows: AssignmentCourseRow[];
+  basePath?: string;
 }) {
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
@@ -84,9 +86,7 @@ export function CourseAssignmentManagement({
                       <div className="absolute right-5 top-14 z-50 w-40 rounded-xl border bg-white py-1 shadow-xl">
                         <button
                           onClick={() =>
-                            router.push(
-                              `/dashboard/super-admin/assignments/${r.id}`,
-                            )
+                            router.push(`${basePath}/${r.id}`)
                           }
                           className="row-action"
                         >

@@ -12,7 +12,9 @@ async function user() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return p?.role === "super_admin" || p?.role === "admin_staff" ? user : null;
+  return ["super_admin", "admin_staff", "instructor", "student"].includes(p?.role || "")
+    ? user
+    : null;
 }
 export async function GET(request: Request) {
   const me = await user();
@@ -20,22 +22,11 @@ export async function GET(request: Request) {
   const other = new URL(request.url).searchParams.get("user_id");
   if (!other) return Response.json({ messages: [] });
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("direct_messages")
-    .select(
-      "id,sender_id,recipient_id,body,attachment_url,attachment_name,attachment_type,created_at",
-    )
-    .or(
-      `and(sender_id.eq.${me.id},recipient_id.eq.${other}),and(sender_id.eq.${other},recipient_id.eq.${me.id})`,
-    )
-    .order("created_at");
+  const [{ data, error }] = await Promise.all([
+    admin.from("direct_messages").select("id,sender_id,recipient_id,body,attachment_url,attachment_name,attachment_type,created_at").or(`and(sender_id.eq.${me.id},recipient_id.eq.${other}),and(sender_id.eq.${other},recipient_id.eq.${me.id})`).order("created_at"),
+    admin.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("sender_id", other).eq("recipient_id", me.id).is("read_at", null),
+  ]);
   if (error) return Response.json({ error: error.message }, { status: 400 });
-  await admin
-    .from("direct_messages")
-    .update({ read_at: new Date().toISOString() })
-    .eq("sender_id", other)
-    .eq("recipient_id", me.id)
-    .is("read_at", null);
   return Response.json({ messages: data || [] });
 }
 export async function POST(request: Request) {
@@ -87,6 +78,14 @@ export async function POST(request: Request) {
       "id,sender_id,recipient_id,body,attachment_url,attachment_name,attachment_type,created_at",
     )
     .single();
+  if (!error && data) {
+    const [{ data: sender }, { data: recipientProfile }] = await Promise.all([
+      admin.from("profiles").select("full_name").eq("id", me.id).maybeSingle(),
+      admin.from("profiles").select("role").eq("id", recipient).maybeSingle(),
+    ]);
+    const messageUrl = recipientProfile?.role === "instructor" ? "/dashboard/instructor/messages" : recipientProfile?.role === "student" ? "/dashboard/student/messages" : "/dashboard/super-admin/messages";
+    await admin.from("user_notifications").insert({ user_id: recipient, title: `New message from ${sender?.full_name || "a user"}`, url: messageUrl });
+  }
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json(data);

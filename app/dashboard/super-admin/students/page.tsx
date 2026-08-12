@@ -13,7 +13,7 @@ export default async function Students() {
         db
           .from("profiles")
           .select(
-            "id,full_name,email,phone,whatsapp_number,country,status,avatar_url,enrollments!enrollments_student_id_fkey(count)",
+            "id,full_name,email,phone,whatsapp_number,country,status,avatar_url,verification_status,verified_as,verified_at,enrollments!enrollments_student_id_fkey(count)",
           )
           .eq("role", "student")
           .order("created_at", { ascending: false }),

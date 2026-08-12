@@ -274,20 +274,24 @@ function LiveClassSections({ rows }: { rows: Live[] }) {
   return (
     <div className="space-y-8 md:col-span-2">
       {groups.map(([title, classes]) => (
-        <section key={title}>
-          <h3 className="font-bold text-navy">{title}</h3>
+        <section key={title} className="px-3 sm:px-0">
+          <h3 className="rounded-xl bg-white px-5 py-4 font-bold text-navy">
+            {title}
+          </h3>
           <div className="mt-4 grid gap-5 md:grid-cols-2">
             {classes.map((liveClass) => (
               <article
                 key={liveClass.id}
-                className="overflow-hidden rounded-xl border"
+                className="min-w-0 overflow-hidden rounded-xl border"
               >
                 {liveClass.thumbnail ? (
-                  <img
-                    src={liveClass.thumbnail}
-                    alt=""
-                    className="h-40 w-full object-cover"
-                  />
+                  <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-slate-100">
+                    <img
+                      src={liveClass.thumbnail}
+                      alt=""
+                      className="block size-full object-cover"
+                    />
+                  </div>
                 ) : (
                   <span className="grid h-40 place-items-center bg-slate-100">
                     <Radio className="text-slate-300" />

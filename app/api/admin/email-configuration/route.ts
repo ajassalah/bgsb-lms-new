@@ -15,7 +15,14 @@ export async function PUT(req: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const parsed = z
     .object({
-      smtp_host: z.string().min(1),
+      smtp_host: z
+        .string()
+        .trim()
+        .min(1)
+        .refine(
+          (value) => !value.includes("@") && !/^https?:\/\//i.test(value),
+          "SMTP Host must be a server hostname, for example mail.example.com",
+        ),
       smtp_port: z.coerce.number().int().positive(),
       smtp_username: z.string(),
       smtp_password: z.string(),
@@ -26,7 +33,10 @@ export async function PUT(req: Request) {
     .safeParse(await req.json());
   if (!parsed.success)
     return Response.json(
-      { error: "Enter valid email configuration" },
+      {
+        error:
+          parsed.error.issues[0]?.message || "Enter valid email configuration",
+      },
       { status: 400 },
     );
   const { error } = await db

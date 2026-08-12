@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,6 +19,8 @@ import {
 import { toast } from "sonner";
 import { VideoPlayer } from "./video-player";
 import { ConfirmDialog } from "./confirm-dialog";
+import { BulkImportDialog } from "./bulk-import-dialog";
+import { CollapsibleMedia } from "./collapsible-media";
 type Lesson = {
   id: string;
   title: string;
@@ -38,6 +40,7 @@ export type ModuleRow = {
   id: string;
   courseId: string;
   title: string;
+  description?: string | null;
   position: number;
   lessons: Lesson[];
   quizzes: Quiz[];
@@ -47,6 +50,7 @@ type Modal = {
   type: "module" | "lesson" | "quiz";
   module?: ModuleRow;
   lessonType?: "video" | "audio" | "document";
+  lesson?: Lesson;
 };
 export function CurriculumManagement({
   courseId,
@@ -72,6 +76,7 @@ export function CurriculumManagement({
     [deleting, setDeleting] = useState<ModuleRow | null>(null);
   const pages = Math.max(1, Math.ceil(modules.length / 10)),
     visible = modules.slice((page - 1) * 10, page * 10);
+  useEffect(() => setModules(initialModules), [initialModules]);
   async function reorder(target: string) {
     if (!drag || drag === target) return;
     const next = [...modules],
@@ -102,12 +107,14 @@ export function CurriculumManagement({
       setDeleting(null);
     }
   }
+  async function removeLesson(moduleId:string,lessonId:string){const res=await fetch(`/api/admin/lessons/${lessonId}`,{method:"DELETE"});if(res.ok){setModules(rows=>rows.map(row=>row.id===moduleId?{...row,lessons:row.lessons.filter(lesson=>lesson.id!==lessonId)}:row));toast.success("Lesson deleted")}else toast.error("Lesson could not be deleted")}
+  async function removeAssignment(moduleId:string,assignmentId:string){const res=await fetch(`/api/admin/assignments/${assignmentId}`,{method:"DELETE"});if(res.ok){setModules(rows=>rows.map(row=>row.id===moduleId?{...row,assignments:row.assignments.filter(item=>item.id!==assignmentId)}:row));toast.success("Assignment deleted")}else toast.error("Assignment could not be deleted")}
   function saved(item: any) {
     if (!modal) return;
     if (modal.type === "module")
       setModules((x) =>
         modal.module
-          ? x.map((y) => (y.id === item.id ? { ...y, title: item.title } : y))
+          ? x.map((y) => (y.id === item.id ? { ...y, title: item.title, description: item.description } : y))
           : [
               ...x,
               { ...item, courseId, lessons: [], quizzes: [], assignments: [] },
@@ -119,10 +126,7 @@ export function CurriculumManagement({
           y.id === modal.module!.id
             ? {
                 ...y,
-                [modal.type === "lesson" ? "lessons" : "quizzes"]: [
-                  ...y[modal.type === "lesson" ? "lessons" : "quizzes"],
-                  item,
-                ],
+                [modal.type === "lesson" ? "lessons" : "quizzes"]: modal.type === "lesson" && modal.lesson ? y.lessons.map(lesson=>lesson.id===item.id?item:lesson) : [...y[modal.type === "lesson" ? "lessons" : "quizzes"],item],
               }
             : y,
         ),
@@ -142,13 +146,21 @@ export function CurriculumManagement({
             inside each section.
           </p>
         </div>
-        <button
-          onClick={() => setModal({ type: "module" })}
-          className="btn-primary gap-2"
-        >
-          <Plus className="size-4" />
-          Add Module
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <BulkImportDialog
+            label="Curriculum"
+            endpoint="/api/admin/bulk/curriculum"
+            extraFields={{ course_id: courseId }}
+            template={`module_title,module_description,lesson_title,lesson_type,content_url,description,lesson_position,quiz_title\nIntroduction,Core concepts for new learners,Welcome Video,video,https://example.com/video.mp4,Course introduction,1,Introduction Quiz\nAdvanced Topics,In-depth learning materials,Reading Guide,document,https://example.com/guide.pdf,Download the guide,1,`}
+          />
+          <button
+            onClick={() => setModal({ type: "module" })}
+            className="btn-primary gap-2"
+          >
+            <Plus className="size-4" />
+            Add Module
+          </button>
+        </div>
       </div>
       {thumbnailUrl && (
         <img
@@ -158,14 +170,14 @@ export function CurriculumManagement({
         />
       )}
       {videoUrl && (
-        <section className="mt-5 w-full overflow-hidden rounded-2xl border bg-white shadow-sm">
+        <section className="mx-auto mt-5 w-full max-w-3xl overflow-hidden rounded-2xl border bg-white p-3 shadow-sm sm:p-4">
           {videoSource === "upload" ? (
             <VideoPlayer src={videoUrl} />
           ) : youtubeEmbed(videoUrl) ? (
             <iframe
               src={youtubeEmbed(videoUrl)!}
               title={`${courseTitle} course video`}
-              className="aspect-video w-full"
+              className="aspect-video w-full rounded-xl"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
@@ -211,6 +223,7 @@ export function CurriculumManagement({
                   Module No {m.position}
                 </p>
                 <h2 className="font-bold text-navy">{m.title}</h2>
+                {m.description && <p className="mt-1 max-w-2xl text-sm text-slate-500">{m.description}</p>}
                 <p className="text-xs text-slate-400">
                   {m.lessons.length} lessons · {m.quizzes.length} quizzes
                 </p>
@@ -317,7 +330,7 @@ export function CurriculumManagement({
                 )}
               </div>
             </div>
-            <ModuleContent module={m} />
+            <ModuleContent module={m} courseId={courseId} onReplace={(lesson)=>setModal({type:"lesson",module:m,lessonType:lesson.content_type,lesson})} onDeleteLesson={(id)=>removeLesson(m.id,id)} onDeleteAssignment={(id)=>removeAssignment(m.id,id)} />
           </section>
         ))}
       </div>
@@ -376,7 +389,7 @@ export function CurriculumManagement({
     </>
   );
 }
-function ModuleContent({ module }: { module: ModuleRow }) {
+function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssignment }: { module: ModuleRow;courseId:string;onReplace:(lesson:Lesson)=>void;onDeleteLesson:(id:string)=>void;onDeleteAssignment:(id:string)=>void }) {
   const videos = module.lessons.filter((x) => x.content_type === "video"),
     medium = module.lessons.filter((x) => x.content_type !== "video");
   if (
@@ -396,9 +409,9 @@ function ModuleContent({ module }: { module: ModuleRow }) {
           className="max-w-2xl overflow-hidden rounded-xl border bg-slate-950"
           key={x.id}
         >
-          <VideoPlayer src={x.content_url} />
+          <div className="bg-white px-4 pt-1"><CollapsibleMedia label="Video"><VideoPlayer src={x.content_url} /></CollapsibleMedia></div>
           <div className="bg-white p-4">
-            <b className="text-navy">{x.title}</b>
+            <div className="flex items-center justify-between gap-3"><b className="text-navy">{x.title}</b><span className="flex gap-2"><button onClick={()=>onReplace(x)} className="rounded-lg border p-2" title="Replace video"><Upload className="size-4"/></button><button onClick={()=>onDeleteLesson(x.id)} className="rounded-lg border p-2 text-red" title="Delete video"><Trash2 className="size-4"/></button></span></div>
             {x.description && (
               <p className="mt-1 text-sm text-slate-500">{x.description}</p>
             )}
@@ -434,11 +447,12 @@ function ModuleContent({ module }: { module: ModuleRow }) {
                 )}
               </div>
               {x.content_type === "audio" && (
-                <audio controls className="mt-4 w-full" src={x.content_url} />
+                <CollapsibleMedia label="Audio"><audio controls className="w-full" src={x.content_url} /></CollapsibleMedia>
               )}{" "}
               {x.description && (
                 <p className="mt-3 text-sm text-slate-500">{x.description}</p>
               )}
+              <div className="mt-3 flex justify-end gap-2"><button onClick={()=>onReplace(x)} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold"><Upload className="size-3"/>Replace</button><button onClick={()=>onDeleteLesson(x.id)} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold text-red"><Trash2 className="size-3"/>Delete</button></div>
             </article>
           ))}
           {module.quizzes.map((q) => (
@@ -466,13 +480,14 @@ function ModuleContent({ module }: { module: ModuleRow }) {
                 <span className="grid size-10 place-items-center rounded-lg bg-white text-amber-600">
                   <FileText />
                 </span>
-                <div>
+                <div className="min-w-0 flex-1">
                   <b className="text-navy">{a.title}</b>
                   <p className="text-xs text-amber-700">
                     Pass Marks: {a.pass_marks} · Deadline:{" "}
                     {new Date(a.due_date).toLocaleDateString()}
                   </p>
                 </div>
+                <a href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`} className="rounded-lg border p-2" title="Replace assignment"><Edit3 className="size-4"/></a><button onClick={()=>onDeleteAssignment(a.id)} className="rounded-lg border p-2 text-red" title="Delete assignment"><Trash2 className="size-4"/></button>
               </div>
             </article>
           ))}
@@ -501,7 +516,7 @@ function EditorModal({
           : "Add Module"
         : state.type === "quiz"
           ? "Add Quiz"
-          : `Add ${state.lessonType} Lesson`;
+          : state.lesson ? `Replace ${state.lessonType} Lesson` : `Add ${state.lessonType} Lesson`;
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -513,7 +528,8 @@ function EditorModal({
       const f = new FormData(e.currentTarget);
       f.set("module_id", state.module!.id);
       f.set("content_type", state.lessonType!);
-      url = "/api/admin/lessons";
+      url = state.lesson ? `/api/admin/lessons/${state.lesson.id}` : "/api/admin/lessons";
+      if(state.lesson) method="PATCH";
       body = f;
     } else {
       body = JSON.stringify({
@@ -560,11 +576,17 @@ function EditorModal({
           Title
           <input
             name="title"
-            defaultValue={state.type === "module" ? state.module?.title : ""}
+            defaultValue={state.type === "module" ? state.module?.title : state.lesson?.title || ""}
             className="field mt-2"
             required
           />
         </label>
+        {state.type === "module" && (
+          <label className="mt-5 block text-sm font-semibold">
+            Description
+            <textarea name="description" defaultValue={state.module?.description || ""} className="field mt-2 min-h-28" placeholder="Enter module description" />
+          </label>
+        )}
         {state.type === "lesson" && (
           <>
             <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-slate-50 p-5 text-center">
@@ -581,7 +603,7 @@ function EditorModal({
                 name="file"
                 type="file"
                 accept={accept}
-                required
+                required={!state.lesson}
                 className="mt-4 text-xs"
                 onChange={(e) => setFile(e.target.files?.[0]?.name || "")}
               />
@@ -593,7 +615,7 @@ function EditorModal({
             </label>
             <label className="mt-5 block text-sm font-semibold">
               Description
-              <textarea name="description" className="field mt-2 min-h-28" />
+              <textarea name="description" defaultValue={state.lesson?.description || ""} className="field mt-2 min-h-28" />
             </label>
           </>
         )}

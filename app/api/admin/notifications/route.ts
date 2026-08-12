@@ -10,7 +10,23 @@ export async function GET() {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (p?.role !== "super_admin") return Response.json({ items: [] });
+  const { data: directNotifications } = await db
+      .from("user_notifications")
+      .select("id,title,url,created_at")
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+  if (p?.role !== "super_admin") {
+    return Response.json({
+      items: (directNotifications || []).map((x) => ({
+        id: `u-${x.id}`,
+        title: x.title,
+        url: x.url,
+        date: x.created_at,
+      })),
+    });
+  }
   const now = new Date().toISOString(),
     [{ data: tickets }, { data: announcements }, { data: reads }] =
       await Promise.all([
@@ -32,6 +48,7 @@ export async function GET() {
           .eq("user_id", user.id),
       ]);
   const items = [
+    ...(directNotifications || []).map((x) => ({ id: `u-${x.id}`, title: x.title, url: x.url, date: x.created_at })),
     ...(tickets || []).map((x) => ({
       id: `t-${x.id}`,
       title: `Ticket: ${x.subject}`,
@@ -66,8 +83,19 @@ export async function POST(request: Request) {
         )
       : [];
   if (!ids.length) return Response.json({ ok: true });
+  const userNotificationIds = ids
+    .filter((id) => id.startsWith("u-"))
+    .map((id) => id.slice(2));
+  if (userNotificationIds.length)
+    await db
+      .from("user_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .in("id", userNotificationIds);
+  const standardIds = ids.filter((id) => !id.startsWith("u-"));
+  if (!standardIds.length) return Response.json({ ok: true });
   const { error } = await db.from("notification_reads").upsert(
-    ids.map((notification_id: string) => ({
+    standardIds.map((notification_id: string) => ({
       user_id: user.id,
       notification_id,
     })),

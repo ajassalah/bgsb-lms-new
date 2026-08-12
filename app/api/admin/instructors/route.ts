@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { randomBytes } from "crypto";
+import { sendAccountCredentials } from "@/lib/email";
+import { adminActorCan } from "@/lib/staff-permissions";
 const schema = z.object({
   first_name: z.string().trim().min(1),
   last_name: z.string().trim().min(1),
@@ -29,22 +32,15 @@ const schema = z.object({
   linkedin_url: z.string().optional(),
   youtube_url: z.string().optional(),
 });
-async function allowed() {
+async function allowed(module: string, action: string) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return false;
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return p?.role === "super_admin";
+  return adminActorCan(user.id, module, action);
 }
 export async function POST(req: Request) {
-  if (!(await allowed()))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     profileRole =
       form.get("profile_role") === "admin_staff"
@@ -52,6 +48,13 @@ export async function POST(req: Request) {
         : ("instructor" as const),
     entity = profileRole === "admin_staff" ? "staff" : "instructor",
     parsed = schema.safeParse(Object.fromEntries(form));
+  if (
+    !(await allowed(
+      profileRole === "admin_staff" ? "staff" : "instructors",
+      "create",
+    ))
+  )
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   if (!parsed.success)
     return Response.json(
       {
@@ -60,12 +63,16 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   const admin = createAdminClient(),
-    { data: invited, error: inviteError } =
-      await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-        data: {
-          full_name: `${parsed.data.first_name} ${parsed.data.last_name}`,
-        },
-      });
+    temporaryPassword = `Bgsb@${randomBytes(6).toString("base64url")}9`,
+    { data: invited, error: inviteError } = await admin.auth.admin.createUser({
+      email: parsed.data.email,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: `${parsed.data.first_name} ${parsed.data.last_name}`,
+        must_change_password: true,
+      },
+    });
   if (inviteError || !invited.user)
     return Response.json(
       { error: inviteError?.message || `Could not create ${entity}` },
@@ -152,20 +159,57 @@ export async function POST(req: Request) {
   if (!error && data && profileRole === "admin_staff" && d.permissions) {
     const permissions = JSON.parse(d.permissions) as Record<
       string,
-      { view: boolean; create: boolean; edit: boolean; delete: boolean }
+      Record<string, boolean>
     >;
     await admin.from("admin_permissions").insert(
       Object.entries(permissions).map(([module, flags]) => ({
         admin_staff_id: data.id,
         module,
-        can_view: flags.view,
-        can_create: flags.create,
-        can_edit: flags.edit,
-        can_delete: flags.delete,
+        actions: flags,
+        can_view: Object.values(flags).some(Boolean),
+        can_create: [
+          "create",
+          "bulk_import",
+          "add_assignment",
+          "add_lesson",
+          "add_certificate",
+          "upload_file",
+          "create_folder",
+        ].some((action) => flags[action]),
+        can_edit: [
+          "edit",
+          "status",
+          "verification",
+          "verify_status",
+          "check",
+          "published_toggle",
+          "reply",
+        ].some((action) => flags[action]),
+        can_delete: !!flags.delete || !!flags.remove_certificate,
       })),
     );
   }
-  return error
-    ? Response.json({ error: error.message }, { status: 400 })
-    : Response.json(data);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+  let email_warning: string | null = null;
+  try {
+    await sendAccountCredentials({
+      to: d.email.toLowerCase(),
+      name: `${d.first_name} ${d.last_name}`,
+      role: entity,
+      staffRole:
+        profileRole === "admin_staff" ? d.staff_role || "Staff" : undefined,
+      temporaryPassword,
+      loginUrl: `${process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin}/login`,
+    });
+  } catch (mailError) {
+    email_warning =
+      mailError instanceof Error
+        ? mailError.message
+        : "Credential email failed";
+  }
+  return Response.json({
+    ...data,
+    temporary_password: temporaryPassword,
+    email_warning,
+  });
 }

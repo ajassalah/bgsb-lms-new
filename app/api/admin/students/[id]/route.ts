@@ -1,27 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-async function authorized() {
+import { adminActorCan } from "@/lib/staff-permissions";
+async function authorized(action: string) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return false;
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return p?.role === "super_admin";
+  return adminActorCan(user.id, "students", action);
 }
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await authorized()))
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
   if (req.headers.get("content-type")?.includes("application/json")) {
+    if (!(await authorized("status")))
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     const parsed = z
       .object({ status: z.enum(["active", "suspended"]) })
       .safeParse(await req.json());
@@ -36,6 +32,8 @@ export async function PATCH(
       ? Response.json({ error: error.message }, { status: 400 })
       : Response.json({ ok: true });
   }
+  if (!(await authorized("edit")))
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     parsed = z
       .object({
@@ -111,22 +109,20 @@ export async function PATCH(
     data: { user },
   } = await createClient().auth.getUser();
   if (user)
-    await admin
-      .from("admin_activity_logs")
-      .insert({
-        actor_id: user.id,
-        action: "update",
-        entity_type: "student",
-        entity_id: params.id,
-        description: `Updated student ${values.full_name}`,
-      });
+    await admin.from("admin_activity_logs").insert({
+      actor_id: user.id,
+      action: "update",
+      entity_type: "student",
+      entity_id: params.id,
+      description: `Updated student ${values.full_name}`,
+    });
   return Response.json({ ok: true });
 }
 export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await authorized()))
+  if (!(await authorized("delete")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
   const {
@@ -144,15 +140,13 @@ export async function DELETE(
     await admin.from(table).delete().eq(column, params.id);
   const { error } = await admin.auth.admin.deleteUser(params.id);
   if (!error && user)
-    await admin
-      .from("admin_activity_logs")
-      .insert({
-        actor_id: user.id,
-        action: "delete",
-        entity_type: "student",
-        entity_id: params.id,
-        description: "Deleted a student account",
-      });
+    await admin.from("admin_activity_logs").insert({
+      actor_id: user.id,
+      action: "delete",
+      entity_type: "student",
+      entity_id: params.id,
+      description: "Deleted a student account",
+    });
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json({ ok: true });

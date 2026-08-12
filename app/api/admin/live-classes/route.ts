@@ -62,26 +62,37 @@ export async function POST(req: Request) {
   if (!(file instanceof File) || !file.size)
     return Response.json({ error: "Select a thumbnail" }, { status: 400 });
   const admin = createAdminClient(),
-    [{ data: courseRows }, { data: enrollmentRows }, { data: staffRows }] =
-      await Promise.all([
-        admin.from("courses").select("id,instructor_id").in("id", courseIds),
-        admin
-          .from("enrollments")
-          .select("student_id")
-          .in("course_id", courseIds)
-          .eq("status", "active"),
-        staffIds.length
-          ? admin
-              .from("profiles")
-              .select("id")
-              .in("id", staffIds)
-              .eq("role", "admin_staff")
-              .eq("status", "active")
-          : Promise.resolve({ data: [], error: null }),
-      ]),
-    eligibleInstructors = new Set(
-      (courseRows || []).map((course) => course.instructor_id).filter(Boolean),
-    ),
+    [
+      { data: courseRows },
+      { data: courseInstructorRows },
+      { data: enrollmentRows },
+      { data: staffRows },
+    ] = await Promise.all([
+      admin.from("courses").select("id,instructor_id").in("id", courseIds),
+      admin
+        .from("course_instructors")
+        .select("instructor_id")
+        .in("course_id", courseIds),
+      admin
+        .from("enrollments")
+        .select("student_id")
+        .in("course_id", courseIds)
+        .in("status", ["approved", "completed"]),
+      staffIds.length
+        ? admin
+            .from("profiles")
+            .select("id")
+            .in("id", staffIds)
+            .eq("role", "admin_staff")
+            .eq("status", "active")
+        : Promise.resolve({ data: [], error: null }),
+    ]),
+    eligibleInstructors = new Set([
+      ...(courseRows || [])
+        .map((course) => course.instructor_id)
+        .filter(Boolean),
+      ...(courseInstructorRows || []).map((row) => row.instructor_id),
+    ]),
     eligibleStudents = new Set(
       (enrollmentRows || []).map((enrollment) => enrollment.student_id),
     ),
@@ -169,5 +180,8 @@ export async function POST(req: Request) {
   if (error) return Response.json({ error: error.message }, { status: 400 });
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/calendar");
+  revalidatePath("/dashboard/instructor");
+  revalidatePath("/dashboard/instructor/live-classes");
+  revalidatePath("/dashboard/instructor/calendar");
   return Response.json(data);
 }

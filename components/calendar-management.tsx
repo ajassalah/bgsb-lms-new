@@ -19,6 +19,7 @@ export type CalendarAppointment = {
   scheduled_end: string | null;
   source?: "appointment" | "live_class";
   meeting_url?: string | null;
+  editable?: boolean;
 };
 
 const dateKey = (value: string | Date) =>
@@ -101,6 +102,7 @@ export function CalendarManagement({
       ...result,
       id: `appointment-${result.id}`,
       source: "appointment" as const,
+      editable: true,
     };
     setAppointments((rows) =>
       editing
@@ -335,18 +337,15 @@ export function CalendarManagement({
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      {new Date(row.scheduled_start).toLocaleString(
-                        "en-LK",
-                        {
-                          timeZone: "Asia/Colombo",
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        },
-                      )}
+                      {new Date(row.scheduled_start).toLocaleString("en-LK", {
+                        timeZone: "Asia/Colombo",
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                       {row.scheduled_end
                         ? ` – ${new Date(row.scheduled_end).toLocaleTimeString("en-LK", { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit" })}`
                         : ""}
@@ -357,7 +356,7 @@ export function CalendarManagement({
                       </p>
                     )}
                   </div>
-                  {row.source !== "live_class" && (
+                  {row.source !== "live_class" && row.editable !== false && (
                     <div className="flex shrink-0 gap-1">
                       <button
                         onClick={() => {

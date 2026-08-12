@@ -1,10 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
-import { Plus, Save, Search, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Plus, Save, Search, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { countries } from "@/lib/countries";
 import { PermissionMatrix, type PermissionSet } from "./permission-matrix";
+import { RoleCombobox } from "./role-combobox";
 type Org = { id: string; name: string };
 type Education = {
   education: string;
@@ -74,6 +75,8 @@ export function InstructorForm({
       initialCountry;
   const [country, setCountry] = useState(initialCountry),
     [phoneCountry, setPhoneCountry] = useState(initialPhone),
+    [phoneCountryOpen, setPhoneCountryOpen] = useState(false),
+    [phoneCountryQuery, setPhoneCountryQuery] = useState(""),
     [countryOpen, setCountryOpen] = useState(false),
     [countryQuery, setCountryQuery] = useState(""),
     [image, setImage] = useState(instructor?.avatar_url || ""),
@@ -93,7 +96,10 @@ export function InstructorForm({
     [resume, setResume] = useState(instructor?.resume_url || ""),
     [busy, setBusy] = useState(false),
     [staffTab, setStaffTab] = useState<"personal" | "permissions">("personal"),
-    [staffRole, setStaffRole] = useState(instructor?.staff_role || "Staff"),
+    [staffRole, setStaffRole] = useState(instructor?.staff_role || "Admin"),
+    [availableRoles, setAvailableRoles] = useState<
+      { name: string; permissions: PermissionSet }[]
+    >([]),
     [permissions, setPermissions] = useState<PermissionSet>(initialPermissions),
     router = useRouter(),
     visible = useMemo(
@@ -102,7 +108,28 @@ export function InstructorForm({
           x.name.toLowerCase().includes(countryQuery.toLowerCase()),
         ),
       [countryQuery],
+    ),
+    visiblePhoneCountries = useMemo(
+      () =>
+        countries.filter((item) =>
+          `${item.name} ${item.dial} ${item.code}`
+            .toLowerCase()
+            .includes(phoneCountryQuery.toLowerCase()),
+        ),
+      [phoneCountryQuery],
     );
+  useEffect(() => {
+    if (entity !== "Staff") return;
+    fetch("/api/admin/staff-roles")
+      .then((response) => response.json())
+      .then((body) => setAvailableRoles(body.items || []))
+      .catch(() => {});
+  }, [entity]);
+  function selectStaffRole(role: string) {
+    setStaffRole(role);
+    const preset = availableRoles.find((item) => item.name === role);
+    if (preset) setPermissions(preset.permissions || {});
+  }
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!country || !phoneCountry)
@@ -124,11 +151,15 @@ export function InstructorForm({
       { method: instructor ? "PATCH" : "POST", body: form },
     );
     if (res.ok) {
-      toast.success(
-        instructor
-          ? `${entity} updated`
-          : `${entity} created and invitation sent`,
-      );
+      const result = await res.json().catch(() => ({}));
+      if (instructor) toast.success(`${entity} updated`);
+      else
+        toast.success(`${entity} created`, {
+          description: result.email_warning
+            ? `Account created, but email failed: ${result.email_warning}. Username: ${String(form.get("email"))} · Temporary password: ${result.temporary_password}`
+            : `Login details were emailed to ${String(form.get("email"))}.`,
+          duration: 15000,
+        });
       router.push(basePath);
       router.refresh();
     } else {
@@ -184,22 +215,59 @@ export function InstructorForm({
             />
             <label className="text-sm font-semibold">
               Phone Number
-              <div className="mt-2 flex">
-                <select
-                  value={phoneCountry?.code || ""}
-                  onChange={(e) =>
-                    setPhoneCountry(
-                      countries.find((x) => x.code === e.target.value) || null,
-                    )
-                  }
-                  className="rounded-l-lg border bg-slate-50 px-2 text-sm"
+              <div className="relative mt-2 flex">
+                <button
+                  type="button"
+                  onClick={() => setPhoneCountryOpen((value) => !value)}
+                  className="flex min-w-[112px] items-center justify-between gap-2 rounded-l-lg border border-r-0 bg-slate-50 px-3 text-sm"
                 >
-                  {countries.map((x) => (
-                    <option key={x.code} value={x.code}>
-                      {flag(x.code)} {x.dial}
-                    </option>
-                  ))}
-                </select>
+                  <span>
+                    {phoneCountry
+                      ? `${flag(phoneCountry.code)} ${phoneCountry.dial}`
+                      : "Code"}
+                  </span>
+                  <ChevronDown className="size-4" />
+                </button>
+                {phoneCountryOpen && (
+                  <div className="absolute left-0 top-12 z-[120] w-72 rounded-xl border bg-white p-2 shadow-2xl">
+                    <label className="flex items-center gap-2 rounded-lg border px-3">
+                      <Search className="size-4 text-slate-400" />
+                      <input
+                        autoFocus
+                        value={phoneCountryQuery}
+                        onChange={(event) =>
+                          setPhoneCountryQuery(event.target.value)
+                        }
+                        className="h-10 min-w-0 flex-1 outline-none"
+                        placeholder="Search country or code..."
+                      />
+                    </label>
+                    <div className="mt-2 max-h-60 overflow-y-auto">
+                      {visiblePhoneCountries.map((item) => (
+                        <button
+                          type="button"
+                          key={item.code}
+                          onClick={() => {
+                            setPhoneCountry(item);
+                            setPhoneCountryOpen(false);
+                            setPhoneCountryQuery("");
+                          }}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"
+                        >
+                          <span>
+                            {flag(item.code)} {item.name}
+                          </span>
+                          <b>{item.dial}</b>
+                        </button>
+                      ))}
+                      {!visiblePhoneCountries.length && (
+                        <p className="p-4 text-center text-sm text-slate-400">
+                          No countries found.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <input
                   name="phone"
                   type="tel"
@@ -241,21 +309,23 @@ export function InstructorForm({
                 />
               )}
             </label>
-            <label className="text-sm font-semibold">
-              Organization
-              <select
-                name="organization_id"
-                defaultValue={instructor?.organization_id || ""}
-                className="field mt-2"
-              >
-                <option value="">No organization</option>
-                {organizations.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {entity === "Staff" && (
+              <label className="text-sm font-semibold">
+                Organization
+                <select
+                  name="organization_id"
+                  defaultValue={instructor?.organization_id || ""}
+                  className="field mt-2"
+                >
+                  <option value="">No organization</option>
+                  {organizations.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <Field
               label="Designation"
               name="designation"
@@ -604,15 +674,15 @@ export function InstructorForm({
         >
           <label className="block max-w-md text-sm font-semibold">
             Role
-            <select
+            <RoleCombobox
               value={staffRole}
-              onChange={(e) => setStaffRole(e.target.value)}
-              className="field mt-2"
-            >
-              <option>Staff</option>
-              <option>Manager</option>
-              <option>Academic Coordinator</option>
-            </select>
+              onChange={selectStaffRole}
+              options={
+                availableRoles.length
+                  ? availableRoles.map((item) => item.name)
+                  : undefined
+              }
+            />
           </label>
           <PermissionMatrix value={permissions} onChange={setPermissions} />
         </section>

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { FileText, GripVertical } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Eye, FileText, GripVertical, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 type Assignment = {
   id: string;
@@ -9,6 +9,7 @@ type Assignment = {
   pass_marks: number;
   max_score: number;
   due_date: string;
+  file_url: string | null;
 };
 type Module = {
   id: string;
@@ -21,16 +22,31 @@ export function AssignmentCourseOverview({
   title,
   thumbnailUrl,
   initialModules,
+  students = [],
+  basePath = "/dashboard/super-admin/assignments",
+  readOnly = false,
 }: {
   courseId: string;
   title: string;
   thumbnailUrl: string | null;
   initialModules: Module[];
+  students?: { id: string; name: string; email: string; avatar: string | null }[];
+  basePath?: string;
+  readOnly?: boolean;
 }) {
   const [modules, setModules] = useState(initialModules),
-    [drag, setDrag] = useState<string | null>(null);
+    [drag, setDrag] = useState<string | null>(null),
+    [tab, setTab] = useState<"assignments" | "students">("assignments"),
+    [menu, setMenu] = useState<string | null>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!(event.target as HTMLElement).closest("[data-student-action]")) setMenu(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   async function reorder(target: string) {
-    if (!drag || drag === target) return;
+    if (readOnly || !drag || drag === target) return;
     const previous = modules,
       next = [...modules],
       from = next.findIndex((x) => x.id === drag),
@@ -58,11 +74,34 @@ export function AssignmentCourseOverview({
       <div>
         <p className="text-sm text-slate-400">Assignments / {title}</p>
         <h1 className="mt-1 text-2xl font-bold text-navy">{title}</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Drag module grip icons to change their order. Select an assignment
-          preview to open it.
-        </p>
+        <p className="mt-2 text-sm text-slate-500">Review course assignments and enrolled students.</p>
       </div>
+      <div className="mt-6 flex gap-2 border-b">
+        {(["assignments", "students"] as const).map((item) => (
+          <button key={item} onClick={() => setTab(item)} className={`border-b-2 px-5 py-3 text-sm font-bold capitalize ${tab === item ? "border-red-500 text-red-600" : "border-transparent text-slate-500"}`}>
+            {item}
+          </button>
+        ))}
+      </div>
+      {tab === "students" ? (
+        <section className="mt-7 overflow-visible rounded-xl border bg-white">
+          <div className="overflow-x-auto lg:overflow-visible">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-400"><tr><th className="p-5">#</th><th className="p-5">Student Name</th><th className="p-5 text-right">Action</th></tr></thead>
+              <tbody className="divide-y">
+                {students.map((student, index) => (
+                  <tr key={student.id}>
+                    <td className="p-5 text-slate-400">{index + 1}</td>
+                    <td className="p-5"><div className="flex items-center gap-3">{student.avatar ? <img src={student.avatar} alt="" className="size-10 rounded-full object-cover" /> : <span className="grid size-10 place-items-center rounded-full bg-slate-100 font-bold">{student.name.charAt(0)}</span>}<div><b className="block text-navy">{student.name}</b><small className="text-slate-400">{student.email}</small></div></div></td>
+                    <td className="relative p-5" data-student-action><div className="flex justify-end"><button onClick={() => setMenu(menu === student.id ? null : student.id)} className="grid size-9 place-items-center rounded-lg border"><MoreVertical className="size-4" /></button></div>{menu === student.id && <div className="absolute right-5 top-14 z-[100] w-40 rounded-xl border bg-white py-1 shadow-xl"><Link href={`${basePath}/${courseId}/students/${student.id}`} className="flex items-center gap-2 px-4 py-3 hover:bg-slate-50"><Eye className="size-4" />View</Link></div>}</td>
+                  </tr>
+                ))}
+                {!students.length && <tr><td colSpan={3} className="p-10 text-center text-slate-400">No enrolled students found.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : <>
       <section className="mt-7 overflow-hidden rounded-2xl border bg-white">
         {thumbnailUrl ? (
           <img
@@ -79,8 +118,8 @@ export function AssignmentCourseOverview({
       <div className="mt-7 space-y-5">
         {modules.map((module) => (
           <section
-            draggable
-            onDragStart={() => setDrag(module.id)}
+            draggable={!readOnly}
+            onDragStart={() => !readOnly && setDrag(module.id)}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => reorder(module.id)}
             onDragEnd={() => setDrag(null)}
@@ -88,12 +127,12 @@ export function AssignmentCourseOverview({
             className={`rounded-xl border bg-white ${drag === module.id ? "opacity-50" : ""}`}
           >
             <header className="flex items-center gap-4 border-b p-5">
-              <button
-                className="cursor-grab text-slate-400"
-                title="Drag to move module"
+              <span
+                className={readOnly ? "text-slate-400" : "cursor-grab text-slate-400"}
+                title={readOnly ? "Module order" : "Drag to move module"}
               >
                 <GripVertical className="size-6" />
-              </button>
+              </span>
               <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
                 {module.position}
               </span>
@@ -107,8 +146,9 @@ export function AssignmentCourseOverview({
             <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
               {module.assignments.map((a) => (
                 <Link
-                  href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments`}
-                  target="_blank"
+                  href={a.file_url || (readOnly ? "#" : `/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments`)}
+                  target={a.file_url ? "_blank" : undefined}
+                  rel={a.file_url ? "noreferrer" : undefined}
                   key={a.id}
                   className="group rounded-xl border bg-amber-50 p-4 transition hover:-translate-y-0.5 hover:shadow-md"
                 >
@@ -125,6 +165,7 @@ export function AssignmentCourseOverview({
                         <br />
                         Due {new Date(a.due_date).toLocaleDateString("en-GB")}
                       </p>
+                      {a.file_url && <small className="mt-2 block font-semibold text-red-600">Open uploaded assignment</small>}
                     </div>
                   </div>
                 </Link>
@@ -143,6 +184,7 @@ export function AssignmentCourseOverview({
           </div>
         )}
       </div>
+      </>}
     </>
   );
 }

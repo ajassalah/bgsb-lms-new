@@ -26,7 +26,7 @@ export default async function LiveClasses() {
         .order("full_name"),
       db
         .from("courses")
-        .select("id,title,instructor_id")
+        .select("id,title,instructor_id,course_instructors(instructor_id)")
         .neq("status", "archived")
         .order("title"),
       db
@@ -34,7 +34,7 @@ export default async function LiveClasses() {
         .select(
           "course_id,student_id,student:profiles!enrollments_student_id_fkey(full_name,email)",
         )
-        .eq("status", "active"),
+        .in("status", ["approved", "completed"]),
       db
         .from("profiles")
         .select("id,full_name,email")
@@ -57,7 +57,14 @@ export default async function LiveClasses() {
         courses={(courses || []).map((x) => ({
           id: x.id,
           name: x.title,
-          instructorId: x.instructor_id,
+          instructorIds: Array.from(
+            new Set([
+              ...(x.course_instructors || []).map(
+                (assignment: any) => assignment.instructor_id,
+              ),
+              ...(x.instructor_id ? [x.instructor_id] : []),
+            ]),
+          ),
         }))}
         students={(enrollments || []).map((x: any) => ({
           id: x.student_id,

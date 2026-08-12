@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+.git
+.next
+.next-dev
+node_modules
+supabase/.temp
+*.tsbuildinfo

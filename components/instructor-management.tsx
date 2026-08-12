@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useStaffCan } from "./staff-permission-context";
 export type InstructorRow = {
   id: string;
   full_name: string;
@@ -39,6 +40,14 @@ export function InstructorManagement({
   emailTemplates?: { id: string; subject: string }[];
   fromEmail?: string;
 }) {
+  const permissionModule = entity === "Staff" ? "staff" : "instructors";
+  const canCreate = useStaffCan(permissionModule, "create"),
+    canView = useStaffCan(permissionModule, "view"),
+    canEdit = useStaffCan(permissionModule, "edit"),
+    canDelete = useStaffCan(permissionModule, "delete"),
+    canEmail = useStaffCan(permissionModule, "send_email"),
+    canWhatsapp = useStaffCan(permissionModule, "whatsapp"),
+    canStatus = useStaffCan(permissionModule, "status");
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
     [menu, setMenu] = useState<string | null>(null),
@@ -114,13 +123,15 @@ export function InstructorManagement({
           <p className="text-sm text-slate-400">People / {entity}</p>
           <h1 className="mt-1 text-2xl font-bold text-navy">{entity}</h1>
         </div>
-        <button
-          onClick={() => router.push(`${basePath}/new`)}
-          className="btn-primary gap-2"
-        >
-          <Plus className="size-4" />
-          Add {entity}
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => router.push(`${basePath}/new`)}
+            className="btn-primary gap-2"
+          >
+            <Plus className="size-4" />
+            Add {entity}
+          </button>
+        )}
       </div>
       <section className="mt-7 overflow-visible rounded-xl border bg-white">
         <div className="border-b p-5">
@@ -177,65 +188,81 @@ export function InstructorManagement({
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggle(r)}
-                        className={`relative h-6 w-11 rounded-full ${r.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`}
-                      >
-                        <span
-                          className={`absolute top-1 size-4 rounded-full bg-white ${r.status === "active" ? "left-6" : "left-1"}`}
-                        />
-                      </button>
+                      {canStatus && (
+                        <button
+                          onClick={() => toggle(r)}
+                          className={`relative h-6 w-11 rounded-full ${r.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`}
+                        >
+                          <span
+                            className={`absolute top-1 size-4 rounded-full bg-white ${r.status === "active" ? "left-6" : "left-1"}`}
+                          />
+                        </button>
+                      )}
                       <small className="capitalize">{r.status}</small>
                     </div>
                   </td>
                   <td className="relative p-4">
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setMenu(menu === r.id ? null : r.id)}
-                        className="grid size-9 place-items-center rounded-lg border"
-                      >
-                        <MoreVertical className="size-4" />
-                      </button>
-                    </div>
+                    {(canView ||
+                      canEdit ||
+                      canDelete ||
+                      canEmail ||
+                      canWhatsapp) && (
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => setMenu(menu === r.id ? null : r.id)}
+                          className="grid size-9 place-items-center rounded-lg border"
+                        >
+                          <MoreVertical className="size-4" />
+                        </button>
+                      </div>
+                    )}
                     {menu === r.id && (
                       <div className="absolute right-4 top-14 z-[190] w-48 rounded-xl border bg-white py-1 shadow-2xl">
-                        <button
-                          onClick={() => router.push(`${basePath}/${r.id}`)}
-                          className="instructor-action"
-                        >
-                          <Eye />
-                          View
-                        </button>
-                        <button
-                          onClick={() =>
-                            router.push(`${basePath}/${r.id}/edit`)
-                          }
-                          className="instructor-action"
-                        >
-                          <Edit3 />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeleting(r);
-                            setMenu(null);
-                          }}
-                          className="instructor-action text-red"
-                        >
-                          <Trash2 />
-                          Delete
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEmailing(r);
-                            setMenu(null);
-                          }}
-                          className="instructor-action"
-                        >
-                          <Mail />
-                          Send Email
-                        </button>
-                        {r.whatsapp_number && (
+                        {canView && (
+                          <button
+                            onClick={() => router.push(`${basePath}/${r.id}`)}
+                            className="instructor-action"
+                          >
+                            <Eye />
+                            View
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            onClick={() =>
+                              router.push(`${basePath}/${r.id}/edit`)
+                            }
+                            className="instructor-action"
+                          >
+                            <Edit3 />
+                            Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              setDeleting(r);
+                              setMenu(null);
+                            }}
+                            className="instructor-action text-red"
+                          >
+                            <Trash2 />
+                            Delete
+                          </button>
+                        )}
+                        {canEmail && (
+                          <button
+                            onClick={() => {
+                              setEmailing(r);
+                              setMenu(null);
+                            }}
+                            className="instructor-action"
+                          >
+                            <Mail />
+                            Send Email
+                          </button>
+                        )}
+                        {canWhatsapp && r.whatsapp_number && (
                           <a
                             href={`https://wa.me/${r.whatsapp_number.replace(/\D/g, "")}`}
                             target="_blank"

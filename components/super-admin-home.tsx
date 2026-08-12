@@ -14,6 +14,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  PartyPopper,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -35,6 +37,10 @@ export function SuperAdminHome({
   appointments,
   recentActivity,
   upcomingSessions,
+  staffWelcome,
+  basePath = "/dashboard/super-admin",
+  dashboardTitle = "Admin Dashboard",
+  showRecentActivity = true,
 }: {
   counts: Counts;
   bestCourses: { title: string; enrollments: number }[];
@@ -62,10 +68,17 @@ export function SuperAdminHome({
     start: string;
     meetingUrl: string | null;
   }[];
+  staffWelcome?: { show: boolean; role: string };
+  basePath?: string;
+  dashboardTitle?: string;
+  showRecentActivity?: boolean;
 }) {
   const [now, setNow] = useState(() => new Date());
   const [month, setMonth] = useState(() => new Date());
   const [videoFinished, setVideoFinished] = useState(false);
+  const [staffWelcomeOpen, setStaffWelcomeOpen] = useState(
+    !!staffWelcome?.show,
+  );
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000);
     return () => window.clearInterval(timer);
@@ -83,6 +96,10 @@ export function SuperAdminHome({
       : sriLankaHour < 17
         ? "Good afternoon"
         : "Good evening";
+  async function closeStaffWelcome() {
+    setStaffWelcomeOpen(false);
+    await fetch("/api/staff/welcome", { method: "POST" }).catch(() => null);
+  }
   const firstName = admin.name.trim().split(/\s+/)[0] || "Administrator";
   const calendarDays = useMemo(() => {
     const year = month.getFullYear();
@@ -154,11 +171,55 @@ export function SuperAdminHome({
   ];
   return (
     <>
+      {staffWelcomeOpen && (
+        <div className="fixed inset-0 z-[250] grid place-items-center bg-black/65 p-4 backdrop-blur-sm">
+          <section className="relative w-full max-w-xl rounded-3xl border bg-white p-6 shadow-2xl sm:p-9">
+            <button
+              onClick={closeStaffWelcome}
+              aria-label="Close welcome message"
+              className="absolute right-5 top-5 grid size-9 place-items-center rounded-full border text-slate-500"
+            >
+              <X className="size-4" />
+            </button>
+            <span className="grid size-14 place-items-center rounded-2xl bg-red/10 text-red">
+              <PartyPopper className="size-7" />
+            </span>
+            <p className="mt-6 font-bold text-red">🎉 Welcome to BGSB LMS!</p>
+            <h2 className="mt-2 text-2xl font-bold text-navy">
+              Welcome, {admin.name}!
+            </h2>
+            <p className="mt-4 leading-7 text-slate-600">
+              Your{" "}
+              <strong className="text-navy">
+                {staffWelcome?.role || "Staff"}
+              </strong>{" "}
+              account is ready.
+            </p>
+            <p className="mt-3 leading-7 text-slate-600">
+              You can now access the LMS features and tools available to your
+              role.
+            </p>
+            <p className="mt-3 leading-7 text-slate-600">
+              Take a moment to explore your dashboard and get familiar with your
+              workspace.
+            </p>
+            <p className="mt-4 font-bold text-navy">
+              We&apos;re glad to have you on the BGSB LMS team!
+            </p>
+            <button
+              onClick={closeStaffWelcome}
+              className="btn-primary mt-7 w-full"
+            >
+              Get Started
+            </button>
+          </section>
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">Overview</p>
           <h1 className="mt-1 text-2xl font-bold text-[#17233c]">
-            Admin Dashboard
+            {dashboardTitle}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Monitor learning activity and manage the BGSB platform.
@@ -269,7 +330,10 @@ export function SuperAdminHome({
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
                     Sri Lanka time
                   </p>
-                  <p className="mt-3 text-3xl font-bold sm:text-4xl">
+                  <p
+                    suppressHydrationWarning
+                    className="mt-3 text-3xl font-bold sm:text-4xl"
+                  >
                     {new Intl.DateTimeFormat("en-LK", {
                       timeZone: "Asia/Colombo",
                       hour: "2-digit",
@@ -277,7 +341,10 @@ export function SuperAdminHome({
                       hour12: true,
                     }).format(now)}
                   </p>
-                  <p className="mt-2 text-sm text-white/60">
+                  <p
+                    suppressHydrationWarning
+                    className="mt-2 text-sm text-white/60"
+                  >
                     {new Intl.DateTimeFormat("en-LK", {
                       timeZone: "Asia/Colombo",
                       weekday: "long",
@@ -301,7 +368,10 @@ export function SuperAdminHome({
               </div>
               <div>
                 <p className="text-sm text-white/55">Welcome back</p>
-                <h2 className="mt-2 text-3xl font-bold sm:text-4xl">
+                <h2
+                  suppressHydrationWarning
+                  className="mt-2 text-3xl font-bold sm:text-4xl"
+                >
                   {greeting}, {firstName}!
                 </h2>
                 <p className="mt-3 max-w-md text-sm leading-6 text-white/65">
@@ -387,7 +457,7 @@ export function SuperAdminHome({
                     onClick={() =>
                       day &&
                       window.location.assign(
-                        `/dashboard/super-admin/calendar?date=${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+                        `${basePath}/calendar?date=${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
                       )
                     }
                     key={`${day}-${index}`}
@@ -418,7 +488,7 @@ export function SuperAdminHome({
               <div className="flex items-center justify-between">
                 <b className="text-sm text-navy">Upcoming events</b>
                 <a
-                  href="/dashboard/super-admin/calendar"
+                  href={`${basePath}/calendar`}
                   className="text-xs font-semibold text-red"
                 >
                   View calendar
@@ -589,64 +659,70 @@ export function SuperAdminHome({
           </div>
         </section>
       </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <section className="rounded-xl border bg-white">
-          <div className="flex items-center justify-between border-b px-6 py-5">
-            <div>
-              <h2 className="font-bold text-[#17233c]">Recent activity</h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Latest platform events
-              </p>
-            </div>
-            <button className="text-xs font-semibold text-red">View all</button>
-          </div>
-          <div className="divide-y">
-            {recentActivity.map((activity) => (
-              <div
-                className="flex items-center gap-4 px-4 py-4 sm:px-6"
-                key={activity.id}
-              >
-                {activity.avatar ? (
-                  <img
-                    src={activity.avatar}
-                    alt=""
-                    className="size-10 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-navy">
-                    {activity.name
-                      .split(/\s+/)
-                      .map((x) => x[0])
-                      .join("")
-                      .slice(0, 2)}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <b className="block text-sm text-[#17233c]">
-                    {activity.name}
-                  </b>
-                  <p className="truncate text-xs text-slate-500">
-                    {activity.event}
-                  </p>
-                </div>
-                <span className="hidden text-[11px] text-slate-400 sm:block">
-                  {new Date(activity.date).toLocaleString("en-LK", {
-                    timeZone: "Asia/Colombo",
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+      <div
+        className={`mt-5 grid gap-5 ${showRecentActivity ? "xl:grid-cols-[1.65fr_1fr]" : "xl:grid-cols-1"}`}
+      >
+        {showRecentActivity && (
+          <section className="rounded-xl border bg-white">
+            <div className="flex items-center justify-between border-b px-6 py-5">
+              <div>
+                <h2 className="font-bold text-[#17233c]">Recent activity</h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Latest platform events
+                </p>
               </div>
-            ))}
-            {!recentActivity.length && (
-              <p className="p-8 text-center text-sm text-slate-400">
-                No recent activity.
-              </p>
-            )}
-          </div>
-        </section>
+              <button className="text-xs font-semibold text-red">
+                View all
+              </button>
+            </div>
+            <div className="divide-y">
+              {recentActivity.map((activity) => (
+                <div
+                  className="flex items-center gap-4 px-4 py-4 sm:px-6"
+                  key={activity.id}
+                >
+                  {activity.avatar ? (
+                    <img
+                      src={activity.avatar}
+                      alt=""
+                      className="size-10 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-navy">
+                      {activity.name
+                        .split(/\s+/)
+                        .map((x) => x[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <b className="block text-sm text-[#17233c]">
+                      {activity.name}
+                    </b>
+                    <p className="truncate text-xs text-slate-500">
+                      {activity.event}
+                    </p>
+                  </div>
+                  <span className="hidden text-[11px] text-slate-400 sm:block">
+                    {new Date(activity.date).toLocaleString("en-LK", {
+                      timeZone: "Asia/Colombo",
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
+              {!recentActivity.length && (
+                <p className="p-8 text-center text-sm text-slate-400">
+                  No recent activity.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="font-bold text-[#17233c]">Upcoming sessions</h2>
           <p className="mt-1 text-xs text-slate-400">Classes scheduled next</p>
@@ -712,7 +788,7 @@ export function SuperAdminHome({
               </div>
             ))}
           <a
-            href="/dashboard/super-admin/calendar"
+            href={`${basePath}/calendar`}
             className="mt-6 block w-full rounded-lg border py-2.5 text-center text-xs font-semibold text-navy"
           >
             Open calendar
