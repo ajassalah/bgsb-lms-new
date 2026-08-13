@@ -11,6 +11,7 @@ export function SignOut({ light = false }: { light?: boolean }) {
           keepalive: true,
         }).catch(() => {});
         await createClient().auth.signOut();
+        localStorage.removeItem("bgsb-last-activity");
         location.href = "/login";
       }}
     >

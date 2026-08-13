@@ -39,6 +39,7 @@ const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/private-files", ["private_files"]],
   ["/dashboard/admin-staff/settings/email", ["email_configuration"]],
   ["/dashboard/admin-staff/settings/activity", ["recent_activities"]],
+  ["/dashboard/admin-staff/settings/users", ["all_users"]],
 ];
 
 export async function middleware(req: NextRequest) {

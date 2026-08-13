@@ -33,6 +33,7 @@ export default async function Curriculum({
     id: x.id,
     courseId: course.id,
     title: x.title,
+    description: x.description,
     position: x.position,
     lessons: x.lessons || [],
     quizzes: x.quizzes || [],

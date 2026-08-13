@@ -28,8 +28,8 @@ export function AnnouncementManagement({
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<AnnouncementRow | null>(null),
     router = useRouter(),
-    pages = Math.max(1, Math.ceil(rows.length / 10)),
-    visible = rows.slice((page - 1) * 10, page * 10);
+    pages = Math.max(1, Math.ceil(rows.length / 20)),
+    visible = rows.slice((page - 1) * 20, page * 20);
   async function remove() {
     if (!deleting) return;
     const res = await fetch(`/api/admin/announcements/${deleting.id}`, {
@@ -151,14 +151,15 @@ export function AnnouncementManagement({
           </table>
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t p-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((x) => x - 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            <ChevronLeft className="size-4" />
-            Previous
-          </button>
+          {page > 1 && (
+            <button
+              onClick={() => setPage((x) => x - 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              <ChevronLeft className="size-4" />
+              Previous
+            </button>
+          )}
           {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
             <button
               key={n}
@@ -168,14 +169,15 @@ export function AnnouncementManagement({
               {n}
             </button>
           ))}
-          <button
-            disabled={page === pages}
-            onClick={() => setPage((x) => x + 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            Next
-            <ChevronRight className="size-4" />
-          </button>
+          {page < pages && (
+            <button
+              onClick={() => setPage((x) => x + 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              Next
+              <ChevronRight className="size-4" />
+            </button>
+          )}
         </div>
       </section>
       <ConfirmDialog

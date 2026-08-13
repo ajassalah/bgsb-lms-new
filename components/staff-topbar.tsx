@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Bell,
+  CircleAlert,
   ChevronDown,
   KeyRound,
   Menu,
@@ -196,7 +197,7 @@ export function StaffTopbar({
                     onClick={() => clear(notifications.map((x) => x.id))}
                     className="text-xs font-bold text-red"
                   >
-                    Clear
+                    Mark all read
                   </button>
                 )}
               </div>
@@ -209,13 +210,16 @@ export function StaffTopbar({
                       clear([item.id]);
                       setNotificationOpen(false);
                     }}
-                    className="block rounded-lg px-3 py-3 hover:bg-slate-50"
+                    className="flex gap-3 rounded-lg px-3 py-3 hover:bg-slate-50"
                   >
-                    <b className="line-clamp-2 text-xs text-navy">
-                      {item.title}
-                    </b>
-                    <span className="mt-1 block text-[10px] text-slate-400">
-                      {new Date(item.date).toLocaleString("en-GB")}
+                    <CircleAlert className="mt-0.5 size-4 shrink-0 text-red" />
+                    <span>
+                      <b className="line-clamp-2 text-xs text-navy">
+                        {item.title}
+                      </b>
+                      <span className="mt-1 block text-[10px] text-slate-400">
+                        {new Date(item.date).toLocaleString("en-GB")}
+                      </span>
                     </span>
                   </Link>
                 ))}

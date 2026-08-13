@@ -31,7 +31,12 @@ type MenuItem = {
   icon: typeof LayoutDashboard;
   href?: string;
   modules?: string[];
-  children?: { label: string; href: string; modules: string[] }[];
+  children?: {
+    label: string;
+    href: string;
+    modules: string[];
+    icon?: typeof LayoutDashboard;
+  }[];
 };
 const groups: { label: string; items: MenuItem[] }[] = [
   {
@@ -67,16 +72,19 @@ const groups: { label: string; items: MenuItem[] }[] = [
         children: [
           {
             label: "Course List",
+            icon: BookCopy,
             href: "/dashboard/admin-staff/courses",
             modules: ["courses", "curriculum", "curriculum_assignments"],
           },
           {
             label: "Category",
+            icon: ShieldCheck,
             href: "/dashboard/admin-staff/category",
             modules: ["categories"],
           },
           {
             label: "Certificates",
+            icon: ShieldCheck,
             href: "/dashboard/admin-staff/certificates",
             modules: ["certificates", "certificate_students"],
           },
@@ -124,11 +132,13 @@ const groups: { label: string; items: MenuItem[] }[] = [
         children: [
           {
             label: "All Staff",
+            icon: UserCog,
             href: "/dashboard/admin-staff/staff",
             modules: ["staff"],
           },
           {
             label: "Roles & Permissions",
+            icon: ShieldCheck,
             href: "/dashboard/admin-staff/roles",
             modules: ["roles"],
           },
@@ -200,8 +210,13 @@ const groups: { label: string; items: MenuItem[] }[] = [
       {
         label: "System Settings",
         icon: Settings,
-        modules: ["email_configuration", "recent_activities"],
+        modules: ["email_configuration", "recent_activities", "all_users"],
         children: [
+          {
+            label: "All Users",
+            href: "/dashboard/admin-staff/settings/users",
+            modules: ["all_users"],
+          },
           {
             label: "Email Configuration",
             href: "/dashboard/admin-staff/settings/email",
@@ -315,16 +330,22 @@ export function StaffPortalShell({
                         </button>
                         {opened && expanded && (
                           <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
-                            {children.map((child) => (
-                              <Link
-                                key={child.href}
-                                href={child.href}
-                                onClick={() => setMobile(false)}
-                                className={`block rounded-lg px-3 py-2 text-[13px] ${path === child.href || path.startsWith(child.href + "/") ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
-                              >
-                                {child.label}
-                              </Link>
-                            ))}
+                            {children.map((child) => {
+                              const ChildIcon = child.icon;
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={() => setMobile(false)}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${path === child.href || path.startsWith(child.href + "/") ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                >
+                                  {ChildIcon ? (
+                                    <ChildIcon className="size-3.5 shrink-0" />
+                                  ) : null}
+                                  {child.label}
+                                </Link>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

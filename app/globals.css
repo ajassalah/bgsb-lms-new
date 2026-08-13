@@ -339,3 +339,19 @@ table:has(td.relative > div.absolute) {
   background: #c62828 !important;
   color: white !important;
 }
+.admin-dark .menu-action,
+.admin-dark .faq-action,
+.admin-dark .student-action,
+.admin-dark .instructor-action,
+.admin-dark .row-action,
+.admin-dark .action-row {
+  color: #e2e8f0 !important;
+}
+.admin-dark .menu-action:hover,
+.admin-dark .faq-action:hover,
+.admin-dark .student-action:hover,
+.admin-dark .instructor-action:hover,
+.admin-dark .row-action:hover,
+.admin-dark .action-row:hover {
+  background: #172438 !important;
+}

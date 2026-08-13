@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { TablePagination } from "./table-pagination";
 type Row = {
   id: string;
   title: string;
@@ -49,6 +50,8 @@ export function LiveClassManagement({
   }[];
 }) {
   const [rows, setRows] = useState(initialRows),
+    [scheduledPage, setScheduledPage] = useState(1),
+    [expiredPage, setExpiredPage] = useState(1),
     [editing, setEditing] = useState<Row | null | undefined>(undefined),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<Row | null>(null),
@@ -82,115 +85,131 @@ export function LiveClassManagement({
         </button>
       </div>
       {[
-        ["Scheduled Classes", scheduledRows],
-        ["Expired Classes", expiredRows],
-      ].map(([title, groupRows]) => (
+        ["Scheduled Classes", scheduledRows, scheduledPage, setScheduledPage],
+        ["Expired Classes", expiredRows, expiredPage, setExpiredPage],
+      ].map(([title, groupRows, groupPage, setGroupPage]) => (
         <section key={title as string} className="mt-8 px-3 sm:px-0">
           <h2 className="rounded-xl bg-white px-5 py-4 text-xl font-bold text-navy">
             {title as string}
           </h2>
           <div className="mt-4 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {(groupRows as Row[]).map((r) => (
-              <article
-                key={r.id}
-                className="relative min-w-0 overflow-visible rounded-2xl border bg-white shadow-sm"
-              >
-                <div className="aspect-video w-full overflow-hidden rounded-t-2xl bg-slate-100">
-                  <img
-                    src={r.thumbnail_url}
-                    alt=""
-                    className="block size-full object-cover"
-                  />
-                </div>
-                <div className="p-5">
-                  <div className="flex gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-lg font-bold text-navy">{r.title}</h2>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
-                        {r.description}
-                      </p>
-                    </div>
-                    <div className="relative">
-                      <button
-                        onClick={() => setMenu(menu === r.id ? null : r.id)}
-                        className="grid size-9 place-items-center rounded-lg border"
-                      >
-                        <MoreVertical className="size-4" />
-                      </button>
-                      {menu === r.id && (
-                        <div className="absolute right-0 top-11 z-50 w-40 rounded-lg border bg-white py-1 shadow-xl">
-                          <a
-                            href={r.meeting_url}
-                            target="_blank"
-                            className="action-row"
-                          >
-                            <ExternalLink />
-                            View
-                          </a>
-                          <button
-                            onClick={() => {
-                              setEditing(r);
-                              setMenu(null);
-                            }}
-                            className="action-row"
-                          >
-                            <Edit3 />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDeleting(r);
-                              setMenu(null);
-                            }}
-                            className="action-row text-red"
-                          >
-                            <Trash2 />
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
+            {(groupRows as Row[])
+              .slice(
+                ((groupPage as number) - 1) * 10,
+                (groupPage as number) * 10,
+              )
+              .map((r) => (
+                <article
+                  key={r.id}
+                  className={`relative min-w-0 overflow-visible rounded-2xl border bg-white shadow-sm ${menu === r.id ? "z-[100]" : "z-0"}`}
+                >
+                  <div className="aspect-video w-full overflow-hidden rounded-t-2xl bg-slate-100">
+                    <img
+                      src={r.thumbnail_url}
+                      alt=""
+                      className="block size-full object-cover"
+                    />
                   </div>
-                  <a
-                    href={r.meeting_url}
-                    target="_blank"
-                    className="mt-4 block truncate text-sm font-semibold text-blue-600"
-                  >
-                    {r.meeting_url}
-                  </a>
-                  <p className="mt-3 text-sm font-semibold text-slate-500">
-                    {new Date(r.scheduled_start).toLocaleString("en-GB")} –{" "}
-                    {new Date(r.scheduled_end).toLocaleString("en-GB")}
-                  </p>
-                  <div className="mt-3 flex items-start gap-2 text-sm text-slate-600">
-                    <UserRound className="mt-0.5 size-4 shrink-0 text-red" />
-                    <div>
-                      <span className="font-semibold text-navy">
-                        Instructors:{" "}
-                      </span>
-                      {r.instructor_names.length
-                        ? r.instructor_names.join(", ")
-                        : "Not assigned"}
-                    </div>
-                  </div>
-                  {r.staff_names.length > 0 && (
-                    <div className="mt-2 flex items-start gap-2 text-sm text-slate-600">
-                      <UserCog className="mt-0.5 size-4 shrink-0 text-red" />
-                      <div>
-                        <span className="font-semibold text-navy">Staff: </span>
-                        {r.staff_names.join(", ")}
+                  <div className="p-5">
+                    <div className="flex gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-bold text-navy">
+                          {r.title}
+                        </h2>
+                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+                          {r.description}
+                        </p>
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => setMenu(menu === r.id ? null : r.id)}
+                          className="grid size-9 place-items-center rounded-lg border"
+                        >
+                          <MoreVertical className="size-4" />
+                        </button>
+                        {menu === r.id && (
+                          <div className="absolute right-0 top-11 z-50 w-40 rounded-lg border bg-white py-1 shadow-xl">
+                            <a
+                              href={r.meeting_url}
+                              target="_blank"
+                              className="action-row"
+                            >
+                              <ExternalLink />
+                              View
+                            </a>
+                            <button
+                              onClick={() => {
+                                setEditing(r);
+                                setMenu(null);
+                              }}
+                              className="action-row"
+                            >
+                              <Edit3 />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeleting(r);
+                                setMenu(null);
+                              }}
+                              className="action-row text-red"
+                            >
+                              <Trash2 />
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </article>
-            ))}
+                    <a
+                      href={r.meeting_url}
+                      target="_blank"
+                      className="mt-4 block truncate text-sm font-semibold text-blue-600"
+                    >
+                      {r.meeting_url}
+                    </a>
+                    <p className="mt-3 text-sm font-semibold text-slate-500">
+                      {new Date(r.scheduled_start).toLocaleString("en-GB")} –{" "}
+                      {new Date(r.scheduled_end).toLocaleString("en-GB")}
+                    </p>
+                    <div className="mt-3 flex items-start gap-2 text-sm text-slate-600">
+                      <UserRound className="mt-0.5 size-4 shrink-0 text-red" />
+                      <div>
+                        <span className="font-semibold text-navy">
+                          Instructors:{" "}
+                        </span>
+                        {r.instructor_names.length
+                          ? r.instructor_names.join(", ")
+                          : "Not assigned"}
+                      </div>
+                    </div>
+                    {r.staff_names.length > 0 && (
+                      <div className="mt-2 flex items-start gap-2 text-sm text-slate-600">
+                        <UserCog className="mt-0.5 size-4 shrink-0 text-red" />
+                        <div>
+                          <span className="font-semibold text-navy">
+                            Staff:{" "}
+                          </span>
+                          {r.staff_names.join(", ")}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
             {!(groupRows as Row[]).length && (
               <div className="rounded-xl border border-dashed bg-white p-10 text-center text-slate-400 md:col-span-2 xl:col-span-3">
                 No {String(title).toLowerCase()}.
               </div>
             )}
           </div>
+          <TablePagination
+            page={groupPage as number}
+            total={Math.max(1, Math.ceil((groupRows as Row[]).length / 10))}
+            onChange={
+              setGroupPage as React.Dispatch<React.SetStateAction<number>>
+            }
+          />
         </section>
       ))}
       <ConfirmDialog

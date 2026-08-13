@@ -44,7 +44,6 @@ export default async function EditCourse({
           instructor_ids: (assigned || []).map((x) => x.instructor_id),
         }}
         categories={categories || []}
-        organizations={organizations || []}
         instructors={(instructors || []).map((x) => ({
           id: x.id,
           name: x.full_name,

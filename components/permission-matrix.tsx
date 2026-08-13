@@ -151,7 +151,16 @@ export const permissionModules: PermissionModule[] = [
     actions: ["create", "view", "edit", "delete"],
   },
   { key: "messages", label: "Messages", actions: ["access"] },
-  { key: "calendar", label: "Calendar", actions: ["create", "edit", "delete"] },
+  {
+    key: "calendar",
+    label: "Calendar",
+    actions: ["create", "edit", "delete", "status"],
+  },
+  {
+    key: "all_users",
+    label: "All Users",
+    actions: ["view", "manage_password", "send_reset_link", "status"],
+  },
   {
     key: "email_templates",
     label: "Email Templates",
@@ -203,6 +212,8 @@ const labels: Record<string, string> = {
   faq: "FAQ",
   curriculum: "Curriculum",
   status: "Status",
+  manage_password: "Manage Password",
+  send_reset_link: "Send Password Reset Link",
   check: "Check",
   view: "View",
   create: "Create",

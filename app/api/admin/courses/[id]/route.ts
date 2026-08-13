@@ -39,7 +39,6 @@ export async function PATCH(
         category_id: z.string().optional(),
         course_type: z.enum(["online", "onsite", "hybrid"]),
         language: z.string().min(1),
-        organization_id: z.string().optional(),
         instructor_id: z.string().optional(),
         instructor_ids: z.string().optional(),
         duration_weeks: z.coerce.number().int().positive(),
@@ -83,7 +82,6 @@ export async function PATCH(
         category_id: parsed.data.category_id || null,
         course_type: parsed.data.course_type,
         language: parsed.data.language,
-        organization_id: parsed.data.organization_id || null,
         instructor_id: instructorIds[0] || null,
         duration_weeks: parsed.data.duration_weeks,
         tags: (parsed.data.tags || "")

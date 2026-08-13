@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 function timeout<T>(promise: PromiseLike<T>, ms = 15000): Promise<T> {
   return Promise.race([
     Promise.resolve(promise),
@@ -15,40 +15,39 @@ function timeout<T>(promise: PromiseLike<T>, ms = 15000): Promise<T> {
   ]);
 }
 export function LoginForm() {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false);
+  useEffect(() => {
+    if (
+      new URLSearchParams(window.location.search).get("session") === "expired"
+    ) {
+      toast.error(
+        "Your session expired after 30 minutes of inactivity. Please sign in again.",
+      );
+      history.replaceState(null, "", "/login");
+    }
+  }, []);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
     const form = new FormData(e.currentTarget),
       email = String(form.get("email") || "").trim(),
-      password = String(form.get("password") || ""),
-      db = createClient();
+      password = String(form.get("password") || "");
     try {
-      const { data, error } = await timeout(
-        db.auth.signInWithPassword({ email, password }),
+      const response = await timeout(
+        fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }),
       );
-      if (error) throw error;
-      const { data: profile, error: profileError } = await timeout(
-        db
-          .from("profiles")
-          .select("role,status")
-          .eq("id", data.user.id)
-          .single(),
-      );
-      if (profileError || !profile)
-        throw new Error(
-          "Your account profile could not be loaded. Please contact BGSB support.",
-        );
-      if (profile.status !== "active") {
-        await db.auth.signOut();
-        throw new Error(
-          "This account is not active. Please contact BGSB support.",
-        );
-      }
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to sign in");
       await fetch("/api/login-history", { method: "POST" }).catch(() => null);
+      localStorage.setItem("bgsb-last-activity", String(Date.now()));
       toast.success("Signed in successfully");
-      window.location.assign(`/dashboard/${profile.role.replace("_", "-")}`);
+      window.location.replace(result.route);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -80,14 +79,28 @@ export function LoginForm() {
         </label>
         <label className="block text-sm font-semibold">
           Password
-          <input
-            className="field mt-2"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            disabled={busy}
-            required
-          />
+          <span className="relative mt-2 block">
+            <input
+              className="field pr-12"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              disabled={busy}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 top-1/2 grid size-8 -translate-y-1/2 place-items-center text-slate-500"
+            >
+              {showPassword ? (
+                <EyeOff className="size-5" />
+              ) : (
+                <Eye className="size-5" />
+              )}
+            </button>
+          </span>
         </label>
         <div className="flex justify-end">
           <a href="/password-forgot" className="text-sm font-semibold text-red">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
+import { useIsStaffPortal } from "./staff-permission-context";
 
 type Faq = {
   id: string;
@@ -13,6 +14,7 @@ type Faq = {
   status: "active" | "inactive";
 };
 export function SupportFaqForm({ faq }: { faq?: Faq }) {
+  const isStaff = useIsStaffPortal();
   const [answer, setAnswer] = useState(faq?.answer || ""),
     [busy, setBusy] = useState(false),
     router = useRouter();
@@ -37,8 +39,14 @@ export function SupportFaqForm({ faq }: { faq?: Faq }) {
       );
     if (res.ok) {
       toast.success(faq ? "FAQ updated" : "FAQ created");
-      router.push("/dashboard/super-admin/support/faq");
-      router.refresh();
+      const destination = isStaff
+        ? "/dashboard/admin-staff/support/faq"
+        : "/dashboard/super-admin/support/faq";
+      if (faq) window.location.assign(destination);
+      else {
+        router.push(destination);
+        router.refresh();
+      }
     } else {
       toast.error((await res.json().catch(() => ({}))).error || "Save failed");
       setBusy(false);

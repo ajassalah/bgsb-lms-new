@@ -7,8 +7,13 @@ import {
   Clock3,
   Pencil,
   Trash2,
+  Eye,
+  ExternalLink,
+  MoreVertical,
+  UserPlus,
+  X,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export type CalendarAppointment = {
@@ -20,6 +25,7 @@ export type CalendarAppointment = {
   source?: "appointment" | "live_class";
   meeting_url?: string | null;
   editable?: boolean;
+  assignedUserIds?: string[];
 };
 
 const dateKey = (value: string | Date) =>
@@ -47,9 +53,16 @@ const dateTimeInput = (value?: string | null) =>
 export function CalendarManagement({
   initialAppointments,
   initialSelected,
+  assignableUsers = [],
 }: {
   initialAppointments: CalendarAppointment[];
   initialSelected?: string;
+  assignableUsers?: {
+    id: string;
+    name: string;
+    role: string;
+    avatar: string | null;
+  }[];
 }) {
   const router = useRouter();
   const [month, setMonth] = useState(() => new Date());
@@ -61,6 +74,20 @@ export function CalendarManagement({
   const [showForm, setShowForm] = useState(Boolean(initialSelected));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [menu, setMenu] = useState<string | null>(null),
+    [viewing, setViewing] = useState<CalendarAppointment | null>(null),
+    [assigning, setAssigning] = useState<CalendarAppointment | null>(null),
+    [selectedUsers, setSelectedUsers] = useState<string[]>([]),
+    [roleFilter, setRoleFilter] = useState("all"),
+    [userSearch, setUserSearch] = useState("");
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!(event.target as HTMLElement).closest("[data-calendar-menu]"))
+        setMenu(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   const days = useMemo(() => {
     const y = month.getFullYear(),
       m = month.getMonth();
@@ -123,6 +150,31 @@ export function CalendarManagement({
       setAppointments((rows) => rows.filter((x) => x.id !== id));
       router.refresh();
     }
+  }
+  async function assign() {
+    if (!assigning) return;
+    setBusy(true);
+    const response = await fetch(
+        `/api/admin/appointments/${assigning.id.replace(/^appointment-/, "")}/assign`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ user_ids: selectedUsers }),
+        },
+      ),
+      body = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) return setError(body.error || "Assignment failed");
+    setAppointments((rows) =>
+      rows.map((row) =>
+        row.id === assigning.id
+          ? { ...row, assignedUserIds: selectedUsers }
+          : row,
+      ),
+    );
+    setAssigning(null);
+    setMenu(null);
+    router.refresh();
   }
 
   return (
@@ -233,18 +285,17 @@ export function CalendarManagement({
                   <h2 className="font-bold text-navy">
                     {editing ? "Edit Appointment" : "Create Appointment"}
                   </h2>
-                  {editing && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing(null);
-                        setShowForm(false);
-                      }}
-                      className="text-xs font-semibold text-slate-500"
-                    >
-                      Cancel edit
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => {
+                      setEditing(null);
+                      setShowForm(false);
+                    }}
+                    className="grid size-9 place-items-center rounded-lg border"
+                  >
+                    <X className="size-4" />
+                  </button>
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
                   All dates and times use Sri Lanka time.
@@ -316,11 +367,11 @@ export function CalendarManagement({
           )}
           <section className="min-w-0 rounded-2xl border bg-white p-4 sm:p-5">
             <h2 className="font-bold text-navy">All Scheduled Events</h2>
-            <div className="mt-4 max-h-[650px] space-y-3 overflow-y-auto pr-1">
+            <div className="mt-4 space-y-3">
               {scheduledRows.map((row) => (
                 <article
                   key={row.id}
-                  className="flex gap-3 rounded-xl border p-4"
+                  className={`relative flex gap-3 overflow-visible rounded-xl border p-4 ${menu === row.id ? "z-[200]" : "z-0"}`}
                 >
                   <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red/10 text-red">
                     <Clock3 className="size-4" />
@@ -356,38 +407,74 @@ export function CalendarManagement({
                       </p>
                     )}
                   </div>
-                  {row.source !== "live_class" && row.editable !== false && (
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        onClick={() => {
-                          setEditing(row);
-                          setSelected(dateKey(row.scheduled_start));
-                          setShowForm(true);
-                        }}
-                        aria-label="Edit appointment"
-                        className="grid size-9 place-items-center rounded-lg text-navy hover:bg-slate-100"
-                      >
-                        <Pencil className="size-4" />
-                      </button>
-                      <button
-                        onClick={() => remove(row.id)}
-                        aria-label="Delete appointment"
-                        className="grid size-9 place-items-center rounded-lg text-red hover:bg-red/10"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  )}
-                  {row.source === "live_class" && row.meeting_url && (
-                    <a
-                      href={row.meeting_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shrink-0 rounded-lg bg-red px-3 py-2 text-xs font-bold text-white"
+                  <div className="relative shrink-0" data-calendar-menu>
+                    <button
+                      onClick={() => setMenu(menu === row.id ? null : row.id)}
+                      className="grid size-9 place-items-center rounded-lg border"
                     >
-                      Join
-                    </a>
-                  )}
+                      <MoreVertical className="size-4" />
+                    </button>
+                    {menu === row.id && (
+                      <div className="absolute right-0 top-11 z-[190] w-44 rounded-xl border bg-white p-1 shadow-2xl">
+                        <button
+                          onClick={() => {
+                            setViewing(row);
+                            setMenu(null);
+                          }}
+                          className="row-action"
+                        >
+                          <Eye />
+                          View
+                        </button>
+                        {row.source === "live_class" && row.meeting_url && (
+                          <a
+                            href={row.meeting_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="row-action"
+                          >
+                            <ExternalLink />
+                            Join Live Class
+                          </a>
+                        )}
+                        {row.source !== "live_class" &&
+                          row.editable !== false && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditing(row);
+                                  setSelected(dateKey(row.scheduled_start));
+                                  setShowForm(true);
+                                  setMenu(null);
+                                }}
+                                className="row-action"
+                              >
+                                <Pencil />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setAssigning(row);
+                                  setSelectedUsers(row.assignedUserIds || []);
+                                  setMenu(null);
+                                }}
+                                className="row-action"
+                              >
+                                <UserPlus />
+                                Assign
+                              </button>
+                              <button
+                                onClick={() => remove(row.id)}
+                                className="row-action text-red"
+                              >
+                                <Trash2 />
+                                Delete
+                              </button>
+                            </>
+                          )}
+                      </div>
+                    )}
+                  </div>
                 </article>
               ))}
               {!scheduledRows.length && (
@@ -399,6 +486,125 @@ export function CalendarManagement({
           </section>
         </div>
       </div>
+      {viewing && (
+        <div className="fixed inset-0 z-[220] grid place-items-center bg-black/55 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6">
+            <div className="flex justify-between">
+              <h2 className="text-xl font-bold text-navy">{viewing.title}</h2>
+              <button onClick={() => setViewing(null)}>
+                <X />
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-slate-500">
+              {viewing.description || "No description"}
+            </p>
+            <p className="mt-4 text-sm font-semibold">
+              {new Date(viewing.scheduled_start).toLocaleString("en-LK", {
+                timeZone: "Asia/Colombo",
+              })}
+            </p>
+          </div>
+        </div>
+      )}
+      {assigning && (
+        <div className="fixed inset-0 z-[220] grid place-items-center bg-black/55 p-4">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6">
+            <div className="flex justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-navy">Assign Event</h2>
+                <p className="text-sm text-slate-500">{assigning.title}</p>
+              </div>
+              <button onClick={() => setAssigning(null)}>
+                <X />
+              </button>
+            </div>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="field mt-5"
+            >
+              <option value="all">All user roles</option>
+              <option value="instructor">Instructor</option>
+              <option value="student">Student</option>
+            </select>
+            <input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="field mt-3"
+              placeholder="Search students or instructors..."
+            />
+            <div className="mt-4 space-y-2">
+              {assignableUsers
+                .filter((u) => ["student", "instructor"].includes(u.role))
+                .filter((u) => roleFilter === "all" || u.role === roleFilter)
+                .filter((u) =>
+                  u.name.toLowerCase().includes(userSearch.toLowerCase()),
+                )
+                .map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(u.id)}
+                      onChange={(e) =>
+                        setSelectedUsers((x) =>
+                          e.target.checked
+                            ? [...x, u.id]
+                            : x.filter((id) => id !== u.id),
+                        )
+                      }
+                    />
+                    {u.avatar ? (
+                      <img
+                        src={u.avatar}
+                        className="size-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="grid size-9 place-items-center rounded-full bg-navy text-white">
+                        {u.name[0]}
+                      </span>
+                    )}
+                    <span>
+                      <b className="block text-sm">{u.name}</b>
+                      <small className="capitalize">
+                        {u.role.replaceAll("_", " ")}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+            </div>
+            <button
+              disabled={busy}
+              onClick={assign}
+              className="btn-primary mt-5 w-full"
+            >
+              Save Assignments
+            </button>
+          </div>
+        </div>
+      )}
+      <style jsx global>{`
+        .row-action {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          gap: 0.5rem;
+          border-radius: 0.5rem;
+          padding: 0.65rem 0.75rem;
+          text-align: left;
+          font-size: 0.875rem;
+        }
+        .row-action:hover {
+          background: #f8fafc;
+        }
+        .row-action svg {
+          width: 1rem;
+          height: 1rem;
+          flex-shrink: 0;
+        }
+      `}</style>
     </>
   );
 }

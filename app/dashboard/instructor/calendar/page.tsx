@@ -9,20 +9,29 @@ export default async function Page({
 }) {
   const p = await requireProfile("instructor"),
     db = createAdminClient(),
-    [{ data: links }, { data: direct }, { data: appointments }] =
-      await Promise.all([
-        db
-          .from("live_session_instructors")
-          .select("session_id")
-          .eq("instructor_id", p.id),
-        db.from("live_sessions").select("id").eq("instructor_id", p.id),
-        db
-          .from("calendar_appointments")
-          .select(
-            "id,title,description,scheduled_start,scheduled_end,created_by",
-          )
-          .order("scheduled_start"),
-      ]),
+    [
+      { data: links },
+      { data: direct },
+      { data: ownedAppointments },
+      { data: appointmentLinks },
+    ] = await Promise.all([
+      db
+        .from("live_session_instructors")
+        .select("session_id")
+        .eq("instructor_id", p.id),
+      db.from("live_sessions").select("id").eq("instructor_id", p.id),
+      db
+        .from("calendar_appointments")
+        .select("id,title,description,scheduled_start,scheduled_end,created_by")
+        .eq("created_by", p.id)
+        .order("scheduled_start"),
+      db
+        .from("calendar_appointment_users")
+        .select(
+          "appointment:calendar_appointments(id,title,description,scheduled_start,scheduled_end,created_by)",
+        )
+        .eq("user_id", p.id),
+    ]),
     ids = Array.from(
       new Set([
         ...(links || []).map((x) => x.session_id),
@@ -39,12 +48,19 @@ export default async function Page({
           .order("scheduled_start")
       : { data: [] },
     events = [
-      ...(appointments || []).map((x) => ({
-        ...x,
-        id: `appointment-${x.id}`,
-        source: "appointment" as const,
-        editable: x.created_by === p.id,
-      })),
+      ...[
+        ...(ownedAppointments || []),
+        ...(appointmentLinks || [])
+          .map((x: any) => x.appointment)
+          .filter(Boolean),
+      ]
+        .filter((x: any, i, a) => a.findIndex((y: any) => y.id === x.id) === i)
+        .map((x: any) => ({
+          ...x,
+          id: `appointment-${x.id}`,
+          source: "appointment" as const,
+          editable: x.created_by === p.id,
+        })),
       ...(sessions || []).map((x) => ({
         ...x,
         id: `class-${x.id}`,

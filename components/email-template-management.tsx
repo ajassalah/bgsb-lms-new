@@ -4,15 +4,19 @@ import { useRouter } from "next/navigation";
 import { Edit3, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { TablePagination } from "./table-pagination";
 export function EmailTemplateManagement({
   initialRows,
 }: {
   initialRows: { id: string; subject: string }[];
 }) {
   const [rows, setRows] = useState(initialRows),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [del, setDel] = useState<{ id: string; subject: string } | null>(null),
-    router = useRouter();
+    router = useRouter(),
+    pages = Math.max(1, Math.ceil(rows.length / 20)),
+    visible = rows.slice((page - 1) * 20, page * 20);
   async function remove() {
     if (!del) return;
     const res = await fetch(`/api/admin/email-templates/${del.id}`, {
@@ -51,9 +55,9 @@ export function EmailTemplateManagement({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.map((r, i) => (
+            {visible.map((r, i) => (
               <tr key={r.id}>
-                <td className="px-6 py-4">{i + 1}</td>
+                <td className="px-6 py-4">{(page - 1) * 20 + i + 1}</td>
                 <td className="px-6 py-4 font-semibold text-navy">
                   {r.subject}
                 </td>
@@ -91,6 +95,7 @@ export function EmailTemplateManagement({
             ))}
           </tbody>
         </table>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <ConfirmDialog
         open={!!del}

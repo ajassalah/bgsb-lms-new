@@ -115,7 +115,6 @@ export function InstructorProfileView({
             <Info label="Last Name" value={instructor.last_name} />
             <Info label="Phone Number" value={instructor.phone} />
             <Info label="Email Address" value={instructor.email} />
-            <Info label="Organization" value={instructor.organization} />
             <Info label="Designation" value={instructor.designation} />
             {instructor.website && (
               <Info label="Website" value={instructor.website} />

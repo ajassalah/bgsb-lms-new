@@ -28,7 +28,6 @@ export default async function AddCourse() {
     <StaffPageShell name={profile.full_name}>
       <CourseBuilder
         categories={categories || []}
-        organizations={organizations || []}
         instructors={(instructors || []).map((x) => ({
           id: x.id,
           name: x.full_name,

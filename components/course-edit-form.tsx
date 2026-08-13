@@ -24,7 +24,6 @@ type Course = {
   description: string | null;
   course_type: string;
   language: string;
-  organization_id: string | null;
   instructor_id: string | null;
   instructor_ids?: string[];
   duration_weeks: number | null;
@@ -36,12 +35,10 @@ type Course = {
 export function CourseEditForm({
   course,
   categories,
-  organizations,
   instructors,
 }: {
   course: Course;
   categories: Option[];
-  organizations: Option[];
   instructors: Option[];
 }) {
   const [step, setStep] = useState(1),
@@ -141,13 +138,6 @@ export function CourseEditForm({
               name="language"
               value={course.language}
               values={["English", "Sinhala", "Tamil"]}
-            />
-            <Select
-              label="Select Organization"
-              name="organization_id"
-              value={course.organization_id || ""}
-              options={organizations}
-              optional
             />
             <InstructorPicker
               instructors={instructors}

@@ -9,13 +9,11 @@ import { InstructorPicker } from "./instructor-picker";
 type Option = { id: string; name: string };
 export function CourseBuilder({
   categories,
-  organizations,
   instructors,
   subjects,
   tags,
 }: {
   categories: Option[];
-  organizations: Option[];
   instructors: Option[];
   subjects: string[];
   tags: string[];
@@ -129,12 +127,6 @@ export function CourseBuilder({
               label="Course Level"
               name="level"
               values={["Beginner", "Intermediate", "Advanced"]}
-            />
-            <Select
-              label="Select Organization"
-              name="organization_id"
-              options={organizations}
-              optional
             />
             <InstructorPicker
               instructors={instructors}

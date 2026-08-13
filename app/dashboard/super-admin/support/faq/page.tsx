@@ -5,8 +5,10 @@ import {
   SupportFaqManagement,
   type FaqRow,
 } from "@/components/support-faq-management";
+import { unstable_noStore as noStore } from "next/cache";
 
 export default async function FaqPage() {
+  noStore();
   const profile = await requireProfile("super_admin"),
     { data } = await createClient()
       .from("support_faqs")

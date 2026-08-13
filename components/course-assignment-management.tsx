@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, MoreVertical, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { TablePagination } from "./table-pagination";
 export type AssignmentCourseRow = {
   id: string;
   title: string;
@@ -16,6 +17,7 @@ export function CourseAssignmentManagement({
 }) {
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     router = useRouter();
   const filtered = useMemo(
@@ -25,6 +27,8 @@ export function CourseAssignmentManagement({
       ),
     [rows, query],
   );
+  const pages = Math.max(1, Math.ceil(filtered.length / 20)),
+    visible = filtered.slice((page - 1) * 20, page * 20);
   useEffect(() => {
     function close(event: PointerEvent) {
       if (!(event.target as HTMLElement).closest("[data-assignment-menu]"))
@@ -64,9 +68,11 @@ export function CourseAssignmentManagement({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((r, i) => (
+              {visible.map((r, i) => (
                 <tr key={r.id}>
-                  <td className="p-5 text-slate-400">{i + 1}</td>
+                  <td className="p-5 text-slate-400">
+                    {(page - 1) * 20 + i + 1}
+                  </td>
                   <td className="p-5">
                     <b className="block text-navy">{r.title}</b>
                     <small className="text-slate-400">
@@ -85,9 +91,7 @@ export function CourseAssignmentManagement({
                     {menu === r.id && (
                       <div className="absolute right-5 top-14 z-50 w-40 rounded-xl border bg-white py-1 shadow-xl">
                         <button
-                          onClick={() =>
-                            router.push(`${basePath}/${r.id}`)
-                          }
+                          onClick={() => router.push(`${basePath}/${r.id}`)}
                           className="row-action"
                         >
                           <Eye />
@@ -101,6 +105,7 @@ export function CourseAssignmentManagement({
             </tbody>
           </table>
         </div>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <style jsx global>{`
         .row-action {

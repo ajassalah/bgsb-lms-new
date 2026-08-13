@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { BulkImportDialog } from "./bulk-import-dialog";
 import { useIsStaffPortal, useStaffCan } from "./staff-permission-context";
+import { TablePagination } from "./table-pagination";
 export type StudentRow = {
   id: string;
   full_name: string;
@@ -55,6 +56,7 @@ export function StudentManagement({
     canStatus = useStaffCan("students", "status");
   const [rows, setRows] = useState(initialStudents),
     [query, setQuery] = useState(""),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<StudentRow | null>(null),
     [emailing, setEmailing] = useState<StudentRow | null>(null),
@@ -62,7 +64,7 @@ export function StudentManagement({
     [verifying, setVerifying] = useState<StudentRow | null>(null),
     [verifyBusy, setVerifyBusy] = useState(false),
     router = useRouter(),
-    students = useMemo(
+    filteredStudents = useMemo(
       () =>
         rows.filter((x) =>
           `${x.full_name} ${x.email} ${x.phone || ""} ${x.country || ""}`
@@ -70,7 +72,9 @@ export function StudentManagement({
             .includes(query.toLowerCase()),
         ),
       [rows, query],
-    );
+    ),
+    pages = Math.max(1, Math.ceil(filteredStudents.length / 20)),
+    students = filteredStudents.slice((page - 1) * 20, page * 20);
   useEffect(() => setRows(initialStudents), [initialStudents]);
   async function sendEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,7 +216,9 @@ export function StudentManagement({
             <tbody className="divide-y">
               {students.map((s, i) => (
                 <tr key={s.id}>
-                  <td className="p-4 text-slate-400">{i + 1}</td>
+                  <td className="p-4 text-slate-400">
+                    {(page - 1) * 20 + i + 1}
+                  </td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       {s.avatar_url ? (
@@ -364,6 +370,7 @@ export function StudentManagement({
             </tbody>
           </table>
         </div>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <ConfirmDialog
         open={!!deleting}

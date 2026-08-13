@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useRouter } from "next/navigation";
 import { useStaffCan } from "./staff-permission-context";
+import { TablePagination } from "./table-pagination";
 export type AdminCategory = {
   id: string;
   name: string;
@@ -22,8 +23,11 @@ export function CategoryManagement({
     canStatus = useStaffCan("categories", "status");
   const [categories, setCategories] = useState(initialCategories),
     [modal, setModal] = useState<AdminCategory | null | undefined>(undefined),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
-    [deleting, setDeleting] = useState<AdminCategory | null>(null);
+    [deleting, setDeleting] = useState<AdminCategory | null>(null),
+    pages = Math.max(1, Math.ceil(categories.length / 20)),
+    visible = categories.slice((page - 1) * 20, page * 20);
   const router = useRouter();
   useEffect(() => setCategories(initialCategories), [initialCategories]);
   async function toggle(item: AdminCategory) {
@@ -94,9 +98,11 @@ export function CategoryManagement({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {categories.map((item, index) => (
+              {visible.map((item, index) => (
                 <tr className="hover:bg-slate-50" key={item.id}>
-                  <td className="px-6 py-4 text-slate-400">{index + 1}</td>
+                  <td className="px-6 py-4 text-slate-400">
+                    {(page - 1) * 20 + index + 1}
+                  </td>
                   <td className="px-6 py-4 font-semibold text-navy">
                     {item.name}
                   </td>
@@ -177,6 +183,7 @@ export function CategoryManagement({
             </tbody>
           </table>
         </div>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <ConfirmDialog
         open={!!deleting}

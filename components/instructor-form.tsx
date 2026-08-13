@@ -309,23 +309,6 @@ export function InstructorForm({
                 />
               )}
             </label>
-            {entity === "Staff" && (
-              <label className="text-sm font-semibold">
-                Organization
-                <select
-                  name="organization_id"
-                  defaultValue={instructor?.organization_id || ""}
-                  className="field mt-2"
-                >
-                  <option value="">No organization</option>
-                  {organizations.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <Field
               label="Designation"
               name="designation"

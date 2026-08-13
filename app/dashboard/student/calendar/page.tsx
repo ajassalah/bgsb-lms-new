@@ -1,2 +1,74 @@
-import { DashboardShell } from "@/components/dashboard-shell"; import { CalendarManagement } from "@/components/calendar-management"; import { requireProfile } from "@/lib/auth"; import { createAdminClient } from "@/lib/supabase/admin";
-export default async function StudentCalendar({searchParams}:{searchParams:{date?:string}}){const p=await requireProfile("student"),db=createAdminClient(),[{data:links},{data:appointments}]=await Promise.all([db.from("live_session_students").select("session:live_sessions(id,title,description,scheduled_start,scheduled_end,meeting_url)").eq("student_id",p.id),db.from("calendar_appointments").select("id,title,description,scheduled_start,scheduled_end,created_by").eq("created_by",p.id).order("scheduled_start")]);const events=[...(appointments||[]).map((x:any)=>({...x,id:`appointment-${x.id}`,source:"appointment" as const,editable:true})),...(links||[]).map((x:any)=>x.session).filter(Boolean).map((x:any)=>({...x,id:`class-${x.id}`,source:"live_class" as const,editable:false}))].sort((a,b)=>+new Date(a.scheduled_start)-+new Date(b.scheduled_start));return <DashboardShell role="student" name={p.full_name} email={p.email} avatar={p.avatar_url}><CalendarManagement initialAppointments={events} initialSelected={/^\d{4}-\d{2}-\d{2}$/.test(searchParams.date||"")?searchParams.date:undefined}/></DashboardShell>}
+import { DashboardShell } from "@/components/dashboard-shell";
+import { CalendarManagement } from "@/components/calendar-management";
+import { requireProfile } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+export default async function StudentCalendar({
+  searchParams,
+}: {
+  searchParams: { date?: string };
+}) {
+  const p = await requireProfile("student"),
+    db = createAdminClient(),
+    [{ data: links }, { data: appointments }, { data: assigned }] =
+      await Promise.all([
+        db
+          .from("live_session_students")
+          .select(
+            "session:live_sessions(id,title,description,scheduled_start,scheduled_end,meeting_url)",
+          )
+          .eq("student_id", p.id),
+        db
+          .from("calendar_appointments")
+          .select(
+            "id,title,description,scheduled_start,scheduled_end,created_by",
+          )
+          .eq("created_by", p.id)
+          .order("scheduled_start"),
+        db
+          .from("calendar_appointment_users")
+          .select(
+            "appointment:calendar_appointments(id,title,description,scheduled_start,scheduled_end,created_by)",
+          )
+          .eq("user_id", p.id),
+      ]);
+  const appointmentRows = [
+      ...(appointments || []),
+      ...(assigned || []).map((x: any) => x.appointment).filter(Boolean),
+    ].filter((x: any, i, a) => a.findIndex((y: any) => y.id === x.id) === i),
+    events = [
+      ...appointmentRows.map((x: any) => ({
+        ...x,
+        id: `appointment-${x.id}`,
+        source: "appointment" as const,
+        editable: x.created_by === p.id,
+      })),
+      ...(links || [])
+        .map((x: any) => x.session)
+        .filter(Boolean)
+        .map((x: any) => ({
+          ...x,
+          id: `class-${x.id}`,
+          source: "live_class" as const,
+          editable: false,
+        })),
+    ].sort(
+      (a, b) => +new Date(a.scheduled_start) - +new Date(b.scheduled_start),
+    );
+  return (
+    <DashboardShell
+      role="student"
+      name={p.full_name}
+      email={p.email}
+      avatar={p.avatar_url}
+    >
+      <CalendarManagement
+        initialAppointments={events}
+        initialSelected={
+          /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date || "")
+            ? searchParams.date
+            : undefined
+        }
+      />
+    </DashboardShell>
+  );
+}

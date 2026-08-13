@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useIsStaffPortal } from "./staff-permission-context";
 
 export type FaqRow = {
   id: string;
@@ -24,14 +25,18 @@ export function SupportFaqManagement({
 }: {
   initialRows: FaqRow[];
 }) {
+  const isStaff = useIsStaffPortal(),
+    basePath = isStaff
+      ? "/dashboard/admin-staff/support/faq"
+      : "/dashboard/super-admin/support/faq";
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<FaqRow | null>(null),
     router = useRouter(),
-    pages = Math.max(1, Math.ceil(rows.length / 10)),
+    pages = Math.max(1, Math.ceil(rows.length / 20)),
     visible = useMemo(
-      () => rows.slice((page - 1) * 10, page * 10),
+      () => rows.slice((page - 1) * 20, page * 20),
       [rows, page],
     );
   useEffect(() => setRows(initialRows), [initialRows]);
@@ -50,7 +55,10 @@ export function SupportFaqManagement({
         current.map((item) => (item.id === row.id ? row : item)),
       );
       toast.error("FAQ status update failed");
-    } else { toast.success("FAQ status updated"); router.refresh(); }
+    } else {
+      toast.success("FAQ status updated");
+      router.refresh();
+    }
   }
   async function remove() {
     if (!deleting) return;
@@ -71,7 +79,7 @@ export function SupportFaqManagement({
           <h1 className="mt-1 text-2xl font-bold text-navy">FAQ</h1>
         </div>
         <button
-          onClick={() => router.push("/dashboard/super-admin/support/faq/new")}
+          onClick={() => router.push(`${basePath}/new`)}
           className="btn-primary gap-2"
         >
           <Plus className="size-4" />
@@ -129,9 +137,7 @@ export function SupportFaqManagement({
                       <div className="absolute right-4 top-14 z-[180] w-40 rounded-xl border bg-white p-1 shadow-2xl">
                         <button
                           onClick={() =>
-                            router.push(
-                              `/dashboard/super-admin/support/faq/${row.id}/edit`,
-                            )
+                            router.push(`${basePath}/${row.id}/edit`)
                           }
                           className="faq-action"
                         >
@@ -164,14 +170,15 @@ export function SupportFaqManagement({
           </table>
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t p-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            <ChevronLeft className="size-4" />
-            Previous
-          </button>
+          {page > 1 && (
+            <button
+              onClick={() => setPage((current) => current - 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              <ChevronLeft className="size-4" />
+              Previous
+            </button>
+          )}
           {Array.from({ length: pages }, (_, index) => index + 1).map(
             (number) => (
               <button
@@ -183,14 +190,15 @@ export function SupportFaqManagement({
               </button>
             ),
           )}
-          <button
-            disabled={page === pages}
-            onClick={() => setPage((current) => current + 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            Next
-            <ChevronRight className="size-4" />
-          </button>
+          {page < pages && (
+            <button
+              onClick={() => setPage((current) => current + 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              Next
+              <ChevronRight className="size-4" />
+            </button>
+          )}
         </div>
       </section>
       <ConfirmDialog

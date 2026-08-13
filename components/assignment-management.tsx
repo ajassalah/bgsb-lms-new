@@ -47,8 +47,8 @@ export function AssignmentManagement({
         ),
       [rows, query],
     ),
-    pages = Math.max(1, Math.ceil(filtered.length / 10)),
-    visible = filtered.slice((page - 1) * 10, page * 10);
+    pages = Math.max(1, Math.ceil(filtered.length / 20)),
+    visible = filtered.slice((page - 1) * 20, page * 20);
   async function remove() {
     if (!deleting) return;
     const res = await fetch(`/api/admin/assignments/${deleting.id}`, {
@@ -161,10 +161,12 @@ export function AssignmentManagement({
           </table>
         </div>
         <div className="flex flex-wrap justify-end gap-1 border-t p-4">
-          <Page disabled={page === 1} onClick={() => setPage(page - 1)}>
-            <ChevronLeft />
-            Previous
-          </Page>
+          {page > 1 && (
+            <Page onClick={() => setPage(page - 1)}>
+              <ChevronLeft />
+              Previous
+            </Page>
+          )}
           {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
             <button
               onClick={() => setPage(n)}
@@ -174,10 +176,12 @@ export function AssignmentManagement({
               {n}
             </button>
           ))}
-          <Page disabled={page === pages} onClick={() => setPage(page + 1)}>
-            Next
-            <ChevronRight />
-          </Page>
+          {page < pages && (
+            <Page onClick={() => setPage(page + 1)}>
+              Next
+              <ChevronRight />
+            </Page>
+          )}
         </div>
       </section>
       {deleting && (
@@ -235,7 +239,7 @@ function Page({
   return (
     <button
       {...p}
-      className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
+      className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs disabled:hidden"
     >
       {children}
     </button>

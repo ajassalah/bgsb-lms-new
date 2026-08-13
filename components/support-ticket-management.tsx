@@ -55,8 +55,8 @@ export function SupportTicketManagement({
         ),
       [rows, query],
     ),
-    pages = Math.max(1, Math.ceil(filtered.length / 10)),
-    visible = filtered.slice((page - 1) * 10, page * 10),
+    pages = Math.max(1, Math.ceil(filtered.length / 20)),
+    visible = filtered.slice((page - 1) * 20, page * 20),
     counts = {
       open: rows.filter((ticket) => ticket.status === "open").length,
       on_hold: rows.filter((ticket) => ticket.status === "on_hold").length,
@@ -84,7 +84,10 @@ export function SupportTicketManagement({
         ),
       );
       toast.error("Ticket status update failed");
-    } else { toast.success("Ticket status updated"); router.refresh(); }
+    } else {
+      toast.success("Ticket status updated");
+      router.refresh();
+    }
   }
   const cards = [
     ["Open Tickets", counts.open, TicketCheck, "bg-blue-50 text-blue-600"],
@@ -253,14 +256,15 @@ export function SupportTicketManagement({
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 border-t p-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            <ChevronLeft className="size-4" />
-            Previous
-          </button>
+          {page > 1 && (
+            <button
+              onClick={() => setPage((current) => current - 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              <ChevronLeft className="size-4" />
+              Previous
+            </button>
+          )}
           {Array.from({ length: pages }, (_, index) => index + 1).map(
             (number) => (
               <button
@@ -276,14 +280,15 @@ export function SupportTicketManagement({
               </button>
             ),
           )}
-          <button
-            disabled={page === pages}
-            onClick={() => setPage((current) => current + 1)}
-            className="btn-secondary gap-1 px-3 py-2 text-xs"
-          >
-            Next
-            <ChevronRight className="size-4" />
-          </button>
+          {page < pages && (
+            <button
+              onClick={() => setPage((current) => current + 1)}
+              className="btn-secondary gap-1 px-3 py-2 text-xs disabled:hidden"
+            >
+              Next
+              <ChevronRight className="size-4" />
+            </button>
+          )}
         </div>
       </section>
       <style jsx global>{`

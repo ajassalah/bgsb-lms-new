@@ -10,7 +10,6 @@ import {
   Clock3,
   GraduationCap,
   MoreHorizontal,
-  UserPlus,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -225,10 +224,6 @@ export function SuperAdminHome({
             Monitor learning activity and manage the BGSB platform.
           </p>
         </div>
-        <button className="btn-primary gap-2 rounded-lg px-4 py-2.5">
-          <UserPlus className="size-4" />
-          Add new user
-        </button>
       </div>
       <div className="flex flex-col">
         <div className="order-2 mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

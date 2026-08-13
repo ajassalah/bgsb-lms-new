@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { TablePagination } from "./table-pagination";
 export type CertificateCourse = {
   courseId: string;
   course: string;
@@ -29,9 +30,12 @@ export function CertificateManagement({
   initialRows: CertificateCourse[];
 }) {
   const [rows, setRows] = useState(initialRows),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [selected, setSelected] = useState<CertificateCourse | null>(null),
-    [deleting, setDeleting] = useState<CertificateCourse | null>(null);
+    [deleting, setDeleting] = useState<CertificateCourse | null>(null),
+    pages = Math.max(1, Math.ceil(rows.length / 20)),
+    visible = rows.slice((page - 1) * 20, page * 20);
   async function remove(row: CertificateCourse) {
     setMenu(null);
     if (!row.templateId) return;
@@ -67,16 +71,17 @@ export function CertificateManagement({
               <tr>
                 <th className="px-5 py-4">#</th>
                 <th className="px-5 py-4">Course</th>
-                <th className="px-5 py-4">Organization</th>
                 <th className="px-5 py-4">Instructor</th>
                 <th className="px-5 py-4">Added Date</th>
                 <th className="px-5 py-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rows.map((row, index) => (
+              {visible.map((row, index) => (
                 <tr className="hover:bg-slate-50" key={row.courseId}>
-                  <td className="px-5 py-4 text-slate-400">{index + 1}</td>
+                  <td className="px-5 py-4 text-slate-400">
+                    {(page - 1) * 20 + index + 1}
+                  </td>
                   <td className="px-5 py-4">
                     <span className="flex items-center gap-3">
                       <span
@@ -99,9 +104,6 @@ export function CertificateManagement({
                         </small>
                       </span>
                     </span>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">
-                    {row.organization}
                   </td>
                   <td className="px-5 py-4 text-slate-600">{row.instructor}</td>
                   <td className="px-5 py-4 text-slate-500">
@@ -126,7 +128,10 @@ export function CertificateManagement({
                     </div>
                     {menu === row.courseId && (
                       <div className="absolute right-5 top-14 z-[100] w-52 overflow-hidden rounded-lg border bg-white py-1 shadow-xl">
-                        <Link href={`/dashboard/super-admin/certificates/${row.courseId}/students`} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50">
+                        <Link
+                          href={`/dashboard/super-admin/certificates/${row.courseId}/students`}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                        >
                           <Users className="size-4 text-violet-600" />
                           Manage Students
                         </Link>
@@ -190,6 +195,7 @@ export function CertificateManagement({
             </tbody>
           </table>
         </div>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <ConfirmDialog
         open={!!deleting}

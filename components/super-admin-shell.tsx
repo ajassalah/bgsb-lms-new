@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import { SignOut } from "./signout";
 import { GlobalActionConfirmation } from "./global-action-confirmation";
-import { FloatingActionMenus } from "./floating-action-menus";
 
 const groups = [
   {
@@ -95,9 +94,9 @@ export function SuperAdminShell({
 }) {
   const pathname = usePathname() || "";
   const courseLinks = [
-      ["Course List", "courses"],
-      ["Category", "category"],
-      ["Certificates", "certificates"],
+      ["Course List", "courses", BookCopy],
+      ["Category", "category", Tags],
+      ["Certificates", "certificates", ShieldCheck],
     ] as const,
     courseActive = courseLinks.some(
       ([, slug]) =>
@@ -151,21 +150,37 @@ export function SuperAdminShell({
   }, [darkMode, themeReady]);
   useEffect(() => {
     let active = true;
-    const refreshNotifications = () => fetch("/api/admin/notifications", { cache: "no-store" })
-      .then((x) => x.json())
-      .then((x) => { if (active) setNotifications(x.items || []); })
-      .catch(() => {});
+    const refreshNotifications = () =>
+      fetch("/api/admin/notifications", { cache: "no-store" })
+        .then((x) => x.json())
+        .then((x) => {
+          if (active) setNotifications(x.items || []);
+        })
+        .catch(() => {});
     refreshNotifications();
     const timer = window.setInterval(refreshNotifications, 15000);
-    return () => { active = false; window.clearInterval(timer); };
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [pathname]);
   useEffect(() => {
     let active = true;
-    const refreshUnread = () => fetch("/api/admin/messages/unread", { cache: "no-store" }).then((x) => x.json()).then((x) => { if (active) setUnreadMessages(x.count || 0); }).catch(() => {});
+    const refreshUnread = () =>
+      fetch("/api/admin/messages/unread", { cache: "no-store" })
+        .then((x) => x.json())
+        .then((x) => {
+          if (active) setUnreadMessages(x.count || 0);
+        })
+        .catch(() => {});
     refreshUnread();
     const timer = window.setInterval(refreshUnread, 15000);
     window.addEventListener("messages-read", refreshUnread);
-    return () => { active = false; window.clearInterval(timer); window.removeEventListener("messages-read", refreshUnread); };
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("messages-read", refreshUnread);
+    };
   }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = mobile ? "hidden" : "";
@@ -189,7 +204,6 @@ export function SuperAdminShell({
       className={`min-h-screen max-w-full bg-[#f5f6fa] ${darkMode ? "admin-dark" : ""}`}
     >
       <GlobalActionConfirmation />
-      <FloatingActionMenus />
       {mobile && (
         <button
           aria-label="Close sidebar"
@@ -249,15 +263,16 @@ export function SuperAdminShell({
                       </button>
                       {coursesOpen && sidebar && (
                         <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
-                          {courseLinks.map(([name, slug]) => {
+                          {courseLinks.map(([name, slug, ChildIcon]) => {
                             const url = `/dashboard/super-admin/${slug}`;
                             return (
                               <Link
                                 href={url}
                                 onClick={() => setMobile(false)}
-                                className={`block rounded-lg px-3 py-2 text-[13px] transition ${pathname === url ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${pathname === url ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
                                 key={slug}
                               >
+                                <ChildIcon className="size-3.5 shrink-0" />
                                 {name}
                               </Link>
                             );
@@ -283,14 +298,16 @@ export function SuperAdminShell({
                         <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
                           <Link
                             href="/dashboard/super-admin/staff"
-                            className={`block rounded-lg px-3 py-2 text-[13px] ${pathname === "/dashboard/super-admin/staff" ? "bg-red text-white" : "text-white/45"}`}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname === "/dashboard/super-admin/staff" ? "bg-red text-white" : "text-white/45"}`}
                           >
+                            <UserCog className="size-3.5 shrink-0" />
                             All Staffs
                           </Link>
                           <Link
                             href="/dashboard/super-admin/roles"
-                            className={`block rounded-lg px-3 py-2 text-[13px] ${pathname.startsWith("/dashboard/super-admin/roles") ? "bg-red text-white" : "text-white/45"}`}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname.startsWith("/dashboard/super-admin/roles") ? "bg-red text-white" : "text-white/45"}`}
                           >
+                            <ShieldCheck className="size-3.5 shrink-0" />
                             Roles & Permissions
                           </Link>
                         </div>
@@ -357,15 +374,18 @@ export function SuperAdminShell({
                       </button>
                       {salesOpen && sidebar && (
                         <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
-                          {[
-                            ["Payment", "payments"],
-                            ["Invoice", "invoices"],
-                          ].map(([name, slug]) => (
+                          {(
+                            [
+                              ["Payment", "payments", CreditCard],
+                              ["Invoice", "invoices", ClipboardCheck],
+                            ] as const
+                          ).map(([name, slug, ChildIcon]) => (
                             <Link
                               key={slug}
                               href={`/dashboard/super-admin/sales/${slug}`}
-                              className={`block rounded-lg px-3 py-2 text-[13px] ${pathname.endsWith(slug) ? "bg-red text-white" : "text-white/45"}`}
+                              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname.endsWith(String(slug)) ? "bg-red text-white" : "text-white/45"}`}
                             >
+                              <ChildIcon className="size-3.5 shrink-0" />
                               {name}
                             </Link>
                           ))}
@@ -397,6 +417,14 @@ export function SuperAdminShell({
                             Email Configuration
                           </Link>
                           <Link
+                            href="/dashboard/super-admin/settings/users"
+                            onClick={() => setMobile(false)}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname === "/dashboard/super-admin/settings/users" ? "bg-red text-white" : "text-white/45 hover:bg-white/5"}`}
+                          >
+                            <Users className="size-3.5" />
+                            All Users
+                          </Link>
+                          <Link
                             href="/dashboard/super-admin/settings/activity"
                             onClick={() => setMobile(false)}
                             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${pathname === "/dashboard/super-admin/settings/activity" ? "bg-red text-white" : "text-white/45 hover:bg-white/5"}`}
@@ -419,7 +447,9 @@ export function SuperAdminShell({
                         {label}
                       </span>
                       {label === "Messages" && unreadMessages > 0 && (
-                        <span className={`${sidebar ? "ml-auto" : "absolute right-1 top-1"} grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}>
+                        <span
+                          className={`${sidebar ? "ml-auto" : "absolute right-1 top-1"} grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}
+                        >
                           {unreadMessages > 99 ? "99+" : unreadMessages}
                         </span>
                       )}

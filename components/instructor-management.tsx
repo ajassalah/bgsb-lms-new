@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useStaffCan } from "./staff-permission-context";
+import { TablePagination } from "./table-pagination";
 export type InstructorRow = {
   id: string;
   full_name: string;
@@ -50,12 +51,13 @@ export function InstructorManagement({
     canStatus = useStaffCan(permissionModule, "status");
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
+    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<InstructorRow | null>(null),
     [emailing, setEmailing] = useState<InstructorRow | null>(null),
     [sending, setSending] = useState(false),
     router = useRouter(),
-    visible = useMemo(
+    filtered = useMemo(
       () =>
         rows.filter((x) =>
           `${x.full_name} ${x.email}`
@@ -63,7 +65,9 @@ export function InstructorManagement({
             .includes(query.toLowerCase()),
         ),
       [rows, query],
-    );
+    ),
+    pages = Math.max(1, Math.ceil(filtered.length / 20)),
+    visible = filtered.slice((page - 1) * 20, page * 20);
   useEffect(() => setRows(initialRows), [initialRows]);
   async function sendEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -160,7 +164,7 @@ export function InstructorManagement({
             <tbody className="divide-y">
               {visible.map((r, i) => (
                 <tr key={r.id}>
-                  <td className="p-4">{i + 1}</td>
+                  <td className="p-4">{(page - 1) * 20 + i + 1}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       {r.avatar_url ? (
@@ -281,6 +285,7 @@ export function InstructorManagement({
             </tbody>
           </table>
         </div>
+        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
       <ConfirmDialog
         open={!!deleting}

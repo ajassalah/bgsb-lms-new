@@ -2,6 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { MobileTableCards } from "@/components/mobile-table-cards";
+import { FloatingActionMenus } from "@/components/floating-action-menus";
+import { SessionInactivity } from "@/components/session-inactivity";
 
 export const metadata: Metadata = {
   title: {
@@ -28,6 +30,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <MobileTableCards />
+        <FloatingActionMenus />
+        <SessionInactivity />
         {children}
         <Toaster richColors />
       </body>
