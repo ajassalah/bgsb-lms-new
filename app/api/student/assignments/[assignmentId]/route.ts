@@ -83,7 +83,7 @@ export async function POST(
       },
       { onConflict: "assignment_id,student_id" },
     )
-    .select("id,submitted_at,review_status")
+    .select("id,file_url,description,submitted_at,review_status")
     .single();
   return error
     ? Response.json({ error: error.message }, { status: 400 })

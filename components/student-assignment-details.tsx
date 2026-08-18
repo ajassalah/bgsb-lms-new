@@ -1,6 +1,7 @@
 "use client";
 
-import { Edit3, FileText, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, Edit3, FileText, Trash2, Upload, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -30,7 +31,13 @@ export function StudentAssignmentDetails({
   const router = useRouter();
   const [editing, setEditing] = useState(false),
     [deleting, setDeleting] = useState(false),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [submission, setSubmission] = useState({
+      submittedAt: details.submittedAt,
+      reviewStatus: details.reviewStatus,
+      description: details.description,
+      fileUrl: details.fileUrl,
+    });
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,6 +49,12 @@ export function StudentAssignmentDetails({
     const body = await response.json().catch(() => ({}));
     setBusy(false);
     if (!response.ok) return toast.error(body.error || "Update failed");
+    setSubmission({
+      submittedAt: body.submitted_at || new Date().toISOString(),
+      reviewStatus: body.review_status || "submitted",
+      description: body.description ?? submission.description,
+      fileUrl: body.file_url || submission.fileUrl,
+    });
     toast.success("Assignment updated successfully");
     setEditing(false);
     router.refresh();
@@ -76,11 +89,11 @@ export function StudentAssignmentDetails({
     ],
     [
       "Submitted Status",
-      details.submittedAt
-        ? `Submitted on ${new Date(details.submittedAt).toLocaleString("en-GB")}`
+      submission.submittedAt
+        ? `Submitted on ${new Date(submission.submittedAt).toLocaleString("en-GB")}`
         : "Not Submitted",
     ],
-    ["Review Status", details.reviewStatus.replace("_", " ")],
+    ["Review Status", submission.reviewStatus.replace("_", " ")],
     ["Feedback", details.feedback || "No feedback yet"],
   ];
   return (
@@ -92,24 +105,21 @@ export function StudentAssignmentDetails({
             Assignment Details
           </h1>
         </div>
-        {details.submittedAt && details.reviewStatus !== "accepted" && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setEditing(true)}
-              className="btn-secondary gap-2"
-            >
-              <Edit3 className="size-4" />
-              Edit
-            </button>
-            <button
-              onClick={() => setDeleting(true)}
-              className="btn-primary gap-2"
-            >
-              <Trash2 className="size-4" />
-              Delete
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/student/assignments"
+            className="btn-secondary gap-2"
+          >
+            <ArrowLeft className="size-4" />
+            My Assignments
+          </Link>
+          <Link
+            href={`/dashboard/student/assignments/${details.courseId}`}
+            className="btn-secondary gap-2"
+          >
+            Course Overview
+          </Link>
+        </div>
       </div>
       {details.assignmentFileUrl && (
         <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-white p-5">
@@ -126,11 +136,12 @@ export function StudentAssignmentDetails({
           </div>
           <a
             href={details.assignmentFileUrl}
-            download
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-primary gap-2"
           >
             <FileText className="size-4" />
-            Download
+            Open Assignment PDF
           </a>
         </section>
       )}
@@ -145,20 +156,55 @@ export function StudentAssignmentDetails({
             </div>
           ))}
         </div>
-        {details.fileUrl && (
-          <div className="p-5">
-            <a
-              href={details.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 font-bold text-blue-600"
-            >
-              <FileText className="size-5" />
-              Open submitted attachment
-            </a>
-          </div>
-        )}
       </section>
+      {submission.submittedAt && (
+        <section className="mt-6 rounded-2xl border bg-white p-5">
+          <h2 className="text-lg font-bold text-navy">Submission Details</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Submitted {new Date(submission.submittedAt).toLocaleString("en-GB")}
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-slate-50 p-4">
+            {submission.fileUrl ? (
+              <a
+                href={submission.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold text-blue-600"
+              >
+                <FileText className="size-5" />
+                Open submitted attachment
+              </a>
+            ) : (
+              <span className="text-sm text-slate-400">
+                No attachment available
+              </span>
+            )}
+            {submission.reviewStatus !== "accepted" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="btn-secondary gap-2"
+                >
+                  <Edit3 className="size-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleting(true)}
+                  className="btn-primary gap-2"
+                >
+                  <Trash2 className="size-4" />
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+          {submission.description && (
+            <p className="mt-4 text-sm text-slate-600">
+              {submission.description}
+            </p>
+          )}
+        </section>
+      )}
       {editing && (
         <div className="fixed inset-0 z-[220] bg-black/60">
           <form
@@ -180,7 +226,7 @@ export function StudentAssignmentDetails({
               Description
               <textarea
                 name="description"
-                defaultValue={details.description || ""}
+                defaultValue={submission.description || ""}
                 className="field mt-2 min-h-32"
               />
             </label>
@@ -196,9 +242,9 @@ export function StudentAssignmentDetails({
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
             </label>
-            {details.fileUrl && (
+            {submission.fileUrl && (
               <a
-                href={details.fileUrl}
+                href={submission.fileUrl}
                 target="_blank"
                 className="mt-3 text-sm font-bold text-blue-600"
               >

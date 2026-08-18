@@ -14,12 +14,18 @@ export async function POST(req: Request) {
     parsed = z
       .object({
         title: z.string().trim().min(2),
+        slug: z
+          .string()
+          .trim()
+          .min(2)
+          .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Enter a valid URL slug"),
         category_id: z.string().optional(),
         course_type: z.enum(["online", "onsite", "hybrid"]),
         language: z.string().min(1),
         instructor_id: z.string().optional(),
         instructor_ids: z.string().optional(),
         duration_weeks: z.coerce.number().int().positive(),
+        tags: z.string().optional(),
         short_description: z.string().min(5),
         description: z.string().optional(),
         video_source: z.enum(["upload", "youtube"]),
@@ -28,14 +34,16 @@ export async function POST(req: Request) {
       .safeParse(Object.fromEntries(form));
   if (!parsed.success)
     return Response.json(
-      { error: parsed.error.issues[0]?.message || "Invalid course" },
+      {
+        error:
+          parsed.error.issues[0]?.path[0] === "duration_weeks"
+            ? "Course Duration is required and must be greater than 0"
+            : parsed.error.issues[0]?.message || "Invalid course",
+      },
       { status: 400 },
     );
   const admin = createAdminClient(),
-    slug = `${parsed.data.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")}-${Date.now().toString(36)}`;
+    slug = parsed.data.slug;
   async function upload(name: "video" | "thumbnail") {
     const file = form.get(name);
     if (!(file instanceof File) || !file.size) return null;
@@ -69,7 +77,10 @@ export async function POST(req: Request) {
           language: parsed.data.language,
           instructor_id: instructorIds[0] || null,
           duration_weeks: parsed.data.duration_weeks,
-          tags: [],
+          tags: (parsed.data.tags || "")
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean),
           short_description: parsed.data.short_description,
           description: parsed.data.description || parsed.data.short_description,
           video_source: parsed.data.video_source,
@@ -94,10 +105,15 @@ export async function POST(req: Request) {
     }
     return Response.json(data);
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Course creation failed";
     return Response.json(
       {
         error:
-          error instanceof Error ? error.message : "Course creation failed",
+          message.includes("courses_slug_key") ||
+          message.toLowerCase().includes("duplicate key")
+            ? "This slug is already used by another course. Enter a different slug."
+            : message,
       },
       { status: 400 },
     );

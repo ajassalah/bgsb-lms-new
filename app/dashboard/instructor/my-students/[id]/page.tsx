@@ -28,6 +28,7 @@ export default async function InstructorStudentView({
     { data: student },
     { data: enrollments },
     { data: certificates },
+    { data: logins },
     { data: liveAssignments },
   ] = await Promise.all([
     admin
@@ -50,6 +51,11 @@ export default async function InstructorStudentView({
       .select("id,certificate_url,issued_at,course:courses(title)")
       .eq("student_id", params.id)
       .in("course_id", courseIds),
+    admin
+      .from("student_login_history")
+      .select("id,browser,platform,ip_address,logged_at")
+      .eq("student_id", params.id)
+      .order("logged_at", { ascending: false }),
     admin
       .from("live_session_students")
       .select(
@@ -78,7 +84,13 @@ export default async function InstructorStudentView({
           date: x.issued_at,
         }))}
         payments={[]}
-        logins={[]}
+        logins={(logins || []).map((x) => ({
+          id: x.id,
+          browser: x.browser || "Unknown",
+          platform: x.platform || "Unknown",
+          ip: x.ip_address || "—",
+          date: x.logged_at,
+        }))}
         liveClasses={(liveAssignments || [])
           .map((x: any) => x.session)
           .filter(Boolean)

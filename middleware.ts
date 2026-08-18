@@ -6,13 +6,14 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/enrollments", ["enrollment"]],
   ["/dashboard/admin-staff/category", ["categories"]],
+  ["/dashboard/admin-staff/curriculum", ["curriculum_overview"]],
   [
     "/dashboard/admin-staff/certificates",
     ["certificates", "certificate_students"],
   ],
   [
     "/dashboard/admin-staff/courses",
-    ["courses", "curriculum", "curriculum_assignments"],
+    ["courses", "curriculum", "curriculum_overview", "curriculum_assignments"],
   ],
   ["/dashboard/admin-staff/live-classes", ["live_classes"]],
   [

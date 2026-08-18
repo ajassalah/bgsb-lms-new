@@ -36,6 +36,11 @@ export async function PATCH(
     parsed = z
       .object({
         title: z.string().trim().min(2),
+        slug: z
+          .string()
+          .trim()
+          .min(2)
+          .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Enter a valid URL slug"),
         category_id: z.string().optional(),
         course_type: z.enum(["online", "onsite", "hybrid"]),
         language: z.string().min(1),
@@ -53,7 +58,15 @@ export async function PATCH(
       })
       .safeParse(Object.fromEntries(form));
   if (!parsed.success)
-    return Response.json({ error: "Invalid course details" }, { status: 400 });
+    return Response.json(
+      {
+        error:
+          parsed.error.issues[0]?.path[0] === "duration_weeks"
+            ? "Course Duration is required and must be greater than 0"
+            : parsed.error.issues[0]?.message || "Invalid course details",
+      },
+      { status: 400 },
+    );
   const admin = createAdminClient();
   async function upload(name: "video" | "thumbnail") {
     const file = form.get(name);
@@ -79,6 +92,7 @@ export async function PATCH(
       uploaded = await upload("video"),
       values: any = {
         title: parsed.data.title,
+        slug: parsed.data.slug,
         category_id: parsed.data.category_id || null,
         course_type: parsed.data.course_type,
         language: parsed.data.language,
@@ -103,7 +117,17 @@ export async function PATCH(
       .from("courses")
       .update(values)
       .eq("id", params.id);
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error)
+      return Response.json(
+        {
+          error:
+            error.message.includes("courses_slug_key") ||
+            error.message.toLowerCase().includes("duplicate key")
+              ? "This slug is already used by another course. Enter a different slug."
+              : error.message,
+        },
+        { status: 400 },
+      );
     await admin.from("course_instructors").delete().eq("course_id", params.id);
     if (instructorIds.length) {
       const {

@@ -6,7 +6,7 @@ export async function AllUsersPage() {
       db
         .from("profiles")
         .select(
-          "id,full_name,email,avatar_url,role,status,created_at,last_login_at,verified_by,verifier:profiles!profiles_verified_by_fkey(full_name)",
+          "id,full_name,email,avatar_url,role,staff_role,status,created_at,last_login_at,verified_by",
         )
         .in("role", ["student", "instructor", "admin_staff"])
         .order("created_at", { ascending: false }),
@@ -19,18 +19,22 @@ export async function AllUsersPage() {
   (history || []).forEach((x: any) => {
     if (!ips.has(x.student_id)) ips.set(x.student_id, x.ip_address);
   });
+  const names = new Map(
+    (profiles || []).map((profile: any) => [profile.id, profile.full_name]),
+  );
   const rows: SystemUser[] = (profiles || []).map((x: any) => ({
     id: x.id,
     full_name: x.full_name,
     email: x.email,
     avatar_url: x.avatar_url,
     role: x.role,
+    staff_role: x.staff_role || null,
     status: x.status,
     created_at: x.created_at,
     last_login_at: x.last_login_at,
     ip_address: ips.get(x.id) || null,
     created_by_name: null,
-    verified_by_name: x.verifier?.full_name || null,
+    verified_by_name: x.verified_by ? names.get(x.verified_by) || null : null,
   }));
   return <AllUsersManagement initialRows={rows} />;
 }

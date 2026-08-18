@@ -526,16 +526,19 @@ export function CalendarManagement({
               <option value="all">All user roles</option>
               <option value="instructor">Instructor</option>
               <option value="student">Student</option>
+              <option value="admin_staff">Staff</option>
             </select>
             <input
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
               className="field mt-3"
-              placeholder="Search students or instructors..."
+              placeholder="Search students, instructors, or staff..."
             />
             <div className="mt-4 space-y-2">
               {assignableUsers
-                .filter((u) => ["student", "instructor"].includes(u.role))
+                .filter((u) =>
+                  ["student", "instructor", "admin_staff"].includes(u.role),
+                )
                 .filter((u) => roleFilter === "all" || u.role === roleFilter)
                 .filter((u) =>
                   u.name.toLowerCase().includes(userSearch.toLowerCase()),

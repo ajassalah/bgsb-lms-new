@@ -145,6 +145,8 @@ export default async function Dashboard({
       { data: directSessions },
       publishedResult,
       { data: welcomeProfile },
+      { data: ownedAppointments },
+      { data: assignedAppointments },
     ] = await Promise.all([
       admin
         .from("course_instructors")
@@ -164,6 +166,16 @@ export default async function Dashboard({
         .select("instructor_welcome_seen")
         .eq("id", p.id)
         .single(),
+      admin
+        .from("calendar_appointments")
+        .select("id,title,description,scheduled_start")
+        .eq("created_by", p.id),
+      admin
+        .from("calendar_appointment_users")
+        .select(
+          "appointment:calendar_appointments(id,title,description,scheduled_start)",
+        )
+        .eq("user_id", p.id),
     ]);
     const courseIds = (links || []).map((item) => item.course_id);
     const sessionIds = Array.from(
@@ -215,12 +227,32 @@ export default async function Dashboard({
             liveSessions: sessionIds.length,
           }}
           bestCourses={bestCourses}
-          sessions={(sessions || []).map((session) => ({
-            id: session.id,
-            title: session.title,
-            start: session.scheduled_start,
-            meetingUrl: session.meeting_url || null,
-          }))}
+          sessions={[
+            ...(sessions || []).map((session) => ({
+              id: `class-${session.id}`,
+              title: session.title,
+              description: "Live class",
+              start: session.scheduled_start,
+              meetingUrl: session.meeting_url || null,
+            })),
+            ...[
+              ...(ownedAppointments || []),
+              ...(assignedAppointments || [])
+                .map((row: any) => row.appointment)
+                .filter(Boolean),
+            ]
+              .filter(
+                (row: any, index, rows) =>
+                  rows.findIndex((item: any) => item.id === row.id) === index,
+              )
+              .map((appointment: any) => ({
+                id: `appointment-${appointment.id}`,
+                title: appointment.title,
+                description: appointment.description || "Appointment",
+                start: appointment.scheduled_start,
+                meetingUrl: null,
+              })),
+          ]}
           showWelcome={welcomeProfile?.instructor_welcome_seen === false}
         />
       </DashboardShell>
@@ -233,6 +265,8 @@ export default async function Dashboard({
       { data: sessionLinks },
       { data: submissions },
       { data: welcomeProfile },
+      { data: ownedAppointments },
+      { data: assignedAppointments },
     ] = await Promise.all([
       admin
         .from("enrollments")
@@ -256,6 +290,16 @@ export default async function Dashboard({
         .select("student_welcome_seen")
         .eq("id", p.id)
         .single(),
+      admin
+        .from("calendar_appointments")
+        .select("id,title,description,scheduled_start")
+        .eq("created_by", p.id),
+      admin
+        .from("calendar_appointment_users")
+        .select(
+          "appointment:calendar_appointments(id,title,description,scheduled_start)",
+        )
+        .eq("user_id", p.id),
     ]);
     const courseIds = (enrollments || []).map((row) => row.course_id),
       submitted = new Set((submissions || []).map((row) => row.assignment_id));
@@ -265,9 +309,29 @@ export default async function Dashboard({
           .select("id,due_date")
           .in("course_id", courseIds)
       : { data: [] };
-    const sessions = (sessionLinks || [])
-      .map((row: any) => row.session)
-      .filter((row: any) => row && new Date(row.scheduled_start) >= new Date())
+    const sessions = [
+      ...(sessionLinks || [])
+        .map((row: any) => row.session)
+        .filter(Boolean)
+        .map((row: any) => ({ ...row, description: "Live class" })),
+      ...[
+        ...(ownedAppointments || []),
+        ...(assignedAppointments || [])
+          .map((row: any) => row.appointment)
+          .filter(Boolean),
+      ]
+        .filter(
+          (row: any, index, rows) =>
+            rows.findIndex((item: any) => item.id === row.id) === index,
+        )
+        .map((row: any) => ({
+          ...row,
+          id: `appointment-${row.id}`,
+          meeting_url: null,
+          description: row.description || "Appointment",
+        })),
+    ]
+      .filter((row: any) => new Date(row.scheduled_start) >= new Date())
       .sort(
         (a: any, b: any) =>
           +new Date(a.scheduled_start) - +new Date(b.scheduled_start),
@@ -301,6 +365,7 @@ export default async function Dashboard({
           sessions={sessions.map((row: any) => ({
             id: row.id,
             title: row.title,
+            description: row.description || "",
             start: row.scheduled_start,
             meetingUrl: row.meeting_url,
           }))}

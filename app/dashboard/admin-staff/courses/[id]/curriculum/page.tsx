@@ -6,6 +6,7 @@ import {
   CurriculumManagement,
   type ModuleRow,
 } from "@/components/curriculum-management";
+import { staffCan } from "@/lib/staff-permissions";
 export default async function Curriculum({
   params,
 }: {
@@ -13,6 +14,11 @@ export default async function Curriculum({
 }) {
   const profile = await requireProfile("admin_staff"),
     db = createAdminClient();
+  const fullAccess = await staffCan(
+    profile.id,
+    "curriculum_overview",
+    "full_access",
+  );
   const [{ data: course }, { data }] = await Promise.all([
     db
       .from("courses")
@@ -48,6 +54,7 @@ export default async function Curriculum({
         videoSource={course.video_source}
         videoUrl={course.video_url}
         initialModules={modules}
+        readOnly={!fullAccess}
       />
     </StaffPageShell>
   );

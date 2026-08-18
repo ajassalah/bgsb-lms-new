@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookPlus,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Edit3,
@@ -75,6 +76,7 @@ export function EnrollmentManagement({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ status: value }),
     });
+    const result = await res.json().catch(() => ({}));
     if (!res.ok) {
       setRows((x) =>
         x.map((y) => (y.id === row.id ? { ...y, status: old } : y)),
@@ -82,6 +84,7 @@ export function EnrollmentManagement({
       toast.error("Update failed");
     } else {
       toast.success("Enrollment status updated");
+      if (result.emailWarning) toast.warning(result.emailWarning);
       router.refresh();
     }
   }
@@ -340,7 +343,9 @@ function Add({
   close: () => void;
   saved: (r: EnrollmentRow) => void;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false),
+    [studentId, setStudentId] = useState(""),
+    [courseId, setCourseId] = useState("");
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -361,7 +366,7 @@ function Add({
     <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 sm:p-4">
       <form
         onSubmit={submit}
-        className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 sm:max-w-md sm:rounded-2xl sm:p-6"
+        className="my-auto w-full max-w-sm overflow-visible rounded-xl bg-white p-4 sm:max-w-md sm:rounded-2xl sm:p-6"
       >
         <div className="flex justify-between">
           <h2 className="text-xl font-bold text-navy">Add Student To Course</h2>
@@ -369,22 +374,26 @@ function Add({
             <X />
           </button>
         </div>
-        <select name="student_id" className="field mt-6" required>
-          <option value="">Select student</option>
-          {students.map((x) => (
-            <option value={x.id} key={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </select>
-        <select name="course_id" className="field mt-4" required>
-          <option value="">Select course</option>
-          {courses.map((x) => (
-            <option value={x.id} key={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </select>
+        <div className="mt-6">
+          <SearchSelect
+            name="student_id"
+            label="Student"
+            placeholder="Select student"
+            options={students}
+            value={studentId}
+            onChange={setStudentId}
+          />
+        </div>
+        <div className="mt-4">
+          <SearchSelect
+            name="course_id"
+            label="Course"
+            placeholder="Select course"
+            options={courses}
+            value={courseId}
+            onChange={setCourseId}
+          />
+        </div>
         <button disabled={busy} className="btn-primary mt-5 w-full gap-2">
           <BookPlus className="size-4" />
           {busy ? "Adding…" : "Add Student"}
@@ -407,7 +416,9 @@ function EditEnrollment({
   close: () => void;
   saved: (row: EnrollmentRow) => void;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false),
+    [studentId, setStudentId] = useState(row.studentId),
+    [courseId, setCourseId] = useState(row.courseId);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -452,36 +463,26 @@ function EditEnrollment({
             <X />
           </button>
         </div>
-        <label className="mt-6 block text-sm font-bold">
-          Student
-          <select
+        <div className="mt-6">
+          <SearchSelect
             name="student_id"
-            defaultValue={row.studentId}
-            className="field mt-2"
-            required
-          >
-            {students.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="mt-4 block text-sm font-bold">
-          Course
-          <select
+            label="Student"
+            placeholder="Select student"
+            options={students}
+            value={studentId}
+            onChange={setStudentId}
+          />
+        </div>
+        <div className="mt-4">
+          <SearchSelect
             name="course_id"
-            defaultValue={row.courseId}
-            className="field mt-2"
-            required
-          >
-            {courses.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            label="Course"
+            placeholder="Select course"
+            options={courses}
+            value={courseId}
+            onChange={setCourseId}
+          />
+        </div>
         <label className="mt-4 block text-sm font-bold">
           Status
           <select
@@ -501,5 +502,91 @@ function EditEnrollment({
         </button>
       </form>
     </div>
+  );
+}
+
+function SearchSelect({
+  name,
+  label,
+  placeholder,
+  options,
+  value,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  placeholder: string;
+  options: Option[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false),
+    [search, setSearch] = useState(""),
+    containerRef = useRef<HTMLLabelElement>(null);
+  const selected = options.find((option) => option.id === value),
+    filtered = options.filter((option) =>
+      option.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  useEffect(() => {
+    function close(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return (
+    <label
+      ref={containerRef}
+      className={`relative block text-sm font-bold ${open ? "z-[190]" : "z-0"}`}
+    >
+      {label}
+      <input type="hidden" name={name} value={value} required />
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="field mt-2 flex w-full items-center justify-between text-left font-normal"
+      >
+        <span className={selected ? "text-navy" : "text-slate-400"}>
+          {selected?.name || placeholder}
+        </span>
+        <ChevronDown className="size-4 text-slate-400" />
+      </button>
+      {open && (
+        <div className="absolute z-[170] mt-2 w-full rounded-xl border bg-white p-2 shadow-2xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              autoFocus
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="field py-2 pl-9 font-normal"
+              placeholder={`Search ${label.toLowerCase()}...`}
+            />
+          </div>
+          <div className="mt-2 max-h-52 overflow-y-auto">
+            {filtered.map((option) => (
+              <button
+                type="button"
+                key={option.id}
+                onClick={() => {
+                  onChange(option.id);
+                  setOpen(false);
+                  setSearch("");
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left font-normal hover:bg-slate-50 ${value === option.id ? "bg-red/5 text-red" : "text-navy"}`}
+              >
+                <span>{option.name}</span>
+                {value === option.id && <Check className="size-4" />}
+              </button>
+            ))}
+            {!filtered.length && (
+              <p className="px-3 py-4 text-center font-normal text-slate-400">
+                No results found
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </label>
   );
 }

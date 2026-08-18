@@ -18,6 +18,7 @@ type Option = { id: string; name: string };
 type Course = {
   id: string;
   title: string;
+  slug: string;
   category_id: string | null;
   status: string;
   short_description: string | null;
@@ -44,8 +45,13 @@ export function CourseEditForm({
   const [step, setStep] = useState(1),
     [busy, setBusy] = useState(false),
     [basic, setBasic] = useState<Record<string, string>>({}),
+    [title, setTitle] = useState(course.title),
+    [slug, setSlug] = useState(course.slug),
+    [slugEdited, setSlugEdited] = useState(false),
     [description, setDescription] = useState(course.description || ""),
     [videoSource, setVideoSource] = useState(course.video_source || "youtube"),
+    [thumbnailFile, setThumbnailFile] = useState<File | null>(null),
+    [videoFile, setVideoFile] = useState<File | null>(null),
     [selectedInstructors, setSelectedInstructors] = useState<string[]>(
       course.instructor_ids ||
         (course.instructor_id ? [course.instructor_id] : []),
@@ -71,10 +77,13 @@ export function CourseEditForm({
     payload.set("video_source", videoSource);
     payload.set("instructor_ids", JSON.stringify(selectedInstructors));
     const media = new FormData(e.currentTarget);
-    for (const key of ["thumbnail", "video"]) {
-      const f = media.get(key);
-      if (f instanceof File && f.size) payload.set(key, f);
-    }
+    if (thumbnailFile?.size) payload.set("thumbnail", thumbnailFile);
+    if (videoFile?.size) payload.set("video", videoFile);
+    payload.set(
+      "remove_thumbnail",
+      String(media.get("remove_thumbnail") || "false"),
+    );
+    payload.set("remove_video", String(media.get("remove_video") || "false"));
     payload.set(
       "video_link",
       String(media.get("video_link") || course.video_url || ""),
@@ -119,25 +128,59 @@ export function CourseEditForm({
             <Field
               label="Course Title"
               name="title"
-              defaultValue={course.title}
+              value={title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const value = e.target.value;
+                setTitle(value);
+                if (!slugEdited)
+                  setSlug(
+                    value
+                      .toLowerCase()
+                      .trim()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, ""),
+                  );
+              }}
             />
+            <label className="text-sm font-semibold">
+              Slug
+              <input
+                name="slug"
+                value={slug}
+                onChange={(e) => {
+                  setSlugEdited(true);
+                  setSlug(
+                    e.target.value
+                      .toLowerCase()
+                      .trim()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, ""),
+                  );
+                }}
+                className="field mt-2"
+                required
+              />
+              <small className="mt-1 block font-normal text-slate-400">
+                Course URL: /courses/{slug}
+              </small>
+            </label>
             <Select
               label="Select Category"
               name="category_id"
-              value={course.category_id || ""}
+              value={basic.category_id ?? course.category_id ?? ""}
               options={categories}
             />
             <Select
               label="Course Type"
               name="course_type"
-              value={course.course_type}
+              value={basic.course_type || course.course_type}
               values={["online", "onsite", "hybrid"]}
             />
             <Select
               label="Language"
               name="language"
-              value={course.language}
-              values={["English", "Sinhala", "Tamil"]}
+              value={(basic.language || course.language || "").toLowerCase()}
+              values={["english", "sinhala", "tamil"]}
             />
             <InstructorPicker
               instructors={instructors}
@@ -150,17 +193,17 @@ export function CourseEditForm({
               type="number"
               min="1"
               placeholder="Duration in Month"
-              defaultValue={course.duration_weeks || 1}
+              defaultValue={basic.duration_weeks ?? course.duration_weeks ?? ""}
             />
             <Field
               label="Course Tag"
               name="tags"
-              defaultValue={(course.tags || []).join(", ")}
+              defaultValue={basic.tags ?? (course.tags || []).join(", ")}
             />
             <Select
               label="Status"
               name="status"
-              value={course.status}
+              value={basic.status || course.status}
               values={["draft", "published", "archived"]}
             />
           </div>
@@ -168,7 +211,9 @@ export function CourseEditForm({
             Short Description
             <textarea
               name="short_description"
-              defaultValue={course.short_description || ""}
+              defaultValue={
+                basic.short_description ?? course.short_description ?? ""
+              }
               className="field mt-2 min-h-24"
               required
             />
@@ -192,8 +237,13 @@ export function CourseEditForm({
             basic={basic}
             videoSource={videoSource}
             setVideoSource={setVideoSource}
+            onThumbnailChange={setThumbnailFile}
+            onVideoChange={setVideoFile}
             existingThumbnail={course.thumbnail_url}
             existingVideo={course.video_url}
+            categoryName={
+              categories.find((item) => item.id === basic.category_id)?.name
+            }
           />
           <div className="mt-7 flex flex-col-reverse gap-3 min-[380px]:flex-row min-[380px]:justify-between">
             <button

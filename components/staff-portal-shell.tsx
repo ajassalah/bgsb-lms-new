@@ -13,6 +13,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LibraryBig,
+  ListTree,
   LifeBuoy,
   Menu,
   MessageSquareMore,
@@ -59,11 +60,18 @@ const groups: { label: string; items: MenuItem[] }[] = [
         modules: ["enrollment"],
       },
       {
+        label: "Manage Student",
+        icon: Users,
+        href: "/dashboard/admin-staff/students",
+        modules: ["students"],
+      },
+      {
         label: "Courses",
         icon: BookCopy,
         modules: [
           "courses",
           "curriculum",
+          "curriculum_overview",
           "curriculum_assignments",
           "categories",
           "certificates",
@@ -81,6 +89,12 @@ const groups: { label: string; items: MenuItem[] }[] = [
             icon: ShieldCheck,
             href: "/dashboard/admin-staff/category",
             modules: ["categories"],
+          },
+          {
+            label: "Curriculum",
+            icon: ListTree,
+            href: "/dashboard/admin-staff/curriculum",
+            modules: ["curriculum_overview"],
           },
           {
             label: "Certificates",
@@ -113,12 +127,6 @@ const groups: { label: string; items: MenuItem[] }[] = [
   {
     label: "People",
     items: [
-      {
-        label: "Manage Student",
-        icon: Users,
-        href: "/dashboard/admin-staff/students",
-        modules: ["students"],
-      },
       {
         label: "Instructors",
         icon: GraduationCap,

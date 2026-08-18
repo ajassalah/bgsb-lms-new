@@ -77,6 +77,11 @@ export async function PATCH(
       { error: "Invalid instructor details" },
       { status: 400 },
     );
+  if (profileRole === "admin_staff" && !parsed.data.staff_role?.trim())
+    return Response.json(
+      { error: "Select a staff role before saving changes" },
+      { status: 400 },
+    );
   let avatar_url: string | undefined;
   const image = form.get("avatar");
   if (image instanceof File && image.size) {

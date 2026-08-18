@@ -10,6 +10,13 @@ export default async function CalendarPage({
 }) {
   const profile = await requireProfile("admin_staff");
   const db = createAdminClient();
+  const { data: assignedLiveClasses } = await db
+    .from("live_session_staff")
+    .select("session_id")
+    .eq("staff_id", profile.id);
+  const assignedLiveClassIds = (assignedLiveClasses || []).map(
+    (row) => row.session_id,
+  );
   const [
     { data: appointments },
     { data: liveClasses },
@@ -20,10 +27,15 @@ export default async function CalendarPage({
       .from("calendar_appointments")
       .select("id,title,description,scheduled_start,scheduled_end")
       .order("scheduled_start", { ascending: true }),
-    db
-      .from("live_sessions")
-      .select("id,title,description,scheduled_start,scheduled_end,meeting_url")
-      .order("scheduled_start", { ascending: true }),
+    assignedLiveClassIds.length
+      ? db
+          .from("live_sessions")
+          .select(
+            "id,title,description,scheduled_start,scheduled_end,meeting_url",
+          )
+          .in("id", assignedLiveClassIds)
+          .order("scheduled_start", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
     db
       .from("profiles")
       .select("id,full_name,role,avatar_url")

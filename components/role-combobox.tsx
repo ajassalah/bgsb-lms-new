@@ -20,7 +20,7 @@ export function RoleCombobox({
     [options, query],
   );
   return (
-    <div className="relative mt-2">
+    <div className={`relative mt-2 ${open ? "z-[500]" : "z-0"}`}>
       <button
         type="button"
         onClick={() => setOpen((x) => !x)}
@@ -30,7 +30,7 @@ export function RoleCombobox({
         <ChevronDown className="size-4" />
       </button>
       {open && (
-        <div className="absolute z-[100] mt-2 w-full rounded-xl border bg-white p-2 shadow-2xl">
+        <div className="absolute left-0 top-full z-[510] mt-2 w-full rounded-xl border bg-white p-2 shadow-2xl">
           <label className="flex items-center gap-2 rounded-lg border px-3">
             <Search className="size-4 text-slate-400" />
             <input

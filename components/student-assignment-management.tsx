@@ -67,7 +67,10 @@ export function StudentAssignmentCourses({
             "text-red-600 bg-red-50",
           ],
         ].map(([label, count, Icon, color]: any) => (
-          <article className="rounded-2xl border bg-white p-5" key={label}>
+          <article
+            className="flex flex-col items-center rounded-2xl border bg-white p-5 text-center"
+            key={label}
+          >
             <span
               className={`grid size-11 place-items-center rounded-xl ${color}`}
             >
@@ -157,7 +160,8 @@ export function StudentAssignmentTable({
   const [rows, setRows] = useState(assignments),
     [selected, setSelected] = useState<StudentAssignment | null>(null),
     [menu, setMenu] = useState<string | null>(null),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [selectedFileName, setSelectedFileName] = useState("");
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected) return;
@@ -176,11 +180,14 @@ export function StudentAssignmentTable({
               ...r,
               status: "submitted",
               submittedAt: body.submitted_at || new Date().toISOString(),
+              fileUrl: body.file_url || r.fileUrl,
+              description: body.description ?? r.description,
             }
           : r,
       ),
     );
     setSelected(null);
+    setSelectedFileName("");
     toast.success("Assignment submitted");
   }
   return (
@@ -273,7 +280,13 @@ export function StudentAssignmentTable({
                 <h2 className="text-xl font-bold">Submit Assignment</h2>
                 <p className="text-sm text-slate-400">{selected.title}</p>
               </div>
-              <button type="button" onClick={() => setSelected(null)}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(null);
+                  setSelectedFileName("");
+                }}
+              >
                 <X />
               </button>
             </div>
@@ -300,8 +313,16 @@ export function StudentAssignmentTable({
                 type="file"
                 className="absolute inset-0 cursor-pointer opacity-0"
                 required={!selected.fileUrl}
+                onChange={(event) =>
+                  setSelectedFileName(event.target.files?.[0]?.name || "")
+                }
               />
             </label>
+            {selectedFileName && (
+              <div className="mt-3 rounded-lg border bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                File attached: {selectedFileName}
+              </div>
+            )}
             {selected.fileUrl && (
               <a
                 href={selected.fileUrl}

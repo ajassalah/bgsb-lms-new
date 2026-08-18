@@ -16,6 +16,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LibraryBig,
+  ListTree,
   Menu,
   Moon,
   MessageSquareMore,
@@ -46,6 +47,7 @@ const groups = [
     label: "Academic",
     items: [
       ["Enrollment", LibraryBig, "/dashboard/super-admin/enrollments"],
+      ["Manage Student", Users, "/dashboard/super-admin/students"],
       ["Courses", BookCopy, "/dashboard/super-admin/courses"],
       ["Live classes", Video, "/dashboard/super-admin/live-classes"],
       ["Assignments", ClipboardCheck, "/dashboard/super-admin/assignments"],
@@ -54,7 +56,6 @@ const groups = [
   {
     label: "People",
     items: [
-      ["Manage Student", Users, "/dashboard/super-admin/students"],
       ["Instructors", GraduationCap, "/dashboard/super-admin/instructors"],
       ["Staff", UserCog, "/dashboard/super-admin/staff"],
     ],
@@ -96,6 +97,7 @@ export function SuperAdminShell({
   const courseLinks = [
       ["Course List", "courses", BookCopy],
       ["Category", "category", Tags],
+      ["Curriculum", "curriculum", ListTree],
       ["Certificates", "certificates", ShieldCheck],
     ] as const,
     courseActive = courseLinks.some(

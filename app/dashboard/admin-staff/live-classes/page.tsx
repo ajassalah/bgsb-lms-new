@@ -5,6 +5,11 @@ import { LiveClassManagement } from "@/components/live-class-management";
 export default async function LiveClasses() {
   const profile = await requireProfile("admin_staff"),
     db = createAdminClient(),
+    { data: assignedSessions } = await db
+      .from("live_session_staff")
+      .select("session_id")
+      .eq("staff_id", profile.id),
+    assignedSessionIds = (assignedSessions || []).map((row) => row.session_id),
     [
       { data },
       { data: instructors },
@@ -12,12 +17,15 @@ export default async function LiveClasses() {
       { data: enrollments },
       { data: staff },
     ] = await Promise.all([
-      db
-        .from("live_sessions")
-        .select(
-          "id,title,description,meeting_url,thumbnail_url,course_id,scheduled_start,scheduled_end,live_session_instructors(instructor_id,instructor:profiles!live_session_instructors_instructor_id_fkey(full_name)),live_session_staff(staff_id,staff:profiles!live_session_staff_staff_id_fkey(full_name)),live_session_courses(course_id),live_session_students(student_id)",
-        )
-        .order("scheduled_start", { ascending: false }),
+      assignedSessionIds.length
+        ? db
+            .from("live_sessions")
+            .select(
+              "id,title,description,meeting_url,thumbnail_url,course_id,scheduled_start,scheduled_end,live_session_instructors(instructor_id,instructor:profiles!live_session_instructors_instructor_id_fkey(full_name)),live_session_staff(staff_id,staff:profiles!live_session_staff_staff_id_fkey(full_name)),live_session_courses(course_id),live_session_students(student_id)",
+            )
+            .in("id", assignedSessionIds)
+            .order("scheduled_start", { ascending: false })
+        : Promise.resolve({ data: [] as any[] }),
       db
         .from("profiles")
         .select("id,full_name")

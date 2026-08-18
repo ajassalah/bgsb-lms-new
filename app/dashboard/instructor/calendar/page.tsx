@@ -70,10 +70,60 @@ export default async function Page({
     ].sort(
       (a, b) => +new Date(a.scheduled_start) - +new Date(b.scheduled_start),
     );
+  const { data: courseLinks } = await db
+    .from("course_instructors")
+    .select("course_id")
+    .eq("instructor_id", p.id);
+  const courseIds = (courseLinks || []).map((row) => row.course_id);
+  const [
+    { data: relatedInstructors },
+    { data: relatedStudents },
+    { data: users },
+  ] = await Promise.all([
+    courseIds.length
+      ? db
+          .from("course_instructors")
+          .select("instructor_id")
+          .in("course_id", courseIds)
+      : Promise.resolve({ data: [] as any[] }),
+    courseIds.length
+      ? db
+          .from("enrollments")
+          .select("student_id")
+          .in("course_id", courseIds)
+          .in("status", ["approved", "completed"])
+      : Promise.resolve({ data: [] as any[] }),
+    db
+      .from("profiles")
+      .select("id,full_name,role,avatar_url")
+      .in("role", ["instructor", "student", "admin_staff"])
+      .eq("status", "active")
+      .order("full_name"),
+  ]);
+  const relatedInstructorIds = new Set(
+      (relatedInstructors || []).map((row) => row.instructor_id),
+    ),
+    relatedStudentIds = new Set(
+      (relatedStudents || []).map((row) => row.student_id),
+    );
   return (
     <DashboardShell role="instructor" name={p.full_name}>
       <CalendarManagement
         initialAppointments={events}
+        assignableUsers={(users || [])
+          .filter(
+            (user) =>
+              user.role === "admin_staff" ||
+              (user.role === "instructor" &&
+                relatedInstructorIds.has(user.id)) ||
+              (user.role === "student" && relatedStudentIds.has(user.id)),
+          )
+          .map((user) => ({
+            id: user.id,
+            name: user.full_name,
+            role: user.role,
+            avatar: user.avatar_url,
+          }))}
         initialSelected={
           /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date || "")
             ? searchParams.date

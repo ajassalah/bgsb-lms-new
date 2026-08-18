@@ -1,11 +1,181 @@
 "use client";
-import { useState } from "react";
-import { MoreVertical, Plus, Upload, X } from "lucide-react";
-import { toast } from "sonner";
 
-export type ModuleStudentAssignment = { id: string; title: string; start: string; deadline: string; marks: number; status: string; description: string | null; fileUrl: string | null };
-export function ModuleStudentAssignments({ courseTitle, moduleTitle, studentId, studentName, initialRows }: { courseTitle: string; moduleTitle: string; studentId: string; studentName: string; initialRows: ModuleStudentAssignment[] }) {
-  const [rows,setRows]=useState(initialRows),[menu,setMenu]=useState<string|null>(null),[selected,setSelected]=useState<ModuleStudentAssignment|null>(null),[preview,setPreview]=useState<{name:string;url:string}|null>(null),[busy,setBusy]=useState(false);
-  async function submit(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(!selected)return;setBusy(true);const form=new FormData(event.currentTarget);form.set("assignment_id",selected.id);form.set("student_id",studentId);const res=await fetch("/api/admin/assignment-submissions",{method:"POST",body:form}),body=await res.json().catch(()=>({}));setBusy(false);if(!res.ok)return toast.error(body.error||"Assignment upload failed");setRows(current=>current.map(row=>row.id===selected.id?{...row,status:"submitted",description:String(form.get("description")||""),fileUrl:body.file_url}:row));setSelected(null);setPreview(null);toast.success(`Assignment added for ${studentName}`)}
-  return <><div><p className="text-sm text-slate-400">Assignments / {courseTitle} / {studentName}</p><h1 className="mt-1 text-2xl font-bold text-navy">{moduleTitle}</h1></div><section className="mt-7 overflow-visible rounded-2xl border bg-white"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-400"><tr><th className="p-4">Title</th><th className="p-4">Start Date</th><th className="p-4">Deadline</th><th className="p-4">Marks</th><th className="p-4">Status</th><th className="p-4 text-right">Action</th></tr></thead><tbody className="divide-y">{rows.map(row=><tr key={row.id}><td className="p-4 font-bold text-navy">{row.title}</td><td className="p-4">{new Date(row.start).toLocaleDateString("en-GB")}</td><td className="p-4">{new Date(row.deadline).toLocaleDateString("en-GB")}</td><td className="p-4">{row.marks}</td><td className="p-4 capitalize">{row.status.replace("_"," ")}</td><td className="relative p-4"><button onClick={()=>setMenu(menu===row.id?null:row.id)} className="ml-auto grid size-9 place-items-center rounded-lg border"><MoreVertical className="size-4"/></button>{menu===row.id&&<div className="absolute right-4 top-14 z-[100] w-48 rounded-xl border bg-white p-1 shadow-2xl"><button onClick={()=>{setSelected(row);setMenu(null);setPreview(row.fileUrl?{name:"Current attachment",url:row.fileUrl}:null)}} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"><Plus className="size-4"/>Add Assignment</button></div>}</td></tr>)}{!rows.length&&<tr><td colSpan={6} className="p-12 text-center text-slate-400">No assignments in this module.</td></tr>}</tbody></table></div></section>{selected&&<div className="fixed inset-0 z-[220] bg-black/50"><form onSubmit={submit} className="ml-auto flex h-full w-full max-w-md flex-col overflow-y-auto bg-white p-6 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-xl font-bold text-navy">Add Assignment</h2><p className="text-sm text-slate-400">{studentName}</p></div><button type="button" onClick={()=>setSelected(null)}><X/></button></div><label className="mt-7 text-sm font-bold">Assignment Name<input readOnly value={selected.title} className="field mt-2"/></label><label className="mt-5 text-sm font-bold">Add Description<textarea name="description" defaultValue={selected.description||""} className="field mt-2 min-h-32"/></label><label className="mt-5 cursor-pointer rounded-xl border-2 border-dashed p-8 text-center"><Upload className="mx-auto mb-2 text-red"/><b className="block">Attachment File</b><input name="file" type="file" className="mt-4 block w-full text-xs" required={!selected.fileUrl} onChange={event=>{const file=event.target.files?.[0];if(file)setPreview({name:file.name,url:URL.createObjectURL(file)})}}/></label>{preview&&<div className="mt-4 rounded-xl border bg-slate-50 p-3"><b className="block truncate text-sm">{preview.name}</b><a href={preview.url} target="_blank" className="mt-1 block text-xs font-bold text-blue-600">Preview uploaded file</a></div>}<button disabled={busy} className="btn-primary mt-auto gap-2"><Upload className="size-4"/>{busy?"Saving...":"Save Assignment"}</button></form></div>}</>;
+import { Eye, FileText, MoreVertical, X } from "lucide-react";
+import { useState } from "react";
+
+export type ModuleStudentAssignment = {
+  id: string;
+  title: string;
+  start: string;
+  deadline: string;
+  marks: number;
+  scoredMarks: number | null;
+  status: string;
+  submissionStatus: string;
+  feedback: string | null;
+  description: string | null;
+  fileUrl: string | null;
+};
+
+export function ModuleStudentAssignments({
+  courseTitle,
+  moduleTitle,
+  studentName,
+  initialRows,
+}: {
+  courseTitle: string;
+  moduleTitle: string;
+  studentId: string;
+  studentName: string;
+  initialRows: ModuleStudentAssignment[];
+}) {
+  const [menu, setMenu] = useState<string | null>(null),
+    [selected, setSelected] = useState<ModuleStudentAssignment | null>(null);
+  return (
+    <>
+      <div>
+        <p className="text-sm text-slate-400">
+          Assignments / {courseTitle} / {studentName}
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-navy">{moduleTitle}</h1>
+      </div>
+      <section className="mt-7 overflow-visible rounded-2xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1050px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-400">
+              <tr>
+                <th className="p-4">Title</th>
+                <th className="p-4">Start Date</th>
+                <th className="p-4">Deadline</th>
+                <th className="p-4">Marks</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Feedback</th>
+                <th className="p-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {initialRows.map((row) => (
+                <tr key={row.id}>
+                  <td className="p-4 font-bold text-navy">{row.title}</td>
+                  <td className="p-4">
+                    {new Date(row.start).toLocaleDateString("en-GB")}
+                  </td>
+                  <td className="p-4">
+                    {new Date(row.deadline).toLocaleDateString("en-GB")}
+                  </td>
+                  <td className="p-4">
+                    {row.scoredMarks === null
+                      ? `Not graded / ${row.marks}`
+                      : `${row.scoredMarks} / ${row.marks}`}
+                  </td>
+                  <td className="p-4 capitalize">
+                    {row.status.replace("_", " ")}
+                  </td>
+                  <td className="max-w-64 truncate p-4">
+                    {row.feedback || "No feedback"}
+                  </td>
+                  <td className="relative p-4">
+                    <button
+                      onClick={() => setMenu(menu === row.id ? null : row.id)}
+                      className="ml-auto grid size-9 place-items-center rounded-lg border"
+                    >
+                      <MoreVertical className="size-4" />
+                    </button>
+                    {menu === row.id && (
+                      <div className="absolute right-4 top-14 z-[100] w-40 rounded-xl border bg-white p-1 shadow-2xl">
+                        <button
+                          onClick={() => {
+                            setSelected(row);
+                            setMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"
+                        >
+                          <Eye className="size-4" />
+                          View
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!initialRows.length && (
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-slate-400">
+                    No assignments in this module.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {selected && (
+        <div className="fixed inset-0 z-[220] grid place-items-center bg-black/60 p-4">
+          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Submitted Assignment</p>
+                <h2 className="text-xl font-bold text-navy">
+                  {selected.title}
+                </h2>
+              </div>
+              <button onClick={() => setSelected(null)}>
+                <X />
+              </button>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Detail
+                label="Marks"
+                value={
+                  selected.scoredMarks === null
+                    ? `Not graded / ${selected.marks}`
+                    : `${selected.scoredMarks} / ${selected.marks}`
+                }
+              />
+              <Detail
+                label="Submission Status"
+                value={selected.submissionStatus}
+              />
+              <Detail
+                label="Review Status"
+                value={selected.status.replace("_", " ")}
+              />
+              <Detail
+                label="Feedback"
+                value={selected.feedback || "No feedback"}
+              />
+            </div>
+            {selected.description && (
+              <div className="mt-4 rounded-xl border bg-slate-50 p-4">
+                <small className="font-bold uppercase text-slate-400">
+                  Description
+                </small>
+                <p className="mt-2 text-sm">{selected.description}</p>
+              </div>
+            )}
+            {selected.fileUrl && (
+              <a
+                href={selected.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary mt-5 w-full gap-2"
+              >
+                <FileText className="size-4" />
+                Open Submitted Assignment
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-slate-50 p-4">
+      <small className="font-bold uppercase text-slate-400">{label}</small>
+      <p className="mt-2 font-semibold capitalize text-navy">{value}</p>
+    </div>
+  );
 }

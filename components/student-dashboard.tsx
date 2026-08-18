@@ -12,6 +12,7 @@ import { BestCoursesCard } from "./best-courses-card";
 type Session = {
   id: string;
   title: string;
+  description: string;
   start: string;
   meetingUrl: string | null;
 };
@@ -32,6 +33,13 @@ export function StudentDashboard({
   showWelcome: boolean;
   welcomeCourse: string;
 }) {
+  const dateKey = (date: Date) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Colombo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
   const [month, setMonth] = useState(new Date()),
     [welcomeOpen, setWelcomeOpen] = useState(showWelcome),
     days = useMemo(() => {
@@ -173,14 +181,31 @@ export function StudentDashboard({
                 {x}
               </b>
             ))}
-            {days.map((day, i) => (
-              <span
-                key={i}
-                className={`rounded-lg py-2 ${day === new Date().getDate() && month.getMonth() === new Date().getMonth() ? "bg-red text-white" : ""}`}
-              >
-                {day}
-              </span>
-            ))}
+            {days.map((day, i) => {
+              const key = day
+                ? `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                : "";
+              const dayEvents = sessions.filter(
+                (session) => dateKey(new Date(session.start)) === key,
+              );
+              return (
+                <span
+                  key={i}
+                  title={dayEvents
+                    .map(
+                      (event) =>
+                        `${event.title} — ${new Date(event.start).toLocaleString("en-LK", { timeZone: "Asia/Colombo" })}${event.description ? ` — ${event.description}` : ""}`,
+                    )
+                    .join("\n")}
+                  className={`relative rounded-lg py-2 ${day === new Date().getDate() && month.getMonth() === new Date().getMonth() ? "bg-red text-white" : ""}`}
+                >
+                  {day}
+                  {dayEvents.length > 0 && (
+                    <i className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-blue-500" />
+                  )}
+                </span>
+              );
+            })}
           </div>
         </section>
       </div>

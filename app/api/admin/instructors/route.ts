@@ -62,6 +62,11 @@ export async function POST(req: Request) {
       },
       { status: 400 },
     );
+  if (profileRole === "admin_staff" && !parsed.data.staff_role?.trim())
+    return Response.json(
+      { error: "Select a staff role before creating the account" },
+      { status: 400 },
+    );
   const admin = createAdminClient(),
     temporaryPassword = `Bgsb@${randomBytes(6).toString("base64url")}9`,
     { data: invited, error: inviteError } = await admin.auth.admin.createUser({

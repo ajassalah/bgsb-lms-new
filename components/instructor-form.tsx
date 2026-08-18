@@ -4,7 +4,7 @@ import { ChevronDown, Plus, Save, Search, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { countries } from "@/lib/countries";
-import { PermissionMatrix, type PermissionSet } from "./permission-matrix";
+import { type PermissionSet } from "./permission-matrix";
 import { RoleCombobox } from "./role-combobox";
 type Org = { id: string; name: string };
 type Education = {
@@ -96,7 +96,7 @@ export function InstructorForm({
     [resume, setResume] = useState(instructor?.resume_url || ""),
     [busy, setBusy] = useState(false),
     [staffTab, setStaffTab] = useState<"personal" | "permissions">("personal"),
-    [staffRole, setStaffRole] = useState(instructor?.staff_role || "Admin"),
+    [staffRole, setStaffRole] = useState(instructor?.staff_role || ""),
     [availableRoles, setAvailableRoles] = useState<
       { name: string; permissions: PermissionSet }[]
     >([]),
@@ -134,6 +134,10 @@ export function InstructorForm({
     e.preventDefault();
     if (!country || !phoneCountry)
       return toast.error("Select country and phone country code");
+    if (entity === "Staff" && !staffRole) {
+      setStaffTab("permissions");
+      return toast.error("Select a staff role before creating the account");
+    }
     setBusy(true);
     const form = new FormData(e.currentTarget);
     form.set("country", country.name);
@@ -651,12 +655,12 @@ export function InstructorForm({
         <section
           className={
             staffTab === "permissions"
-              ? "space-y-5 rounded-xl border bg-white p-4 sm:p-6"
+              ? "relative z-[400] space-y-5 overflow-visible rounded-xl border bg-white p-4 sm:p-6"
               : "hidden"
           }
         >
           <label className="block max-w-md text-sm font-semibold">
-            Role
+            Role <span className="text-red">*</span>
             <RoleCombobox
               value={staffRole}
               onChange={selectStaffRole}
@@ -666,8 +670,11 @@ export function InstructorForm({
                   : undefined
               }
             />
+            <small className="mt-2 block font-normal text-slate-400">
+              Select a role to apply its configured permissions to this staff
+              account.
+            </small>
           </label>
-          <PermissionMatrix value={permissions} onChange={setPermissions} />
         </section>
       )}
       <div className="flex justify-end">

@@ -7,6 +7,12 @@ import { CourseEditor } from "./course-editor";
 import { CourseMediaFields } from "./course-media-fields";
 import { InstructorPicker } from "./instructor-picker";
 type Option = { id: string; name: string };
+const makeSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 export function CourseBuilder({
   categories,
   instructors,
@@ -22,7 +28,12 @@ export function CourseBuilder({
     [busy, setBusy] = useState(false),
     [description, setDescription] = useState(""),
     [basic, setBasic] = useState<Record<string, string>>({}),
+    [title, setTitle] = useState(""),
+    [slug, setSlug] = useState(""),
+    [slugEdited, setSlugEdited] = useState(false),
     [videoSource, setVideoSource] = useState("youtube"),
+    [thumbnailFile, setThumbnailFile] = useState<File | null>(null),
+    [videoFile, setVideoFile] = useState<File | null>(null),
     [selectedInstructors, setSelectedInstructors] = useState<string[]>([]),
     router = useRouter();
   function next(e: React.FormEvent<HTMLFormElement>) {
@@ -45,10 +56,8 @@ export function CourseBuilder({
     payload.set("description", description);
     payload.set("video_source", videoSource);
     payload.set("instructor_ids", JSON.stringify(selectedInstructors));
-    for (const name of ["video", "thumbnail"]) {
-      const file = media.get(name);
-      if (file instanceof File && file.size) payload.set(name, file);
-    }
+    if (thumbnailFile?.size) payload.set("thumbnail", thumbnailFile);
+    if (videoFile?.size) payload.set("video", videoFile);
     payload.set("video_link", String(media.get("video_link") || ""));
     const res = await fetch("/api/admin/courses", {
       method: "POST",
@@ -93,21 +102,51 @@ export function CourseBuilder({
             subtitle="Enter the course identity, ownership and academic details."
           />
           <div className="mt-7 grid gap-5 md:grid-cols-2">
-            <Field label="Course Title" name="title" required />
+            <Field
+              label="Course Title"
+              name="title"
+              required
+              value={title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const value = e.target.value;
+                setTitle(value);
+                if (!slugEdited) setSlug(makeSlug(value));
+              }}
+            />
+            <label className="text-sm font-semibold text-slate-700">
+              Slug
+              <input
+                name="slug"
+                required
+                value={slug}
+                onChange={(e) => {
+                  setSlugEdited(true);
+                  setSlug(makeSlug(e.target.value));
+                }}
+                className="field mt-2"
+                placeholder="course-url-slug"
+              />
+              <small className="mt-1 block font-normal text-slate-400">
+                Course URL: /courses/{slug || "course-url-slug"}
+              </small>
+            </label>
             <Select
               label="Select Category"
               name="category_id"
               options={categories}
+              value={basic.category_id}
             />
             <Select
               label="Course Type"
               name="course_type"
               values={["Online", "Onsite", "Hybrid"]}
+              value={basic.course_type}
             />
             <Select
               label="Language"
               name="language"
               values={["English", "Sinhala", "Tamil"]}
+              value={basic.language}
             />
             <Select
               label="Select Subject"
@@ -139,6 +178,8 @@ export function CourseBuilder({
               type="number"
               placeholder="Duration in Month"
               min="1"
+              required
+              defaultValue={basic.duration_weeks}
             />
             <div>
               <label className="text-sm font-semibold text-slate-700">
@@ -149,6 +190,7 @@ export function CourseBuilder({
                 list="course-tags"
                 className="field mt-2"
                 placeholder="Enter tags separated by commas"
+                defaultValue={basic.tags}
               />
               <datalist id="course-tags">
                 {tags.map((x) => (
@@ -165,6 +207,7 @@ export function CourseBuilder({
               maxLength={300}
               placeholder="A concise course overview..."
               required
+              defaultValue={basic.short_description}
             />
           </label>
           <div className="mt-5">
@@ -193,6 +236,11 @@ export function CourseBuilder({
               basic={basic}
               videoSource={videoSource}
               setVideoSource={setVideoSource}
+              onThumbnailChange={setThumbnailFile}
+              onVideoChange={setVideoFile}
+              categoryName={
+                categories.find((item) => item.id === basic.category_id)?.name
+              }
             />
           </div>
           <div className="mt-8 flex flex-wrap justify-between gap-3">
@@ -269,18 +317,25 @@ function Select({
   options,
   values,
   optional,
+  value,
 }: {
   label: string;
   name: string;
   options?: Option[];
   values?: string[];
   optional?: boolean;
+  value?: string;
 }) {
   if (name === "subject" || name === "level") return null;
   return (
     <label className="text-sm font-semibold text-slate-700">
       {label}
-      <select name={name} className="field mt-2" required={!optional}>
+      <select
+        name={name}
+        defaultValue={value || ""}
+        className="field mt-2"
+        required={!optional}
+      >
         <option value="">{optional ? "None" : "Choose an option"}</option>
         {options?.map((x) => (
           <option value={x.id} key={x.id}>

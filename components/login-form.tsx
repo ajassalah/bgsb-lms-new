@@ -16,11 +16,13 @@ function timeout<T>(promise: PromiseLike<T>, ms = 15000): Promise<T> {
 }
 export function LoginForm() {
   const [busy, setBusy] = useState(false),
-    [showPassword, setShowPassword] = useState(false);
+    [showPassword, setShowPassword] = useState(false),
+    [sessionExpired, setSessionExpired] = useState(false);
   useEffect(() => {
     if (
       new URLSearchParams(window.location.search).get("session") === "expired"
     ) {
+      setSessionExpired(true);
       toast.error(
         "Your session expired after 30 minutes of inactivity. Please sign in again.",
       );
@@ -65,6 +67,15 @@ export function LoginForm() {
         </p>
         <h1 className="mt-2 text-4xl font-bold text-navy">Sign in to BGSB</h1>
       </div>
+      {sessionExpired && (
+        <div
+          role="alert"
+          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+        >
+          Your session expired after 30 minutes of inactivity. Please sign in
+          again.
+        </div>
+      )}
       <form className="space-y-4" onSubmit={submit}>
         <label className="block text-sm font-semibold">
           Email

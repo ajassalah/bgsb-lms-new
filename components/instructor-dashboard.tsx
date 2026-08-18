@@ -13,6 +13,7 @@ import {
 type Session = {
   id: string;
   title: string;
+  description: string;
   start: string;
   meetingUrl: string | null;
 };
@@ -292,9 +293,18 @@ export function InstructorDashboard({
               const has = sessions.some(
                 (x) => dateKey(new Date(x.start)) === key,
               );
+              const dayEvents = sessions.filter(
+                (x) => dateKey(new Date(x.start)) === key,
+              );
               return (
                 <span
                   key={i}
+                  title={dayEvents
+                    .map(
+                      (event) =>
+                        `${event.title} — ${new Date(event.start).toLocaleString("en-LK", { timeZone: "Asia/Colombo" })}${event.description ? ` — ${event.description}` : ""}`,
+                    )
+                    .join("\n")}
                   className={`relative grid h-7 place-items-center rounded-md ${day && dateKey(now) === key ? "bg-red text-white" : ""}`}
                 >
                   {day}

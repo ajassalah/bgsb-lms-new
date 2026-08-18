@@ -37,6 +37,8 @@ export function LiveClassManagement({
   staff,
   courses,
   students,
+  canManageExisting = true,
+  allowAllInstructors = false,
 }: {
   initialRows: Row[];
   instructors: { id: string; name: string }[];
@@ -48,6 +50,8 @@ export function LiveClassManagement({
     email: string;
     courseId: string;
   }[];
+  canManageExisting?: boolean;
+  allowAllInstructors?: boolean;
 }) {
   const [rows, setRows] = useState(initialRows),
     [scheduledPage, setScheduledPage] = useState(1),
@@ -137,26 +141,30 @@ export function LiveClassManagement({
                               <ExternalLink />
                               View
                             </a>
-                            <button
-                              onClick={() => {
-                                setEditing(r);
-                                setMenu(null);
-                              }}
-                              className="action-row"
-                            >
-                              <Edit3 />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleting(r);
-                                setMenu(null);
-                              }}
-                              className="action-row text-red"
-                            >
-                              <Trash2 />
-                              Delete
-                            </button>
+                            {canManageExisting && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditing(r);
+                                    setMenu(null);
+                                  }}
+                                  className="action-row"
+                                >
+                                  <Edit3 />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDeleting(r);
+                                    setMenu(null);
+                                  }}
+                                  className="action-row text-red"
+                                >
+                                  <Trash2 />
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -226,6 +234,7 @@ export function LiveClassManagement({
           staff={staff}
           courses={courses}
           students={students}
+          allowAllInstructors={allowAllInstructors}
           value={editing}
           close={() => setEditing(undefined)}
           saved={(r) => {
@@ -264,6 +273,7 @@ function Editor({
   value,
   close,
   saved,
+  allowAllInstructors,
 }: {
   instructors: { id: string; name: string }[];
   staff: Option[];
@@ -277,6 +287,7 @@ function Editor({
   value: Row | null;
   close: () => void;
   saved: (r: Row) => void;
+  allowAllInstructors: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [file, setFile] = useState(""),
@@ -297,9 +308,11 @@ function Editor({
         .filter((course) => selectedCourses.includes(course.id))
         .flatMap((course) => course.instructorIds),
     ),
-    availableInstructors = instructors.filter((instructor) =>
-      eligibleInstructorIds.has(instructor.id),
-    ),
+    availableInstructors = allowAllInstructors
+      ? instructors
+      : instructors.filter((instructor) =>
+          eligibleInstructorIds.has(instructor.id),
+        ),
     availableStudents: Option[] = Array.from(
       new Map(
         students
@@ -322,9 +335,10 @@ function Editor({
           .map((student) => student.id),
       );
     setSelectedCourses(next);
-    setSelectedInstructors((current) =>
-      current.filter((id) => nextInstructorIds.has(id)),
-    );
+    if (!allowAllInstructors)
+      setSelectedInstructors((current) =>
+        current.filter((id) => nextInstructorIds.has(id)),
+      );
     setSelectedStudents((current) =>
       current.filter((id) => nextStudentIds.has(id)),
     );

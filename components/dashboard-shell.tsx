@@ -14,6 +14,7 @@ import {
   GraduationCap,
   FolderLock,
   LayoutDashboard,
+  ListTree,
   LifeBuoy,
   Menu,
   MessageSquare,
@@ -68,23 +69,24 @@ export function DashboardShell({
   const instructorNav = [
     ["Dashboard", LayoutDashboard, "/dashboard/instructor"],
     ["My Courses", BookOpen, "/dashboard/instructor/my-courses"],
-    ["My Students", Users, "/dashboard/instructor/my-students"],
-    ["Live Classes", Radio, "/dashboard/instructor/live-classes"],
+    ["Curriculum", ListTree, "/dashboard/instructor/curriculum"],
     ["Assignment", ClipboardList, "/dashboard/instructor/assignments"],
+    ["My Students", Users, "/dashboard/instructor/my-students"],
     ["Certificate", Award, "/dashboard/instructor/certificates"],
-    ["Announcement", Bell, "/dashboard/instructor/announcements"],
+    ["Live Classes", Radio, "/dashboard/instructor/live-classes"],
     ["Calendar", CalendarDays, "/dashboard/instructor/calendar"],
+    ["Announcement", Bell, "/dashboard/instructor/announcements"],
     ["Messages", MessageSquare, "/dashboard/instructor/messages"],
     ["Private File", FolderLock, "/dashboard/instructor/private-files"],
     ["Reports", BarChart3, "/dashboard/instructor/reports"],
   ] as const;
   const studentNav = [
-    ["My Profile", UserRound, "/dashboard/student/profile"],
     ["Dashboard", LayoutDashboard, "/dashboard/student"],
     ["My Courses", BookOpen, "/dashboard/student/courses"],
+    ["Curriculum", ListTree, "/dashboard/student/curriculum"],
+    ["My Assignments", ClipboardList, "/dashboard/student/assignments"],
     ["Quiz", CircleHelp, "/dashboard/student/quiz"],
     ["Certificates", Award, "/dashboard/student/certificates"],
-    ["My Assignment", ClipboardList, "/dashboard/student/assignments"],
     ["Announcement", Bell, "/dashboard/student/announcements"],
     ["Messages", MessageSquare, "/dashboard/student/messages"],
     ["Meetings", Radio, "/dashboard/student/meetings"],
@@ -405,23 +407,60 @@ export function DashboardShell({
             </button>
             {createOpen && (
               <div className="absolute left-0 top-12 z-[190] w-52 rounded-xl border bg-white p-2 shadow-2xl">
-                {[
-                  ["Create Assignment", "/dashboard/instructor/assignments"],
-                  ["Create Live Class", "/dashboard/instructor/live-classes"],
-                  [
-                    "Create Announcement",
-                    "/dashboard/instructor/announcements",
-                  ],
-                  ["Create Ticket", "/dashboard/instructor/support/tickets"],
-                ].map(([label, href]) => (
+                {(role === "student"
+                  ? [
+                      [
+                        "Submit Assignment",
+                        "/dashboard/student/assignments",
+                        ClipboardList,
+                      ],
+                      [
+                        "Create Ticket",
+                        "/dashboard/student/support/tickets/new",
+                        Ticket,
+                      ],
+                      [
+                        "Create Private File",
+                        "/dashboard/student/private-files",
+                        FolderLock,
+                      ],
+                      [
+                        "Create Appointment",
+                        "/dashboard/student/calendar",
+                        CalendarDays,
+                      ],
+                    ]
+                  : [
+                      [
+                        "Create Assignment",
+                        "/dashboard/instructor/assignments",
+                        ClipboardList,
+                      ],
+                      [
+                        "Create Live Class",
+                        "/dashboard/instructor/live-classes",
+                        Radio,
+                      ],
+                      [
+                        "Create Announcement",
+                        "/dashboard/instructor/announcements",
+                        Bell,
+                      ],
+                      [
+                        "Create Ticket",
+                        "/dashboard/instructor/support/tickets",
+                        Ticket,
+                      ],
+                    ]
+                ).map(([label, href, Icon]) => (
                   <Link
-                    key={href}
-                    href={href}
+                    key={String(href)}
+                    href={String(href)}
                     onClick={() => setCreateOpen(false)}
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
                   >
-                    <PlusCircle className="size-3.5 text-red" />
-                    {label}
+                    <Icon className="size-3.5 text-red" />
+                    {String(label)}
                   </Link>
                 ))}
               </div>

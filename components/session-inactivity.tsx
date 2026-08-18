@@ -39,6 +39,7 @@ export function SessionInactivity() {
     };
     const events: (keyof WindowEventMap)[] = [
       "pointerdown",
+      "mousemove",
       "keydown",
       "touchstart",
       "scroll",
@@ -47,6 +48,7 @@ export function SessionInactivity() {
       window.addEventListener(event, recordActivity, { passive: true }),
     );
     window.addEventListener("focus", check);
+    window.addEventListener("storage", check);
     document.addEventListener("visibilitychange", check);
     check();
     const timer = window.setInterval(check, 15000);
@@ -55,6 +57,7 @@ export function SessionInactivity() {
         window.removeEventListener(event, recordActivity),
       );
       window.removeEventListener("focus", check);
+      window.removeEventListener("storage", check);
       document.removeEventListener("visibilitychange", check);
       window.clearInterval(timer);
     };

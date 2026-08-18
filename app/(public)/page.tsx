@@ -1,3 +1,59 @@
-import Link from 'next/link';import {ArrowRight,BookOpen,Radio,ShieldCheck,Users} from 'lucide-react';import {getBgsbPrograms} from '@/lib/bgsb-programs';
-const features=[['Expert-led learning',Users],['Structured courses',BookOpen],['Live classrooms',Radio],['Secure access',ShieldCheck]] as const;
-export default async function Home(){const programs=(await getBgsbPrograms()).slice(0,6);return <main><section className="relative min-h-[680px] overflow-hidden bg-navy px-6 py-24 text-white"><img src="/hero%20image.jpeg" alt="Historic university library illuminated by warm sunlight" className="absolute inset-0 size-full object-cover"/><div className="absolute inset-0 bg-gradient-to-r from-[#06182c]/95 via-[#06182c]/75 to-[#06182c]/25"/><div className="relative mx-auto flex min-h-[490px] max-w-7xl items-center"><div className="max-w-3xl"><p className="mb-5 text-sm font-bold uppercase tracking-[.25em] text-red-300">Learn. Lead. Transform.</p><h1 className="text-5xl font-bold leading-tight drop-shadow md:text-7xl">Business education built for tomorrow.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">Your dedicated learning space for BGSB programmes, expert instruction and measurable progress.</p><div className="mt-9 flex flex-wrap gap-4"><Link className="btn-primary" href="/login">Access your learning <ArrowRight className="ml-2 size-4"/></Link><Link className="btn border-white/30 bg-white/10 text-white backdrop-blur hover:bg-white/20" href="/courses">Explore courses</Link></div></div></div></section><section className="mx-auto max-w-7xl px-6 py-20"><div className="grid gap-5 md:grid-cols-4">{features.map(([x,I])=><div className="card" key={x}><I className="mb-5 text-red"/><h3 className="font-bold text-navy">{x}</h3><p className="mt-2 text-sm leading-6 text-slate-500">Purposeful tools that keep your development moving forward.</p></div>)}</div></section>{programs.length>0&&<section className="bg-white px-6 py-20"><div className="mx-auto max-w-7xl"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold uppercase tracking-widest text-red">Official BGSB programmes</p><h2 className="mt-2 text-3xl font-bold text-navy">Build your next qualification</h2></div><Link href="/courses" className="font-bold text-red">View all programmes →</Link></div><div className="mt-9 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{programs.map(p=><a href={p.url} target="_blank" rel="noreferrer" className="rounded-2xl border p-6 transition hover:-translate-y-1 hover:shadow-soft" key={p.slug}><div className="flex justify-between text-xs font-bold uppercase tracking-wider"><span className="text-red">{p.faculty}</span><span className="text-slate-400">{p.level}</span></div><h3 className="mt-3 text-xl font-bold text-navy">{p.title}</h3><p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">{p.overview}</p></a>)}</div></div></section>}</main>}
+import Link from "next/link";
+import { ArrowRight, BookOpen, Radio, ShieldCheck, Users } from "lucide-react";
+import { HomeAboutSections } from "@/components/home-about-sections";
+
+const features = [
+  ["Expert-led learning", Users],
+  ["Structured courses", BookOpen],
+  ["Live classrooms", Radio],
+  ["Secure access", ShieldCheck],
+] as const;
+
+export default function Home() {
+  return (
+    <main>
+      <section className="relative min-h-[820px] overflow-hidden bg-navy px-6 py-24 text-white lg:min-h-[900px]">
+        <img
+          src="/hero%20image.jpeg"
+          alt="Historic university library illuminated by warm sunlight"
+          className="absolute inset-0 size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#06182c]/95 via-[#06182c]/75 to-[#06182c]/25" />
+        <div className="relative mx-auto flex min-h-[650px] max-w-7xl items-center lg:min-h-[730px]">
+          <div className="max-w-3xl">
+            <p className="mb-5 text-sm font-bold uppercase tracking-[.25em] text-red-300">
+              Learn. Lead. Transform.
+            </p>
+            <h1 className="text-5xl font-bold leading-tight drop-shadow md:text-7xl">
+              Business education built for tomorrow.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">
+              Your dedicated learning space for BGSB programmes, expert
+              instruction and measurable progress.
+            </p>
+            <Link
+              className="btn-primary mt-9 inline-flex px-7 py-4 text-base shadow-xl"
+              href="/login"
+            >
+              Login to BGSB LMS <ArrowRight className="ml-2 size-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="grid gap-5 md:grid-cols-4">
+          {features.map(([label, Icon]) => (
+            <div className="card" key={label}>
+              <Icon className="mb-5 text-red" />
+              <h3 className="font-bold text-navy">{label}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Purposeful tools that keep your development moving forward.
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <HomeAboutSections />
+    </main>
+  );
+}

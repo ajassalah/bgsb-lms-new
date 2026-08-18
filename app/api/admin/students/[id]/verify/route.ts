@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { getSiteUrl } from "@/lib/site-url";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -79,7 +80,7 @@ export async function POST(
       { status: 400 },
     );
   const temporaryPassword = `Bgsb@${randomBytes(6).toString("base64url")}9`,
-    loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin}/login`;
+    loginUrl = `${getSiteUrl(request)}/login`;
   const transport = nodemailer.createTransport({
     host: config.smtp_host,
     port: config.smtp_port,
@@ -114,13 +115,15 @@ export async function POST(
     const studentName = student.full_name.replace(
       /[&<>"']/g,
       (character: string) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;",
-        } as Record<string, string>)[character]!,
+        (
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          }) as Record<string, string>
+        )[character]!,
     );
     await transport.sendMail({
       from: `${config.from_name} <${config.from_email}>`,

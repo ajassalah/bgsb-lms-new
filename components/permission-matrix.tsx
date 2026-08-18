@@ -65,6 +65,7 @@ export const permissionModules: PermissionModule[] = [
     label: "Category",
     actions: ["create", "edit", "delete", "status"],
   },
+  { key: "curriculum_overview", label: "Curriculum", actions: ["view"] },
   {
     key: "certificates",
     label: "Certificate",
@@ -280,9 +281,10 @@ export function PermissionMatrix({
   return (
     <div className="space-y-4">
       {permissionModules.map((module) => {
-        const all = module.actions.every(
-          (action) => value[module.key]?.[action],
-        );
+        const all =
+          module.key === "curriculum_overview"
+            ? !!value[module.key]?.full_access
+            : module.actions.every((action) => value[module.key]?.[action]);
         return (
           <section
             key={module.key}
@@ -297,7 +299,21 @@ export function PermissionMatrix({
               </div>
               <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm font-bold">
                 <span>Full Access</span>
-                <Toggle checked={all} onChange={() => toggleAll(module)} />
+                <Toggle
+                  checked={all}
+                  onChange={() =>
+                    module.key === "curriculum_overview"
+                      ? onChange({
+                          ...value,
+                          [module.key]: {
+                            ...value[module.key],
+                            view: true,
+                            full_access: !all,
+                          },
+                        })
+                      : toggleAll(module)
+                  }
+                />
               </label>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

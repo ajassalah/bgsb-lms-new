@@ -201,6 +201,9 @@ table:has(td.relative > div.absolute) {
   background-color: #0f1b2d !important;
   border-color: #263449 !important;
 }
+.admin-dark header.public-nav {
+  background-color: transparent !important;
+}
 .admin-dark main {
   background: #07111f;
 }

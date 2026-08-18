@@ -14,7 +14,9 @@ async function adminUser() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return ["super_admin", "admin_staff", "instructor", "student"].includes(data?.role || "")
+  return ["super_admin", "admin_staff", "instructor", "student"].includes(
+    data?.role || "",
+  )
     ? user
     : null;
 }
@@ -60,6 +62,10 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/calendar");
   revalidatePath("/dashboard/instructor/calendar");
+  revalidatePath("/dashboard/instructor");
   revalidatePath("/dashboard/student/calendar");
+  revalidatePath("/dashboard/student");
+  revalidatePath("/dashboard/admin-staff");
+  revalidatePath("/dashboard/admin-staff/calendar");
   return Response.json(data);
 }

@@ -13,11 +13,14 @@ async function auth() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return p?.role === "super_admin" ? user : null;
+  return p?.role === "super_admin" || p?.role === "instructor"
+    ? { user, role: p.role }
+    : null;
 }
 export async function POST(req: Request) {
-  const user = await auth();
-  if (!user) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const actor = await auth();
+  if (!actor) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const user = actor.user;
   const form = await req.formData(),
     instructorIds = form.getAll("instructor_ids").map(String),
     courseIds = form.getAll("course_ids").map(String),
@@ -97,7 +100,32 @@ export async function POST(req: Request) {
       (enrollmentRows || []).map((enrollment) => enrollment.student_id),
     ),
     eligibleStaff = new Set((staffRows || []).map((member) => member.id));
-  if (instructorIds.some((id) => !eligibleInstructors.has(id)))
+  if (actor.role === "instructor") {
+    const [{ data: actorCourses }, { data: validInstructors }] =
+      await Promise.all([
+        admin
+          .from("course_instructors")
+          .select("course_id")
+          .eq("instructor_id", user.id)
+          .in("course_id", courseIds),
+        admin
+          .from("profiles")
+          .select("id")
+          .eq("role", "instructor")
+          .eq("status", "active")
+          .in("id", instructorIds),
+      ]);
+    if ((actorCourses || []).length !== new Set(courseIds).size)
+      return Response.json(
+        { error: "You can only schedule your assigned courses" },
+        { status: 403 },
+      );
+    if ((validInstructors || []).length !== new Set(instructorIds).size)
+      return Response.json(
+        { error: "Select valid active instructors" },
+        { status: 400 },
+      );
+  } else if (instructorIds.some((id) => !eligibleInstructors.has(id)))
     return Response.json(
       { error: "Select instructors assigned to the selected courses" },
       { status: 400 },
@@ -176,6 +204,21 @@ export async function POST(req: Request) {
     const assignmentError = assignments.find((result) => result.error)?.error;
     if (assignmentError)
       return Response.json({ error: assignmentError.message }, { status: 400 });
+    const recipients = Array.from(
+      new Set([...instructorIds, ...staffIds, ...studentIds]),
+    );
+    if (recipients.length)
+      await admin.from("user_notifications").insert(
+        recipients.map((user_id) => ({
+          user_id,
+          title: `Live class scheduled: ${data.title}`,
+          url: studentIds.includes(user_id)
+            ? "/dashboard/student/meetings"
+            : staffIds.includes(user_id)
+              ? "/dashboard/admin-staff/live-classes"
+              : "/dashboard/instructor/live-classes",
+        })),
+      );
   }
   if (error) return Response.json({ error: error.message }, { status: 400 });
   revalidatePath("/dashboard/super-admin");
@@ -183,5 +226,9 @@ export async function POST(req: Request) {
   revalidatePath("/dashboard/instructor");
   revalidatePath("/dashboard/instructor/live-classes");
   revalidatePath("/dashboard/instructor/calendar");
+  revalidatePath("/dashboard/admin-staff/live-classes");
+  revalidatePath("/dashboard/admin-staff/calendar");
+  revalidatePath("/dashboard/student/meetings");
+  revalidatePath("/dashboard/student/calendar");
   return Response.json(data);
 }

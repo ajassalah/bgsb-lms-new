@@ -8,12 +8,18 @@ export function CourseMediaFields({
   setVideoSource,
   existingThumbnail,
   existingVideo,
+  categoryName,
+  onThumbnailChange,
+  onVideoChange,
 }: {
   basic: Record<string, string>;
   videoSource: string;
   setVideoSource: (value: string) => void;
   existingThumbnail?: string | null;
   existingVideo?: string | null;
+  categoryName?: string;
+  onThumbnailChange?: (file: File | null) => void;
+  onVideoChange?: (file: File | null) => void;
 }) {
   const [thumbnail, setThumbnail] = useState(existingThumbnail || ""),
     [removedThumbnail, setRemovedThumbnail] = useState(false),
@@ -29,16 +35,26 @@ export function CourseMediaFields({
   function choose(file: File | undefined, type: "thumbnail" | "video") {
     if (!file) return;
     const url = URL.createObjectURL(file);
-    type === "thumbnail" ? setThumbnail(url) : setVideo(url);
+    if (type === "thumbnail") {
+      setThumbnail(url);
+      setRemovedThumbnail(false);
+      onThumbnailChange?.(file);
+    } else {
+      setVideo(url);
+      setRemovedVideo(false);
+      onVideoChange?.(file);
+    }
   }
   function clear(type: "thumbnail" | "video") {
     if (type === "thumbnail") {
       setThumbnail("");
       setRemovedThumbnail(true);
+      onThumbnailChange?.(null);
       if (thumbnailInput.current) thumbnailInput.current.value = "";
     } else {
       setVideo("");
       setRemovedVideo(true);
+      onVideoChange?.(null);
       if (videoInput.current) videoInput.current.value = "";
     }
   }
@@ -139,9 +155,15 @@ export function CourseMediaFields({
             .map(([key, value]) => (
               <div key={key} className="rounded-lg bg-white p-3">
                 <small className="block capitalize text-slate-400">
-                  {key.replaceAll("_", " ")}
+                  {key === "category_id"
+                    ? "Category"
+                    : key === "slug"
+                      ? "Slug"
+                      : key.replaceAll("_", " ")}
                 </small>
-                <b className="mt-1 block truncate text-sm text-navy">{value}</b>
+                <b className="mt-1 block truncate text-sm text-navy">
+                  {key === "category_id" && categoryName ? categoryName : value}
+                </b>
               </div>
             ))}
         </div>

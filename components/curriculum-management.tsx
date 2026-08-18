@@ -51,6 +51,7 @@ type Modal = {
   module?: ModuleRow;
   lessonType?: "video" | "audio" | "document";
   lesson?: Lesson;
+  quiz?: Quiz;
 };
 export function CurriculumManagement({
   courseId,
@@ -59,6 +60,7 @@ export function CurriculumManagement({
   videoSource,
   videoUrl,
   initialModules,
+  readOnly = false,
 }: {
   courseId: string;
   courseTitle: string;
@@ -66,6 +68,7 @@ export function CurriculumManagement({
   videoSource?: string | null;
   videoUrl?: string | null;
   initialModules: ModuleRow[];
+  readOnly?: boolean;
 }) {
   const [modules, setModules] = useState(initialModules),
     [modal, setModal] = useState<Modal | null>(null),
@@ -107,14 +110,72 @@ export function CurriculumManagement({
       setDeleting(null);
     }
   }
-  async function removeLesson(moduleId:string,lessonId:string){const res=await fetch(`/api/admin/lessons/${lessonId}`,{method:"DELETE"});if(res.ok){setModules(rows=>rows.map(row=>row.id===moduleId?{...row,lessons:row.lessons.filter(lesson=>lesson.id!==lessonId)}:row));toast.success("Lesson deleted")}else toast.error("Lesson could not be deleted")}
-  async function removeAssignment(moduleId:string,assignmentId:string){const res=await fetch(`/api/admin/assignments/${assignmentId}`,{method:"DELETE"});if(res.ok){setModules(rows=>rows.map(row=>row.id===moduleId?{...row,assignments:row.assignments.filter(item=>item.id!==assignmentId)}:row));toast.success("Assignment deleted")}else toast.error("Assignment could not be deleted")}
+  async function removeLesson(moduleId: string, lessonId: string) {
+    const res = await fetch(`/api/admin/lessons/${lessonId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setModules((rows) =>
+        rows.map((row) =>
+          row.id === moduleId
+            ? {
+                ...row,
+                lessons: row.lessons.filter((lesson) => lesson.id !== lessonId),
+              }
+            : row,
+        ),
+      );
+      toast.success("Lesson deleted");
+    } else toast.error("Lesson could not be deleted");
+  }
+  async function removeAssignment(moduleId: string, assignmentId: string) {
+    const res = await fetch(`/api/admin/assignments/${assignmentId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setModules((rows) =>
+        rows.map((row) =>
+          row.id === moduleId
+            ? {
+                ...row,
+                assignments: row.assignments.filter(
+                  (item) => item.id !== assignmentId,
+                ),
+              }
+            : row,
+        ),
+      );
+      toast.success("Assignment deleted");
+    } else toast.error("Assignment could not be deleted");
+  }
+  async function removeQuiz(moduleId: string, quizId: string) {
+    const res = await fetch(`/api/admin/quizzes/${quizId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setModules((rows) =>
+        rows.map((row) =>
+          row.id === moduleId
+            ? {
+                ...row,
+                quizzes: row.quizzes.filter((item) => item.id !== quizId),
+              }
+            : row,
+        ),
+      );
+      toast.success("Quiz deleted");
+    } else toast.error("Quiz could not be deleted");
+  }
   function saved(item: any) {
     if (!modal) return;
     if (modal.type === "module")
       setModules((x) =>
         modal.module
-          ? x.map((y) => (y.id === item.id ? { ...y, title: item.title, description: item.description } : y))
+          ? x.map((y) =>
+              y.id === item.id
+                ? { ...y, title: item.title, description: item.description }
+                : y,
+            )
           : [
               ...x,
               { ...item, courseId, lessons: [], quizzes: [], assignments: [] },
@@ -126,7 +187,19 @@ export function CurriculumManagement({
           y.id === modal.module!.id
             ? {
                 ...y,
-                [modal.type === "lesson" ? "lessons" : "quizzes"]: modal.type === "lesson" && modal.lesson ? y.lessons.map(lesson=>lesson.id===item.id?item:lesson) : [...y[modal.type === "lesson" ? "lessons" : "quizzes"],item],
+                [modal.type === "lesson" ? "lessons" : "quizzes"]:
+                  modal.type === "lesson" && modal.lesson
+                    ? y.lessons.map((lesson) =>
+                        lesson.id === item.id ? item : lesson,
+                      )
+                    : modal.type === "quiz" && modal.quiz
+                      ? y.quizzes.map((quiz) =>
+                          quiz.id === item.id ? item : quiz,
+                        )
+                      : [
+                          ...y[modal.type === "lesson" ? "lessons" : "quizzes"],
+                          item,
+                        ],
               }
             : y,
         ),
@@ -142,25 +215,28 @@ export function CurriculumManagement({
           </p>
           <h1 className="mt-1 text-2xl font-bold text-navy">Curriculum</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Drag the grip to reorder sections. Lessons and quizzes preview
-            inside each section.
+            {readOnly
+              ? "View course modules, lessons, quizzes and assignments."
+              : "Drag the grip to reorder sections. Lessons and quizzes preview inside each section."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <BulkImportDialog
-            label="Curriculum"
-            endpoint="/api/admin/bulk/curriculum"
-            extraFields={{ course_id: courseId }}
-            template={`module_title,module_description,lesson_title,lesson_type,content_url,description,lesson_position,quiz_title\nIntroduction,Core concepts for new learners,Welcome Video,video,https://example.com/video.mp4,Course introduction,1,Introduction Quiz\nAdvanced Topics,In-depth learning materials,Reading Guide,document,https://example.com/guide.pdf,Download the guide,1,`}
-          />
-          <button
-            onClick={() => setModal({ type: "module" })}
-            className="btn-primary gap-2"
-          >
-            <Plus className="size-4" />
-            Add Module
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex flex-wrap gap-2">
+            <BulkImportDialog
+              label="Curriculum"
+              endpoint="/api/admin/bulk/curriculum"
+              extraFields={{ course_id: courseId }}
+              template={`module_title,module_description,lesson_title,lesson_type,content_url,description,lesson_position,quiz_title\nIntroduction,Core concepts for new learners,Welcome Video,video,https://example.com/video.mp4,Course introduction,1,Introduction Quiz\nAdvanced Topics,In-depth learning materials,Reading Guide,document,https://example.com/guide.pdf,Download the guide,1,`}
+            />
+            <button
+              onClick={() => setModal({ type: "module" })}
+              className="btn-primary gap-2"
+            >
+              <Plus className="size-4" />
+              Add Module
+            </button>
+          </div>
+        )}
       </div>
       {thumbnailUrl && (
         <img
@@ -200,7 +276,7 @@ export function CurriculumManagement({
       <div className="mt-7 space-y-5">
         {visible.map((m) => (
           <section
-            draggable
+            draggable={!readOnly}
             onDragStart={() => setDrag(m.id)}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => reorder(m.id)}
@@ -209,12 +285,14 @@ export function CurriculumManagement({
             key={m.id}
           >
             <div className="flex items-center gap-4 border-b p-5">
-              <button
-                title="Drag to move section"
-                className="cursor-grab text-slate-400"
-              >
-                <GripVertical className="size-6" />
-              </button>
+              {!readOnly && (
+                <button
+                  title="Drag to move section"
+                  className="cursor-grab text-slate-400"
+                >
+                  <GripVertical className="size-6" />
+                </button>
+              )}
               <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
                 {m.position}
               </span>
@@ -223,114 +301,136 @@ export function CurriculumManagement({
                   Module No {m.position}
                 </p>
                 <h2 className="font-bold text-navy">{m.title}</h2>
-                {m.description && <p className="mt-1 max-w-2xl text-sm text-slate-500">{m.description}</p>}
+                {m.description && (
+                  <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                    {m.description}
+                  </p>
+                )}
                 <p className="text-xs text-slate-400">
                   {m.lessons.length} lessons · {m.quizzes.length} quizzes
                 </p>
               </div>
-              <div className="relative ml-auto">
-                <button
-                  onClick={() => {
-                    setMenu(menu === m.id ? null : m.id);
-                    setLessonMenu(null);
-                  }}
-                  className="grid size-9 place-items-center rounded-lg border"
-                >
-                  <MoreVertical className="size-4" />
-                </button>
-                {menu === m.id && (
-                  <div className="absolute right-0 top-11 z-[100] w-52 rounded-lg border bg-white py-1 shadow-2xl">
-                    <button
-                      onClick={() => setModal({ type: "module", module: m })}
-                      className="action-row"
-                    >
-                      <Edit3 />
-                      Edit Section
-                    </button>
-                    <button
-                      onClick={() => setModal({ type: "quiz", module: m })}
-                      className="action-row"
-                    >
-                      <HelpCircle />
-                      Add Quiz
-                    </button>
-                    <a
-                      href={`/dashboard/super-admin/courses/${courseId}/curriculum/${m.id}/assignments`}
-                      className="action-row"
-                    >
-                      <FileText />
-                      Add Assignment
-                    </a>
-                    <div className="relative">
+              {!readOnly && (
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => {
+                      setMenu(menu === m.id ? null : m.id);
+                      setLessonMenu(null);
+                    }}
+                    className="grid size-9 place-items-center rounded-lg border"
+                  >
+                    <MoreVertical className="size-4" />
+                  </button>
+                  {menu === m.id && (
+                    <div className="absolute right-0 top-11 z-[100] w-52 rounded-lg border bg-white py-1 shadow-2xl">
                       <button
-                        onClick={() =>
-                          setLessonMenu(lessonMenu === m.id ? null : m.id)
-                        }
+                        onClick={() => setModal({ type: "module", module: m })}
                         className="action-row"
                       >
-                        <Plus />
-                        Add Lesson
-                        <ChevronRight className="ml-auto" />
+                        <Edit3 />
+                        Edit Section
                       </button>
-                      {lessonMenu === m.id && (
-                        <div className="absolute right-full top-0 mr-1 w-52 rounded-lg border bg-white py-1 shadow-xl">
-                          <button
-                            onClick={() =>
-                              setModal({
-                                type: "lesson",
-                                module: m,
-                                lessonType: "video",
-                              })
-                            }
-                            className="action-row"
-                          >
-                            <Video />
-                            Add Video Lesson
-                          </button>
-                          <button
-                            onClick={() =>
-                              setModal({
-                                type: "lesson",
-                                module: m,
-                                lessonType: "audio",
-                              })
-                            }
-                            className="action-row"
-                          >
-                            <FileAudio />
-                            Add Audio Lesson
-                          </button>
-                          <button
-                            onClick={() =>
-                              setModal({
-                                type: "lesson",
-                                module: m,
-                                lessonType: "document",
-                              })
-                            }
-                            className="action-row"
-                          >
-                            <FileText />
-                            Add Document Lesson
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        onClick={() => setModal({ type: "quiz", module: m })}
+                        className="action-row"
+                      >
+                        <HelpCircle />
+                        Add Quiz
+                      </button>
+                      <a
+                        href={`/dashboard/super-admin/courses/${courseId}/curriculum/${m.id}/assignments`}
+                        className="action-row"
+                      >
+                        <FileText />
+                        Add Assignment
+                      </a>
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setLessonMenu(lessonMenu === m.id ? null : m.id)
+                          }
+                          className="action-row"
+                        >
+                          <Plus />
+                          Add Lesson
+                          <ChevronRight className="ml-auto" />
+                        </button>
+                        {lessonMenu === m.id && (
+                          <div className="absolute right-full top-0 mr-1 w-52 rounded-lg border bg-white py-1 shadow-xl">
+                            <button
+                              onClick={() =>
+                                setModal({
+                                  type: "lesson",
+                                  module: m,
+                                  lessonType: "video",
+                                })
+                              }
+                              className="action-row"
+                            >
+                              <Video />
+                              Add Video Lesson
+                            </button>
+                            <button
+                              onClick={() =>
+                                setModal({
+                                  type: "lesson",
+                                  module: m,
+                                  lessonType: "audio",
+                                })
+                              }
+                              className="action-row"
+                            >
+                              <FileAudio />
+                              Add Audio Lesson
+                            </button>
+                            <button
+                              onClick={() =>
+                                setModal({
+                                  type: "lesson",
+                                  module: m,
+                                  lessonType: "document",
+                                })
+                              }
+                              className="action-row"
+                            >
+                              <FileText />
+                              Add Document Lesson
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setDeleting(m);
+                          setMenu(null);
+                        }}
+                        className="action-row text-red"
+                      >
+                        <Trash2 />
+                        Delete
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setDeleting(m);
-                        setMenu(null);
-                      }}
-                      className="action-row text-red"
-                    >
-                      <Trash2 />
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
-            <ModuleContent module={m} courseId={courseId} onReplace={(lesson)=>setModal({type:"lesson",module:m,lessonType:lesson.content_type,lesson})} onDeleteLesson={(id)=>removeLesson(m.id,id)} onDeleteAssignment={(id)=>removeAssignment(m.id,id)} />
+            <ModuleContent
+              readOnly={readOnly}
+              module={m}
+              courseId={courseId}
+              onReplace={(lesson) =>
+                setModal({
+                  type: "lesson",
+                  module: m,
+                  lessonType: lesson.content_type,
+                  lesson,
+                })
+              }
+              onEditQuiz={(quiz) => setModal({ type: "quiz", module: m, quiz })}
+              onDeleteLesson={(id) => removeLesson(m.id, id)}
+              onDeleteQuiz={(id) => removeQuiz(m.id, id)}
+              onDeleteAssignment={(id) => removeAssignment(m.id, id)}
+            />
           </section>
         ))}
       </div>
@@ -389,8 +489,82 @@ export function CurriculumManagement({
     </>
   );
 }
-function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssignment }: { module: ModuleRow;courseId:string;onReplace:(lesson:Lesson)=>void;onDeleteLesson:(id:string)=>void;onDeleteAssignment:(id:string)=>void }) {
-  const videos = module.lessons.filter((x) => x.content_type === "video"),
+function LessonActions({
+  lesson,
+  open,
+  onToggle,
+  onClose,
+  onReplace,
+  onDelete,
+}: {
+  lesson: Lesson;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onReplace: (lesson: Lesson) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid size-8 place-items-center rounded-lg border bg-white"
+        title="Lesson actions"
+      >
+        <MoreVertical className="size-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => {
+              onReplace(lesson);
+              onClose();
+            }}
+            className="action-row"
+          >
+            <Upload />
+            Replace
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onDelete(lesson.id);
+              onClose();
+            }}
+            className="action-row text-red"
+          >
+            <Trash2 />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModuleContent({
+  module,
+  courseId,
+  onReplace,
+  onEditQuiz,
+  onDeleteLesson,
+  onDeleteQuiz,
+  onDeleteAssignment,
+  readOnly,
+}: {
+  module: ModuleRow;
+  courseId: string;
+  onReplace: (lesson: Lesson) => void;
+  onEditQuiz: (quiz: Quiz) => void;
+  onDeleteLesson: (id: string) => void;
+  onDeleteQuiz: (id: string) => void;
+  onDeleteAssignment: (id: string) => void;
+  readOnly: boolean;
+}) {
+  const [cardMenu, setCardMenu] = useState<string | null>(null),
+    videos = module.lessons.filter((x) => x.content_type === "video"),
     medium = module.lessons.filter((x) => x.content_type !== "video");
   if (
     !module.lessons.length &&
@@ -406,12 +580,32 @@ function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssign
     <div className="space-y-5 p-5">
       {videos.map((x) => (
         <article
-          className="max-w-2xl overflow-hidden rounded-xl border bg-slate-950"
+          className="max-w-2xl rounded-xl border bg-slate-950"
           key={x.id}
         >
-          <div className="bg-white px-4 pt-1"><CollapsibleMedia label="Video"><VideoPlayer src={x.content_url} /></CollapsibleMedia></div>
+          <div className="overflow-hidden rounded-t-xl bg-white px-4 pt-1">
+            <CollapsibleMedia label="Video">
+              <VideoPlayer src={x.content_url} />
+            </CollapsibleMedia>
+          </div>
           <div className="bg-white p-4">
-            <div className="flex items-center justify-between gap-3"><b className="text-navy">{x.title}</b><span className="flex gap-2"><button onClick={()=>onReplace(x)} className="rounded-lg border p-2" title="Replace video"><Upload className="size-4"/></button><button onClick={()=>onDeleteLesson(x.id)} className="rounded-lg border p-2 text-red" title="Delete video"><Trash2 className="size-4"/></button></span></div>
+            <div className="flex items-center justify-between gap-3">
+              <b className="text-navy">{x.title}</b>
+              {!readOnly && (
+                <LessonActions
+                  lesson={x}
+                  open={cardMenu === `lesson-${x.id}`}
+                  onToggle={() =>
+                    setCardMenu(
+                      cardMenu === `lesson-${x.id}` ? null : `lesson-${x.id}`,
+                    )
+                  }
+                  onClose={() => setCardMenu(null)}
+                  onReplace={onReplace}
+                  onDelete={onDeleteLesson}
+                />
+              )}
+            </div>
             {x.description && (
               <p className="mt-1 text-sm text-slate-500">{x.description}</p>
             )}
@@ -447,17 +641,34 @@ function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssign
                 )}
               </div>
               {x.content_type === "audio" && (
-                <CollapsibleMedia label="Audio"><audio controls className="w-full" src={x.content_url} /></CollapsibleMedia>
+                <CollapsibleMedia label="Audio">
+                  <audio controls className="w-full" src={x.content_url} />
+                </CollapsibleMedia>
               )}{" "}
               {x.description && (
                 <p className="mt-3 text-sm text-slate-500">{x.description}</p>
               )}
-              <div className="mt-3 flex justify-end gap-2"><button onClick={()=>onReplace(x)} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold"><Upload className="size-3"/>Replace</button><button onClick={()=>onDeleteLesson(x.id)} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold text-red"><Trash2 className="size-3"/>Delete</button></div>
+              {!readOnly && (
+                <div className="mt-3 flex justify-end">
+                  <LessonActions
+                    lesson={x}
+                    open={cardMenu === `lesson-${x.id}`}
+                    onToggle={() =>
+                      setCardMenu(
+                        cardMenu === `lesson-${x.id}` ? null : `lesson-${x.id}`,
+                      )
+                    }
+                    onClose={() => setCardMenu(null)}
+                    onReplace={onReplace}
+                    onDelete={onDeleteLesson}
+                  />
+                </div>
+              )}
             </article>
           ))}
-          {module.quizzes.map((q) => (
+          {module.quizzes.map((q, quizIndex) => (
             <article
-              className="rounded-xl border border-violet-100 bg-violet-50 p-4"
+              className={`order-2 rounded-xl border border-violet-100 bg-violet-50 p-4 ${quizIndex === 0 ? "md:col-start-1" : ""}`}
               key={q.id}
             >
               <div className="flex items-center gap-3">
@@ -468,12 +679,50 @@ function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssign
                   <b className="text-navy">{q.title}</b>
                   <p className="text-xs text-violet-500">Quiz</p>
                 </div>
+                {!readOnly && (
+                  <div className="relative ml-auto">
+                    <button
+                      onClick={() =>
+                        setCardMenu(
+                          cardMenu === `quiz-${q.id}` ? null : `quiz-${q.id}`,
+                        )
+                      }
+                      className="grid size-8 place-items-center rounded-lg border bg-white"
+                    >
+                      <MoreVertical className="size-4" />
+                    </button>
+                    {cardMenu === `quiz-${q.id}` && (
+                      <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
+                        <button
+                          onClick={() => {
+                            onEditQuiz(q);
+                            setCardMenu(null);
+                          }}
+                          className="action-row"
+                        >
+                          <Edit3 />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            onDeleteQuiz(q.id);
+                            setCardMenu(null);
+                          }}
+                          className="action-row text-red"
+                        >
+                          <Trash2 />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </article>
           ))}
-          {module.assignments.map((a) => (
+          {module.assignments.map((a, assignmentIndex) => (
             <article
-              className="rounded-xl border border-amber-100 bg-amber-50 p-4"
+              className={`order-1 rounded-xl border border-amber-100 bg-amber-50 p-4 ${assignmentIndex === 0 ? "md:col-start-1" : ""}`}
               key={a.id}
             >
               <div className="flex items-center gap-3">
@@ -482,12 +731,51 @@ function ModuleContent({ module,courseId,onReplace,onDeleteLesson,onDeleteAssign
                 </span>
                 <div className="min-w-0 flex-1">
                   <b className="text-navy">{a.title}</b>
+                  <p className="text-xs font-semibold text-amber-600">
+                    Assignment
+                  </p>
                   <p className="text-xs text-amber-700">
                     Pass Marks: {a.pass_marks} · Deadline:{" "}
                     {new Date(a.due_date).toLocaleDateString()}
                   </p>
                 </div>
-                <a href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`} className="rounded-lg border p-2" title="Replace assignment"><Edit3 className="size-4"/></a><button onClick={()=>onDeleteAssignment(a.id)} className="rounded-lg border p-2 text-red" title="Delete assignment"><Trash2 className="size-4"/></button>
+                {!readOnly && (
+                  <div className="relative ml-auto">
+                    <button
+                      onClick={() =>
+                        setCardMenu(
+                          cardMenu === `assignment-${a.id}`
+                            ? null
+                            : `assignment-${a.id}`,
+                        )
+                      }
+                      className="grid size-8 place-items-center rounded-lg border bg-white"
+                    >
+                      <MoreVertical className="size-4" />
+                    </button>
+                    {cardMenu === `assignment-${a.id}` && (
+                      <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
+                        <a
+                          href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`}
+                          className="action-row"
+                        >
+                          <Edit3 />
+                          Edit
+                        </a>
+                        <button
+                          onClick={() => {
+                            onDeleteAssignment(a.id);
+                            setCardMenu(null);
+                          }}
+                          className="action-row text-red"
+                        >
+                          <Trash2 />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </article>
           ))}
@@ -515,8 +803,12 @@ function EditorModal({
           ? "Edit Section"
           : "Add Module"
         : state.type === "quiz"
-          ? "Add Quiz"
-          : state.lesson ? `Replace ${state.lessonType} Lesson` : `Add ${state.lessonType} Lesson`;
+          ? state.quiz
+            ? "Edit Quiz"
+            : "Add Quiz"
+          : state.lesson
+            ? `Replace ${state.lessonType} Lesson`
+            : `Add ${state.lessonType} Lesson`;
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -528,8 +820,10 @@ function EditorModal({
       const f = new FormData(e.currentTarget);
       f.set("module_id", state.module!.id);
       f.set("content_type", state.lessonType!);
-      url = state.lesson ? `/api/admin/lessons/${state.lesson.id}` : "/api/admin/lessons";
-      if(state.lesson) method="PATCH";
+      url = state.lesson
+        ? `/api/admin/lessons/${state.lesson.id}`
+        : "/api/admin/lessons";
+      if (state.lesson) method = "PATCH";
       body = f;
     } else {
       body = JSON.stringify({
@@ -540,11 +834,14 @@ function EditorModal({
       headers = { "content-type": "application/json" };
       url =
         state.type === "quiz"
-          ? "/api/admin/quizzes"
+          ? state.quiz
+            ? `/api/admin/quizzes/${state.quiz.id}`
+            : "/api/admin/quizzes"
           : state.module
             ? `/api/admin/modules/${state.module.id}`
             : "/api/admin/modules";
       if (state.type === "module" && state.module) method = "PATCH";
+      if (state.type === "quiz" && state.quiz) method = "PATCH";
     }
     const res = await fetch(url, { method, headers, body });
     if (res.ok) saved(await res.json());
@@ -576,7 +873,13 @@ function EditorModal({
           Title
           <input
             name="title"
-            defaultValue={state.type === "module" ? state.module?.title : state.lesson?.title || ""}
+            defaultValue={
+              state.type === "module"
+                ? state.module?.title
+                : state.type === "quiz"
+                  ? state.quiz?.title || ""
+                  : state.lesson?.title || ""
+            }
             className="field mt-2"
             required
           />
@@ -584,7 +887,12 @@ function EditorModal({
         {state.type === "module" && (
           <label className="mt-5 block text-sm font-semibold">
             Description
-            <textarea name="description" defaultValue={state.module?.description || ""} className="field mt-2 min-h-28" placeholder="Enter module description" />
+            <textarea
+              name="description"
+              defaultValue={state.module?.description || ""}
+              className="field mt-2 min-h-28"
+              placeholder="Enter module description"
+            />
           </label>
         )}
         {state.type === "lesson" && (
@@ -615,7 +923,11 @@ function EditorModal({
             </label>
             <label className="mt-5 block text-sm font-semibold">
               Description
-              <textarea name="description" defaultValue={state.lesson?.description || ""} className="field mt-2 min-h-28" />
+              <textarea
+                name="description"
+                defaultValue={state.lesson?.description || ""}
+                className="field mt-2 min-h-28"
+              />
             </label>
           </>
         )}
