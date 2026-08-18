@@ -267,8 +267,6 @@ export function CourseEditForm({
 function Step({
   active,
   n,
-  label,
-  done = false,
 }: {
   active: boolean;
   n: number;
@@ -276,16 +274,11 @@ function Step({
   done?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span
-        className={`grid size-10 place-items-center rounded-full font-bold ${active ? "bg-red text-white" : "bg-slate-100 text-slate-400"}`}
-      >
-        {done ? <Check /> : n}
-      </span>
-      <b className="text-sm">
-        {n} - {label}
-      </b>
-    </div>
+    <span
+      className={`grid size-10 place-items-center rounded-full font-bold ${active ? "bg-red text-white" : "bg-slate-100 text-slate-400"}`}
+    >
+      {n}
+    </span>
   );
 }
 function Field({ label, ...p }: { label: string; [key: string]: any }) {

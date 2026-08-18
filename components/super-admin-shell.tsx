@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { SignOut } from "./signout";
 import { GlobalActionConfirmation } from "./global-action-confirmation";
+import { TopbarProfileAvatar } from "./topbar-profile-avatar";
 
 const groups = [
   {
@@ -628,9 +629,7 @@ export function SuperAdminShell({
                     Super Admin
                   </span>
                 </div>
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-navy font-bold text-white sm:size-10">
-                  {name[0]}
-                </span>
+                <TopbarProfileAvatar name={name} />
                 <ChevronDown className="hidden size-3 text-slate-400 sm:block" />
               </button>
               {accountOpen && (

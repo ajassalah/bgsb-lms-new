@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { SignOut } from "./signout";
+import { TopbarProfileAvatar } from "./topbar-profile-avatar";
 import { roleLabels, type Role } from "@/lib/types";
 
 export function DashboardShell({
@@ -543,9 +544,7 @@ export function DashboardShell({
                     {roleLabels[role]}
                   </span>
                 </span>
-                <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
-                  {name[0]}
-                </span>
+                <TopbarProfileAvatar name={name} avatar={avatar} />
                 <ChevronDown className="hidden size-3 text-slate-400 sm:block" />
               </button>
               {accountOpen && (

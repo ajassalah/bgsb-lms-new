@@ -5,7 +5,7 @@ import { CourseBuilder } from "@/components/course-builder";
 export default async function AddCourse() {
   const profile = await requireProfile("admin_staff"),
     db = createAdminClient();
-  const [{ data: categories }, { data: organizations }, { data: instructors }] =
+  const [{ data: categories }, { data: instructors }, { data: courseTags }] =
     await Promise.all([
       db
         .from("categories")
@@ -13,16 +13,12 @@ export default async function AddCourse() {
         .eq("is_active", true)
         .order("name"),
       db
-        .from("organizations")
-        .select("id,name")
-        .eq("status", "active")
-        .order("name"),
-      db
         .from("profiles")
         .select("id,full_name")
         .eq("role", "instructor")
         .eq("status", "active")
         .order("full_name"),
+      db.from("courses").select("tags"),
     ]);
   return (
     <StaffPageShell name={profile.full_name}>
@@ -33,7 +29,9 @@ export default async function AddCourse() {
           name: x.full_name,
         }))}
         subjects={[]}
-        tags={[]}
+        tags={Array.from(
+          new Set((courseTags || []).flatMap((course) => course.tags || [])),
+        ).sort()}
       />
     </StaffPageShell>
   );

@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   },
   description: "British Graduates School of Business learning platform",
   icons: {
-    icon: "https://bgsb.lk/bgs-logo.png",
-    shortcut: "https://bgsb.lk/bgs-logo.png",
-    apple: "https://bgsb.lk/bgs-logo.png",
+    icon: "/bgs%20logo.png",
+    shortcut: "/bgs%20logo.png",
+    apple: "/bgs%20logo.png",
   },
 };
 

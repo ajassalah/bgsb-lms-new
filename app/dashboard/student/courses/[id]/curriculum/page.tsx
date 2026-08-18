@@ -11,6 +11,7 @@ import {
 import { DashboardShell } from "@/components/dashboard-shell";
 import { CourseCurriculumMedia } from "@/components/course-curriculum-media";
 import { CollapsibleMedia } from "@/components/collapsible-media";
+import { FileDownloadButton } from "@/components/file-download-button";
 import { VideoPlayer } from "@/components/video-player";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -101,16 +102,27 @@ export default async function StudentCurriculum({
                   key={lesson.id}
                   className="rounded-xl border bg-slate-50 p-4"
                 >
-                  <b className="flex gap-2">
-                    {lesson.content_type === "video" ? (
-                      <Video className="size-4" />
-                    ) : lesson.content_type === "audio" ? (
-                      <FileAudio className="size-4" />
-                    ) : (
-                      <FileText className="size-4" />
-                    )}
-                    {lesson.title}
-                  </b>
+                  <div className="flex items-start justify-between gap-3">
+                    <b className="flex min-w-0 gap-2">
+                      {lesson.content_type === "video" ? (
+                        <Video className="size-4 shrink-0" />
+                      ) : lesson.content_type === "audio" ? (
+                        <FileAudio className="size-4 shrink-0" />
+                      ) : (
+                        <FileText className="size-4 shrink-0" />
+                      )}
+                      {lesson.title}
+                    </b>
+                    {lesson.content_type === "document" &&
+                      lesson.content_url && (
+                        <FileDownloadButton
+                          href={`/api/student/lessons/${lesson.id}/download`}
+                          label="Download"
+                          fallbackName={lesson.title}
+                          className="btn-secondary shrink-0 gap-2"
+                        />
+                      )}
+                  </div>
                   <p className="mt-1 text-xs font-semibold text-slate-400">
                     Lesson
                   </p>
@@ -134,17 +146,6 @@ export default async function StudentCurriculum({
                         className="w-full"
                       />
                     </CollapsibleMedia>
-                  )}
-                  {lesson.content_type === "document" && lesson.content_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a
-                        href={`/api/student/lessons/${lesson.id}/download`}
-                        download
-                        className="btn-secondary inline-flex"
-                      >
-                        Download Document
-                      </a>
-                    </div>
                   )}
                 </div>
               ))}
@@ -184,14 +185,12 @@ export default async function StudentCurriculum({
                       </small>
                     </div>
                     {assignment.file_url && (
-                      <a
-                        href={`${assignment.file_url}${assignment.file_url.includes("?") ? "&" : "?"}download=${encodeURIComponent(assignment.title)}`}
-                        download
-                        className="btn-secondary gap-2"
-                      >
-                        <FileText className="size-4" />
-                        Download
-                      </a>
+                      <FileDownloadButton
+                        href={`/api/student/assignments/${assignment.id}/download`}
+                        label="Download"
+                        fallbackName={assignment.title}
+                        className="btn-secondary shrink-0 gap-2"
+                      />
                     )}
                   </div>
                 </article>

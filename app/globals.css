@@ -142,11 +142,18 @@ table:has(td.relative > div.absolute) {
     min-width: 0;
     margin-left: auto;
   }
-  table[data-mobile-cards="true"] td.relative > div.absolute {
-    position: static !important;
-    width: 10rem;
-    margin-top: 0;
-    margin-left: auto;
+  [data-floating-action="true"][data-mobile-action-sheet="true"] {
+    border-radius: 1rem !important;
+    padding: 0.5rem !important;
+    box-shadow: 0 24px 70px rgb(2 6 23 / 0.35) !important;
+  }
+  [data-floating-action="true"][data-mobile-action-sheet="true"]
+    :is(button, a) {
+    min-height: 2.75rem;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.875rem;
   }
   .fixed.inset-0 label[class*="min-h-"] {
     min-height: 7rem !important;

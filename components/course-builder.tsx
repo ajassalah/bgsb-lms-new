@@ -130,6 +130,26 @@ export function CourseBuilder({
                 Course URL: /courses/{slug || "course-url-slug"}
               </small>
             </label>
+            <div className="md:col-span-2">
+              <label className="text-sm font-semibold text-slate-700">
+                Course Tag
+              </label>
+              <input
+                name="tags"
+                list="course-tags"
+                className="field mt-2"
+                placeholder="Enter tags separated by commas"
+                defaultValue={basic.tags}
+              />
+              <small className="mt-1 block text-slate-400">
+                Add one or more tags separated by commas.
+              </small>
+              <datalist id="course-tags">
+                {tags.map((tag) => (
+                  <option value={tag} key={tag} />
+                ))}
+              </datalist>
+            </div>
             <Select
               label="Select Category"
               name="category_id"
@@ -181,23 +201,6 @@ export function CourseBuilder({
               required
               defaultValue={basic.duration_weeks}
             />
-            <div>
-              <label className="text-sm font-semibold text-slate-700">
-                Course Tag
-              </label>
-              <input
-                name="tags"
-                list="course-tags"
-                className="field mt-2"
-                placeholder="Enter tags separated by commas"
-                defaultValue={basic.tags}
-              />
-              <datalist id="course-tags">
-                {tags.map((x) => (
-                  <option value={x} key={x} />
-                ))}
-              </datalist>
-            </div>
           </div>
           <label className="mt-5 block text-sm font-semibold text-slate-700">
             Short Description
@@ -264,9 +267,7 @@ export function CourseBuilder({
 }
 function Step({
   active,
-  done,
   n,
-  label,
 }: {
   active: boolean;
   done: boolean;
@@ -274,16 +275,11 @@ function Step({
   label: string;
 }) {
   return (
-    <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-3 text-center">
+    <div className="relative z-10 bg-white px-3">
       <span
         className={`grid size-10 place-items-center rounded-full border-2 font-bold ${active ? "border-red bg-red text-white" : "border-slate-200 bg-white text-slate-400"}`}
       >
-        {done ? <Check className="size-5" /> : n}
-      </span>
-      <span
-        className={`text-xs font-semibold sm:text-sm ${active ? "text-navy" : "text-slate-400"}`}
-      >
-        {n} - {label}
+        {n}
       </span>
     </div>
   );

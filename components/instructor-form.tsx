@@ -655,7 +655,7 @@ export function InstructorForm({
         <section
           className={
             staffTab === "permissions"
-              ? "relative z-[400] space-y-5 overflow-visible rounded-xl border bg-white p-4 sm:p-6"
+              ? "relative z-[9990] space-y-5 overflow-visible rounded-xl border bg-white p-4 sm:p-6"
               : "hidden"
           }
         >

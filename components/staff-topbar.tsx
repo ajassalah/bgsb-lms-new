@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { SignOut } from "./signout";
+import { TopbarProfileAvatar } from "./topbar-profile-avatar";
 type Actions = Record<string, boolean>;
 const createLinks = [
   ["Add Course", "/dashboard/admin-staff/courses/new", "courses", "create"],
@@ -245,9 +246,7 @@ export function StaffTopbar({
               <b className="block text-xs text-navy">{name}</b>
               <span className="text-[10px] text-slate-400">{roleName}</span>
             </div>
-            <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
-              {name[0]}
-            </span>
+            <TopbarProfileAvatar name={name} />
             <ChevronDown className="hidden size-3 sm:block" />
           </button>
           {accountOpen && (

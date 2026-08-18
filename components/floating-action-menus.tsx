@@ -12,35 +12,49 @@ export function FloatingActionMenus() {
       document
         .querySelectorAll<HTMLElement>('[data-floating-action="true"]')
         .forEach((menu) => {
-          if (except && (menu === except || menu.contains(except))) return;
+          if (
+            except &&
+            (menu === except ||
+              menu.contains(except) ||
+              menu.parentElement?.contains(except))
+          )
+            return;
           triggerFor(menu)?.click();
         });
     }
     function positionMenus() {
       document.querySelectorAll<HTMLElement>("div.absolute").forEach((menu) => {
-        if (menu.dataset.floatingAction === "true") return;
         const parent = menu.parentElement;
         const trigger = parent?.querySelector<HTMLElement>(triggerSelector);
         if (!trigger) return;
         const triggerBox = trigger.getBoundingClientRect();
-        const width = Math.max(menu.offsetWidth, 144);
+        const mobile = window.innerWidth < 640;
+        const width = mobile
+          ? Math.min(window.innerWidth - 24, 360)
+          : Math.max(menu.offsetWidth, 144);
         let left = Math.min(
           window.innerWidth - width - 12,
           Math.max(12, triggerBox.right - width),
         );
         let top = triggerBox.bottom + 6;
         const estimatedHeight = Math.max(menu.offsetHeight, 120);
-        if (top + estimatedHeight > window.innerHeight - 12)
+        if (!mobile && top + estimatedHeight > window.innerHeight - 12)
           top = Math.max(12, triggerBox.top - estimatedHeight - 6);
         menu.dataset.floatingAction = "true";
+        menu.dataset.mobileActionSheet = mobile ? "true" : "false";
         Object.assign(menu.style, {
           position: "fixed",
           inset: "auto auto auto auto",
           right: "auto",
-          bottom: "auto",
-          left: `${left}px`,
-          top: `${top}px`,
+          bottom: mobile ? "12px" : "auto",
+          left: mobile ? "50%" : `${left}px`,
+          top: mobile ? "auto" : `${top}px`,
+          transform: mobile ? "translateX(-50%)" : "none",
           width: `${width}px`,
+          maxWidth: "calc(100vw - 24px)",
+          maxHeight: mobile ? "min(70vh, 32rem)" : "calc(100vh - 24px)",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
           zIndex: "9999",
         });
       });
@@ -58,7 +72,13 @@ export function FloatingActionMenus() {
     function keyboard(event: KeyboardEvent) {
       if (event.key === "Escape") closeMenus();
     }
-    function scroll() {
+    function scroll(event: Event) {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest('[data-floating-action="true"]')
+      )
+        return;
       closeMenus();
     }
     const observer = new MutationObserver(() =>
