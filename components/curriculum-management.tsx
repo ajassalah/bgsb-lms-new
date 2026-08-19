@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -73,6 +74,9 @@ export function CurriculumManagement({
   const [modules, setModules] = useState(initialModules),
     [modal, setModal] = useState<Modal | null>(null),
     [menu, setMenu] = useState<string | null>(null),
+    [collapsedModules, setCollapsedModules] = useState<Set<string>>(
+      () => new Set(),
+    ),
     [lessonMenu, setLessonMenu] = useState<string | null>(null),
     [page, setPage] = useState(1),
     [drag, setDrag] = useState<string | null>(null),
@@ -296,7 +300,7 @@ export function CurriculumManagement({
               <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
                 {m.position}
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase text-slate-400">
                   Module No {m.position}
                 </p>
@@ -306,12 +310,44 @@ export function CurriculumManagement({
                     {m.description}
                   </p>
                 )}
-                <p className="text-xs text-slate-400">
+                <p className="hidden">
                   {m.lessons.length} lessons · {m.quizzes.length} quizzes
                 </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {m.lessons.length}{" "}
+                  {m.lessons.length === 1 ? "lesson" : "lessons"}
+                  {" · "}
+                  {m.assignments.length}{" "}
+                  {m.assignments.length === 1 ? "assignment" : "assignments"}
+                  {" · "}
+                  {m.quizzes.length}{" "}
+                  {m.quizzes.length === 1 ? "quiz" : "quizzes"}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsedModules((current) => {
+                    const next = new Set(current);
+                    if (next.has(m.id)) next.delete(m.id);
+                    else next.add(m.id);
+                    return next;
+                  })
+                }
+                aria-label={
+                  collapsedModules.has(m.id)
+                    ? `Expand ${m.title}`
+                    : `Collapse ${m.title}`
+                }
+                title={collapsedModules.has(m.id) ? "Expand" : "Collapse"}
+                className={`${readOnly ? "ml-auto" : ""} grid size-9 shrink-0 place-items-center rounded-lg border text-slate-500`}
+              >
+                <ChevronDown
+                  className={`size-4 transition-transform ${collapsedModules.has(m.id) ? "-rotate-90" : "rotate-0"}`}
+                />
+              </button>
               {!readOnly && (
-                <div className="relative ml-auto">
+                <div className="relative">
                   <button
                     onClick={() => {
                       setMenu(menu === m.id ? null : m.id);
@@ -414,23 +450,27 @@ export function CurriculumManagement({
                 </div>
               )}
             </div>
-            <ModuleContent
-              readOnly={readOnly}
-              module={m}
-              courseId={courseId}
-              onReplace={(lesson) =>
-                setModal({
-                  type: "lesson",
-                  module: m,
-                  lessonType: lesson.content_type,
-                  lesson,
-                })
-              }
-              onEditQuiz={(quiz) => setModal({ type: "quiz", module: m, quiz })}
-              onDeleteLesson={(id) => removeLesson(m.id, id)}
-              onDeleteQuiz={(id) => removeQuiz(m.id, id)}
-              onDeleteAssignment={(id) => removeAssignment(m.id, id)}
-            />
+            {!collapsedModules.has(m.id) && (
+              <ModuleContent
+                readOnly={readOnly}
+                module={m}
+                courseId={courseId}
+                onReplace={(lesson) =>
+                  setModal({
+                    type: "lesson",
+                    module: m,
+                    lessonType: lesson.content_type,
+                    lesson,
+                  })
+                }
+                onEditQuiz={(quiz) =>
+                  setModal({ type: "quiz", module: m, quiz })
+                }
+                onDeleteLesson={(id) => removeLesson(m.id, id)}
+                onDeleteQuiz={(id) => removeQuiz(m.id, id)}
+                onDeleteAssignment={(id) => removeAssignment(m.id, id)}
+              />
+            )}
           </section>
         ))}
       </div>
@@ -573,7 +613,7 @@ function ModuleContent({
   )
     return (
       <div className="p-5 text-sm text-slate-400">
-        No lessons or quizzes in this section.
+        No lessons, assignments, or quizzes in this section.
       </div>
     );
   return (

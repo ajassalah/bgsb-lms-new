@@ -340,12 +340,25 @@ export function StaffPortalShell({
                           <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
                             {children.map((child) => {
                               const ChildIcon = child.icon;
+                              const curriculumAction =
+                                /^\/dashboard\/admin-staff\/courses\/[^/]+\/curriculum(?:\/|$)/.test(
+                                  path,
+                                );
+                              const childActive =
+                                child.label === "Curriculum"
+                                  ? path === child.href || curriculumAction
+                                  : child.label === "Course List"
+                                    ? (path === child.href ||
+                                        path.startsWith(child.href + "/")) &&
+                                      !curriculumAction
+                                    : path === child.href ||
+                                      path.startsWith(child.href + "/");
                               return (
                                 <Link
                                   key={child.href}
                                   href={child.href}
                                   onClick={() => setMobile(false)}
-                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${path === child.href || path.startsWith(child.href + "/") ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${childActive ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
                                 >
                                   {ChildIcon ? (
                                     <ChildIcon className="size-3.5 shrink-0" />

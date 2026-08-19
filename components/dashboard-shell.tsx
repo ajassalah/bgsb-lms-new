@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Award,
@@ -101,7 +101,7 @@ export function DashboardShell({
       document.body.style.overflow = "";
     };
   }, [open]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const saved = window.localStorage.getItem("bgsb-admin-theme");
     setDarkMode(
       document.documentElement.classList.contains("admin-dark") ||

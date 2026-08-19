@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   Bell,
   CircleAlert,
@@ -82,7 +82,7 @@ export function StaffTopbar({
     shortcuts = createLinks.filter(
       ([, , module, action]) => permissions[module]?.[action],
     );
-  useEffect(() => {
+  useLayoutEffect(() => {
     const saved = localStorage.getItem("bgsb-admin-theme");
     const enabled = saved
       ? saved === "dark"

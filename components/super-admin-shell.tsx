@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   Activity,
   Bell,
@@ -135,7 +135,7 @@ export function SuperAdminShell({
   useEffect(() => {
     if (courseActive) setCoursesOpen(true);
   }, [courseActive]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const saved = window.localStorage.getItem("bgsb-admin-theme");
     setDarkMode(
       document.documentElement.classList.contains("admin-dark") ||
@@ -271,11 +271,24 @@ export function SuperAdminShell({
                         <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
                           {courseLinks.map(([name, slug, ChildIcon]) => {
                             const url = `/dashboard/super-admin/${slug}`;
+                            const curriculumAction =
+                              /^\/dashboard\/super-admin\/courses\/[^/]+\/curriculum(?:\/|$)/.test(
+                                pathname,
+                              );
+                            const childActive =
+                              slug === "curriculum"
+                                ? pathname === url || curriculumAction
+                                : slug === "courses"
+                                  ? (pathname === url ||
+                                      pathname.startsWith(`${url}/`)) &&
+                                    !curriculumAction
+                                  : pathname === url ||
+                                    pathname.startsWith(`${url}/`);
                             return (
                               <Link
                                 href={url}
                                 onClick={() => setMobile(false)}
-                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${pathname === url || pathname.startsWith(`${url}/`) ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${childActive ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
                                 key={slug}
                               >
                                 <ChildIcon className="size-3.5 shrink-0" />

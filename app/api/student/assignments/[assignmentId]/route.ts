@@ -12,7 +12,7 @@ export async function POST(
   const admin = createAdminClient(),
     { data: assignment } = await admin
       .from("assignments")
-      .select("id,course_id")
+      .select("id,course_id,title,instructor_id")
       .eq("id", params.assignmentId)
       .maybeSingle();
   if (!assignment)
@@ -85,9 +85,46 @@ export async function POST(
     )
     .select("id,file_url,description,submitted_at,review_status")
     .single();
-  return error
-    ? Response.json({ error: error.message }, { status: 400 })
-    : Response.json(data);
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+
+  const [{ data: student }, { data: courseInstructors }, { data: staff }] =
+    await Promise.all([
+      admin.from("profiles").select("full_name").eq("id", user.id).single(),
+      admin
+        .from("course_instructors")
+        .select("instructor_id")
+        .eq("course_id", assignment.course_id),
+      admin
+        .from("profiles")
+        .select("id,role")
+        .in("role", ["super_admin", "admin_staff"])
+        .eq("status", "active"),
+    ]);
+  const instructorIds = new Set([
+      assignment.instructor_id,
+      ...(courseInstructors || []).map((row) => row.instructor_id),
+    ]),
+    recipients = [
+      ...Array.from(instructorIds)
+        .filter(Boolean)
+        .map((user_id) => ({
+          user_id,
+          title: `${student?.full_name || "A student"} submitted: ${assignment.title}`,
+          url: `/dashboard/instructor/assignments/${assignment.course_id}`,
+        })),
+      ...(staff || []).map((member) => ({
+        user_id: member.id,
+        title: `${student?.full_name || "A student"} submitted: ${assignment.title}`,
+        url:
+          member.role === "super_admin"
+            ? `/dashboard/super-admin/assignments/${assignment.course_id}`
+            : `/dashboard/admin-staff/assignments/${assignment.course_id}`,
+      })),
+    ];
+  if (recipients.length)
+    await admin.from("user_notifications").insert(recipients);
+
+  return Response.json(data);
 }
 
 export async function DELETE(
