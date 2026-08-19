@@ -1,9 +1,11 @@
 "use client";
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Edit3,
+  Download,
   MoreVertical,
   Plus,
   Search,
@@ -18,6 +20,7 @@ export type AssignmentRow = {
   passMarks: number;
   totalMarks: number;
   deadline: string;
+  fileUrl: string | null;
 };
 export function AssignmentManagement({
   courseId,
@@ -25,12 +28,14 @@ export function AssignmentManagement({
   courseTitle,
   moduleTitle,
   initialRows,
+  basePath = "/dashboard/super-admin",
 }: {
   courseId: string;
   moduleId: string;
   courseTitle: string;
   moduleTitle: string;
   initialRows: AssignmentRow[];
+  basePath?: string;
 }) {
   const [rows, setRows] = useState(initialRows),
     [query, setQuery] = useState(""),
@@ -62,6 +67,16 @@ export function AssignmentManagement({
   }
   return (
     <>
+      <button
+        type="button"
+        onClick={() =>
+          router.push(`${basePath}/courses/${courseId}/curriculum`)
+        }
+        className="mb-5 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy"
+      >
+        <ArrowLeft className="size-4" />
+        Back to Curriculum
+      </button>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">
@@ -72,7 +87,7 @@ export function AssignmentManagement({
         <button
           onClick={() =>
             router.push(
-              `/dashboard/super-admin/courses/${courseId}/curriculum/${moduleId}/assignments/new`,
+              `${basePath}/courses/${courseId}/curriculum/${moduleId}/assignments/new`,
             )
           }
           className="btn-primary gap-2"
@@ -131,10 +146,20 @@ export function AssignmentManagement({
                     </div>
                     {menu === r.id && (
                       <div className="absolute right-4 top-14 z-[100] w-40 rounded-lg border bg-white py-1 shadow-xl">
+                        {r.fileUrl && (
+                          <a
+                            href={`${r.fileUrl}${r.fileUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(fileName(r.title, r.fileUrl))}`}
+                            download
+                            className="row-action"
+                          >
+                            <Download />
+                            Download
+                          </a>
+                        )}
                         <button
                           onClick={() =>
                             router.push(
-                              `/dashboard/super-admin/courses/${courseId}/curriculum/${moduleId}/assignments/${r.id}/edit`,
+                              `${basePath}/courses/${courseId}/curriculum/${moduleId}/assignments/${r.id}/edit`,
                             )
                           }
                           className="row-action"
@@ -231,6 +256,13 @@ export function AssignmentManagement({
       `}</style>
     </>
   );
+}
+function fileName(title: string, url: string) {
+  const extension = url.split("?")[0].match(/\.([a-z0-9]{1,10})$/i)?.[1];
+  const safe = title.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-").trim();
+  return extension
+    ? `${safe || "assignment"}.${extension}`
+    : safe || "assignment";
 }
 function Page({
   children,

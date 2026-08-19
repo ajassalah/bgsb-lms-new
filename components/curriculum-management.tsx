@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,7 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { VideoPlayer } from "./video-player";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -36,6 +38,7 @@ type Assignment = {
   title: string;
   pass_marks: number;
   due_date: string;
+  file_url?: string | null;
 };
 export type ModuleRow = {
   id: string;
@@ -71,6 +74,7 @@ export function CurriculumManagement({
   initialModules: ModuleRow[];
   readOnly?: boolean;
 }) {
+  const router = useRouter();
   const [modules, setModules] = useState(initialModules),
     [modal, setModal] = useState<Modal | null>(null),
     [menu, setMenu] = useState<string | null>(null),
@@ -212,6 +216,14 @@ export function CurriculumManagement({
   }
   return (
     <>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-5 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy"
+      >
+        <ArrowLeft className="size-4" />
+        Back
+      </button>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-slate-400">
@@ -380,7 +392,7 @@ export function CurriculumManagement({
                         <FileText />
                         Add Assignment
                       </a>
-                      <div className="relative">
+                      <div>
                         <button
                           onClick={() =>
                             setLessonMenu(lessonMenu === m.id ? null : m.id)
@@ -392,7 +404,7 @@ export function CurriculumManagement({
                           <ChevronRight className="ml-auto" />
                         </button>
                         {lessonMenu === m.id && (
-                          <div className="absolute right-full top-0 mr-1 w-52 rounded-lg border bg-white py-1 shadow-xl">
+                          <div className="mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
                             <button
                               onClick={() =>
                                 setModal({
@@ -795,6 +807,16 @@ function ModuleContent({
                     </button>
                     {cardMenu === `assignment-${a.id}` && (
                       <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
+                        {a.file_url && (
+                          <a
+                            href={`${a.file_url}${a.file_url.includes("?") ? "&" : "?"}download=${encodeURIComponent(downloadName(a.title, a.file_url))}`}
+                            download
+                            className="action-row"
+                          >
+                            <Download />
+                            Download
+                          </a>
+                        )}
                         <a
                           href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`}
                           className="action-row"

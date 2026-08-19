@@ -1,7 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Upload, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  FileText,
+  Upload,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
 type Value = {
@@ -13,18 +21,30 @@ type Value = {
   scheduled_at?: string | null;
 };
 const types = [
-  "student",
-  "instructor",
-  "admin_staff",
-  "organization",
-  "org_staff",
+  { value: "admin_staff", label: "Staffs" },
+  { value: "instructor", label: "Instructors" },
+  { value: "student", label: "Students" },
 ];
 export function AnnouncementForm({ value }: { value?: Value }) {
   const [body, setBody] = useState(value?.body || ""),
-    [selected, setSelected] = useState<string[]>(value?.receiver_types || []),
+    [selected, setSelected] = useState<string[]>(
+      (value?.receiver_types || []).filter((item) =>
+        types.some((type) => type.value === item),
+      ),
+    ),
+    [receiverOpen, setReceiverOpen] = useState(false),
     [file, setFile] = useState(""),
     [busy, setBusy] = useState(false),
+    receiverRef = useRef<HTMLDivElement>(null),
     router = useRouter();
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!receiverRef.current?.contains(event.target as Node))
+        setReceiverOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected.length) return toast.error("Select at least one user type");
@@ -99,28 +119,77 @@ export function AnnouncementForm({ value }: { value?: Value }) {
             className="field mt-2"
           />
         </label>
-        <section>
+        <section ref={receiverRef} className="relative z-40 max-w-xl">
           <label className="mb-2 block text-sm font-semibold">
             Select User Type
           </label>
-          <div className="flex flex-wrap gap-2">
-            {types.map((type) => (
+          <button
+            type="button"
+            onClick={() => setReceiverOpen((current) => !current)}
+            className="field flex items-center justify-between text-left"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Users className="size-4 shrink-0 text-slate-400" />
+              <span
+                className={selected.length ? "text-navy" : "text-slate-400"}
+              >
+                {selected.length
+                  ? types
+                      .filter((type) => selected.includes(type.value))
+                      .map((type) => type.label)
+                      .join(", ")
+                  : "Select receiver types"}
+              </span>
+            </span>
+            <ChevronDown
+              className={`size-4 shrink-0 transition ${receiverOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {receiverOpen && (
+            <div className="absolute left-0 top-full z-[500] mt-2 w-full rounded-xl border bg-white p-2 shadow-2xl">
               <button
-                key={type}
                 type="button"
                 onClick={() =>
-                  setSelected((x) =>
-                    x.includes(type)
-                      ? x.filter((y) => y !== type)
-                      : [...x, type],
+                  setSelected(
+                    selected.length === types.length
+                      ? []
+                      : types.map((type) => type.value),
                   )
                 }
-                className={`rounded-full border px-4 py-2 text-sm capitalize ${selected.includes(type) ? "border-red bg-red text-white" : "bg-white text-slate-600"}`}
+                className="flex w-full items-center justify-between rounded-lg border-b px-3 py-3 text-left text-sm font-bold text-red hover:bg-red/5"
               >
-                {type.replaceAll("_", " ")}
+                Select All
+                {selected.length === types.length && (
+                  <Check className="size-4" />
+                )}
               </button>
-            ))}
-          </div>
+              <div className="mt-1 space-y-1">
+                {types.map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() =>
+                      setSelected((current) =>
+                        current.includes(type.value)
+                          ? current.filter((item) => item !== type.value)
+                          : [...current, type.value],
+                      )
+                    }
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm ${selected.includes(type.value) ? "bg-red/5 font-semibold text-red" : "text-navy hover:bg-slate-50"}`}
+                  >
+                    {type.label}
+                    <span
+                      className={`grid size-5 place-items-center rounded border ${selected.includes(type.value) ? "border-red bg-red text-white" : "border-slate-300"}`}
+                    >
+                      {selected.includes(type.value) && (
+                        <Check className="size-3.5" />
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
         <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-slate-50 p-4 text-center">
           <Upload className="mb-2 size-6 text-red" />

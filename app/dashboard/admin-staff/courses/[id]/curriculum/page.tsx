@@ -28,7 +28,7 @@ export default async function Curriculum({
     db
       .from("course_modules")
       .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title),assignments(id,title,pass_marks,due_date)",
+        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title),assignments(id,title,pass_marks,due_date,file_url)",
       )
       .eq("course_id", params.id)
       .order("position")

@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Save, Search, Upload } from "lucide-react";
+import { ExternalLink, FileText, Save, Search, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 export function AssignmentForm({
@@ -36,6 +36,9 @@ export function AssignmentForm({
         ),
       [instructors, query],
     );
+  const currentFileName = assignment?.file_url
+    ? uploadedFileName(assignment.file_url)
+    : "";
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected) {
@@ -161,17 +164,46 @@ export function AssignmentForm({
           required
         />
       </label>
+      {assignment?.file_url && (
+        <section className="mt-5 rounded-xl border bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            Current Uploaded File
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
+              <FileText className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <b className="block truncate text-sm text-navy">
+                {currentFileName}
+              </b>
+              <small className="text-slate-400">
+                This file remains attached unless you upload a replacement.
+              </small>
+            </div>
+            <a
+              href={assignment.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary shrink-0 gap-2"
+            >
+              <ExternalLink className="size-4" />
+              Preview
+            </a>
+          </div>
+        </section>
+      )}
       <label className="mt-5 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-slate-50">
         <Upload className="mb-2 text-red" />
-        <b>Upload assignment file</b>
+        <b>
+          {assignment?.file_url
+            ? "Upload a replacement file"
+            : "Upload assignment file"}
+        </b>
         {assignment?.file_url && (
-          <a
-            href={assignment.file_url}
-            target="_blank"
-            className="mt-2 text-xs font-semibold text-blue-600"
-          >
-            Current uploaded file
-          </a>
+          <span className="mt-1 text-xs text-slate-400">
+            Optional — leave empty to keep the current file
+          </span>
         )}
         <input
           name="file"
@@ -188,13 +220,20 @@ export function AssignmentForm({
       <div className="mt-6 flex justify-end">
         <button disabled={busy} className="btn-primary gap-2">
           <Save className="size-4" />
-          {busy
-            ? "Saving…"
-            : assignment
-              ? "Save Changes"
-              : "Create Assignment"}
+          {busy ? "Saving…" : assignment ? "Save Changes" : "Create Assignment"}
         </button>
       </div>
     </form>
   );
+}
+
+function uploadedFileName(url: string) {
+  try {
+    const name = decodeURIComponent(
+      new URL(url).pathname.split("/").pop() || "",
+    );
+    return name.replace(/^\d+-/, "") || "Assignment file";
+  } catch {
+    return "Assignment file";
+  }
 }

@@ -23,7 +23,7 @@ export default async function Assignments({
     db
       .from("assignments")
       .select(
-        "id,title,pass_marks,max_score,due_date,instructor:profiles!assignments_instructor_id_fkey(full_name)",
+        "id,title,pass_marks,max_score,due_date,file_url,instructor:profiles!assignments_instructor_id_fkey(full_name)",
       )
       .eq("module_id", params.moduleId)
       .order("created_at", { ascending: false }),
@@ -36,6 +36,7 @@ export default async function Assignments({
     passMarks: x.pass_marks || 0,
     totalMarks: x.max_score || 100,
     deadline: x.due_date,
+    fileUrl: x.file_url || null,
   }));
   return (
     <StaffPageShell name={profile.full_name}>
@@ -45,6 +46,7 @@ export default async function Assignments({
         courseTitle={course.title}
         moduleTitle={module.title}
         initialRows={rows}
+        basePath="/dashboard/admin-staff"
       />
     </StaffPageShell>
   );
