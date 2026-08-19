@@ -182,7 +182,7 @@ export function EnrollmentManagement({
                           </button>
                         )}
                         {canStatus && (
-                          <div className="relative">
+                          <div>
                             <button
                               onClick={() =>
                                 setStatusMenu(statusMenu === r.id ? null : r.id)
@@ -194,7 +194,7 @@ export function EnrollmentManagement({
                               <ChevronRight className="ml-auto" />
                             </button>
                             {statusMenu === r.id && (
-                              <div className="absolute right-full top-0 mr-1 w-40 rounded-lg border bg-white py-1 shadow-xl">
+                              <div className="mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
                                 <button
                                   onClick={() => status(r, "approved")}
                                   className="row-action"

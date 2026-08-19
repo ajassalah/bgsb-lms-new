@@ -133,6 +133,9 @@ export function SuperAdminShell({
   );
   useEffect(() => setMobile(false), [pathname]);
   useEffect(() => {
+    if (courseActive) setCoursesOpen(true);
+  }, [courseActive]);
+  useEffect(() => {
     const saved = window.localStorage.getItem("bgsb-admin-theme");
     setDarkMode(
       document.documentElement.classList.contains("admin-dark") ||
@@ -272,7 +275,7 @@ export function SuperAdminShell({
                               <Link
                                 href={url}
                                 onClick={() => setMobile(false)}
-                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${pathname === url ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${pathname === url || pathname.startsWith(`${url}/`) ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
                                 key={slug}
                               >
                                 <ChildIcon className="size-3.5 shrink-0" />

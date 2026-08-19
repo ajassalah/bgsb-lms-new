@@ -410,8 +410,9 @@ function ActionMenu({
         </button>
       )}
       <a
-        href={`/courses/${course.slug}`}
+        href="https://bgsb.lk/programs"
         target="_blank"
+        rel="noopener noreferrer"
         onClick={close}
         className="menu-action"
       >
