@@ -16,6 +16,7 @@ export default async function ManageCertificateStudents({
     { data: template },
     { data: enrollments },
     { data: certificates },
+    { data: verifications },
   ] = await Promise.all([
     admin
       .from("courses")
@@ -38,10 +39,17 @@ export default async function ManageCertificateStudents({
       .from("certificates")
       .select("id,student_id,issued_at")
       .eq("course_id", params.courseId),
+    admin
+      .from("certificate_verifications")
+      .select("student_id,status")
+      .eq("course_id", params.courseId),
   ]);
   if (!course) notFound();
   const issued = new Map(
     (certificates || []).map((item) => [item.student_id, item]),
+  );
+  const verification = new Map(
+    (verifications || []).map((item) => [item.student_id, item.status]),
   );
   return (
     <StaffPageShell name={profile.full_name}>
@@ -59,6 +67,7 @@ export default async function ManageCertificateStudents({
               avatar: row.student?.avatar_url || null,
               certificateId: certificate?.id || null,
               issuedAt: certificate?.issued_at || null,
+              verificationStatus: verification.get(row.student?.id) || null,
             };
           })
           .filter((item: any) => item.id)}

@@ -24,6 +24,7 @@ import { VideoPlayer } from "./video-player";
 import { ConfirmDialog } from "./confirm-dialog";
 import { BulkImportDialog } from "./bulk-import-dialog";
 import { CollapsibleMedia } from "./collapsible-media";
+import { FileDownloadButton } from "./file-download-button";
 type Lesson = {
   id: string;
   title: string;
@@ -681,15 +682,12 @@ function ModuleContent({
                   </small>
                 </div>
                 {x.content_type === "document" && (
-                  <a
-                    href={`${x.content_url}?download=${encodeURIComponent(
-                      downloadName(x.title, x.content_url),
-                    )}`}
-                    download
-                    title="Download document"
-                  >
-                    <Download className="size-4 text-blue-600" />
-                  </a>
+                  <FileDownloadButton
+                    href={x.content_url}
+                    fallbackName={downloadName(x.title, x.content_url)}
+                    label=""
+                    className="grid size-8 place-items-center rounded-lg border text-blue-600"
+                  />
                 )}
               </div>
               {x.content_type === "audio" && (
@@ -808,14 +806,11 @@ function ModuleContent({
                     {cardMenu === `assignment-${a.id}` && (
                       <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
                         {a.file_url && (
-                          <a
-                            href={`${a.file_url}${a.file_url.includes("?") ? "&" : "?"}download=${encodeURIComponent(downloadName(a.title, a.file_url))}`}
-                            download
+                          <FileDownloadButton
+                            href={a.file_url}
+                            fallbackName={downloadName(a.title, a.file_url)}
                             className="action-row"
-                          >
-                            <Download />
-                            Download
-                          </a>
+                          />
                         )}
                         <a
                           href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`}

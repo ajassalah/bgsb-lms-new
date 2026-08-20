@@ -11,32 +11,40 @@ export default async function AssignmentView({
 }) {
   const profile = await requireProfile("student"),
     admin = createAdminClient();
-  const [{ data: enrollment }, { data: assignment }, { data: submission }] =
-    await Promise.all([
-      admin
-        .from("enrollments")
-        .select("id")
-        .eq("student_id", profile.id)
-        .eq("course_id", params.courseId)
-        .in("status", ["approved", "completed"])
-        .maybeSingle(),
-      admin
-        .from("assignments")
-        .select(
-          "id,title,max_score,file_url,course:courses(title),module:course_modules(title,position)",
-        )
-        .eq("id", params.assignmentId)
-        .eq("course_id", params.courseId)
-        .maybeSingle(),
-      admin
-        .from("assignment_submissions")
-        .select(
-          "file_url,description,submitted_at,score,feedback,review_status",
-        )
-        .eq("assignment_id", params.assignmentId)
-        .eq("student_id", profile.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: enrollment },
+    { data: assignment },
+    { data: submission },
+    { data: attempts },
+  ] = await Promise.all([
+    admin
+      .from("enrollments")
+      .select("id")
+      .eq("student_id", profile.id)
+      .eq("course_id", params.courseId)
+      .in("status", ["approved", "completed"])
+      .maybeSingle(),
+    admin
+      .from("assignments")
+      .select(
+        "id,title,max_score,file_url,course:courses(title),module:course_modules(title,position)",
+      )
+      .eq("id", params.assignmentId)
+      .eq("course_id", params.courseId)
+      .maybeSingle(),
+    admin
+      .from("assignment_submissions")
+      .select("file_url,description,submitted_at,score,feedback,review_status")
+      .eq("assignment_id", params.assignmentId)
+      .eq("student_id", profile.id)
+      .maybeSingle(),
+    admin
+      .from("assignment_submission_attempts")
+      .select("id,file_url,description,submitted_at,attempt_number")
+      .eq("assignment_id", params.assignmentId)
+      .eq("student_id", profile.id)
+      .order("attempt_number"),
+  ]);
   if (!enrollment || !assignment) notFound();
   const course = Array.isArray((assignment as any).course)
     ? (assignment as any).course[0]
@@ -67,6 +75,13 @@ export default async function AssignmentView({
           description: submission?.description || null,
           fileUrl: submission?.file_url || null,
           assignmentFileUrl: assignment.file_url || null,
+          attempts: (attempts || []).map((attempt) => ({
+            id: attempt.id,
+            fileUrl: attempt.file_url,
+            description: attempt.description,
+            submittedAt: attempt.submitted_at,
+            attemptNumber: attempt.attempt_number,
+          })),
         }}
       />
     </DashboardShell>

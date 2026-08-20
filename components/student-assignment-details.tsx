@@ -21,6 +21,13 @@ export type StudentAssignmentDetail = {
   description: string | null;
   fileUrl: string | null;
   assignmentFileUrl: string | null;
+  attempts: {
+    id: string;
+    fileUrl: string;
+    description: string | null;
+    submittedAt: string;
+    attemptNumber: number;
+  }[];
 };
 
 export function StudentAssignmentDetails({
@@ -179,7 +186,7 @@ export function StudentAssignmentDetails({
                 No attachment available
               </span>
             )}
-            {submission.reviewStatus !== "accepted" && (
+            {["declined", "resubmit"].includes(submission.reviewStatus) && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
@@ -203,6 +210,40 @@ export function StudentAssignmentDetails({
               {submission.description}
             </p>
           )}
+        </section>
+      )}
+      {details.attempts.length > 0 && (
+        <section className="mt-6 rounded-2xl border bg-white p-5">
+          <h2 className="text-lg font-bold text-navy">Submission Attempts</h2>
+          <div className="mt-4 space-y-3">
+            {details.attempts.map((attempt) => (
+              <div
+                key={attempt.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-slate-50 p-4"
+              >
+                <div>
+                  <b>Attempt {attempt.attemptNumber}</b>
+                  <p className="text-xs text-slate-500">
+                    {new Date(attempt.submittedAt).toLocaleString("en-GB")}
+                  </p>
+                  {attempt.description && (
+                    <p className="mt-1 text-sm text-slate-600">
+                      {attempt.description}
+                    </p>
+                  )}
+                </div>
+                <a
+                  href={attempt.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary gap-2"
+                >
+                  <FileText className="size-4" />
+                  Open attachment
+                </a>
+              </div>
+            ))}
+          </div>
         </section>
       )}
       {editing && (
@@ -240,6 +281,7 @@ export function StudentAssignmentDetails({
                 name="file"
                 type="file"
                 className="absolute inset-0 cursor-pointer opacity-0"
+                required={submission.reviewStatus === "resubmit"}
               />
             </label>
             {submission.fileUrl && (

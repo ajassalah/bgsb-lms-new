@@ -8,6 +8,8 @@ export type ActivityRow = {
   description: string;
   created_at: string;
   ip_address: string | null;
+  entity_type: string | null;
+  metadata: { path?: string; target?: string; label?: string } | null;
   actor: { full_name: string; email: string; avatar_url: string | null } | null;
 };
 export function RecentActivityManagement({ rows }: { rows: ActivityRow[] }) {
@@ -83,6 +85,12 @@ export function RecentActivityManagement({ rows }: { rows: ActivityRow[] }) {
                   </span>{" "}
                   · {x.description}
                 </p>
+                {x.metadata?.path && (
+                  <p className="mt-1 truncate text-xs text-slate-400">
+                    Location: {x.metadata.path}
+                    {x.metadata.target ? ` → ${x.metadata.target}` : ""}
+                  </p>
+                )}
               </div>
               <div className="text-right text-xs text-slate-400">
                 <div>

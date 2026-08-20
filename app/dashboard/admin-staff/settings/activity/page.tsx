@@ -10,7 +10,7 @@ export default async function Page() {
     { data } = await createAdminClient()
       .from("admin_activity_logs")
       .select(
-        "id,action,description,created_at,ip_address,actor:profiles!admin_activity_logs_actor_id_fkey(full_name,email,avatar_url)",
+        "id,action,entity_type,description,metadata,created_at,ip_address,actor:profiles!admin_activity_logs_actor_id_fkey(full_name,email,avatar_url)",
       )
       .order("created_at", { ascending: false })
       .limit(500);

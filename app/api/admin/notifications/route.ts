@@ -39,6 +39,36 @@ export async function GET() {
     .is("read_at", null)
     .order("created_at", { ascending: false })
     .limit(20);
+  const notificationRole = p?.role === "admin_staff" ? "admin_staff" : p?.role;
+  const [{ data: roleAnnouncements }, { data: commonReads }] =
+    notificationRole && notificationRole !== "super_admin"
+      ? await Promise.all([
+          admin
+            .from("announcements")
+            .select("id,title,created_at")
+            .contains("receiver_types", [notificationRole])
+            .or(
+              `scheduled_at.is.null,scheduled_at.lte.${new Date().toISOString()}`,
+            )
+            .order("created_at", { ascending: false })
+            .limit(20),
+          admin
+            .from("notification_reads")
+            .select("notification_id")
+            .eq("user_id", user.id),
+        ])
+      : [{ data: [] }, { data: [] }];
+  const roleAnnouncementItems = (roleAnnouncements || []).map((item) => ({
+    id: `a-${item.id}`,
+    title: `Announcement: ${item.title}`,
+    url:
+      p?.role === "student"
+        ? `/dashboard/student/announcements`
+        : p?.role === "instructor"
+          ? `/dashboard/instructor/announcements`
+          : `/dashboard/admin-staff/announcements/${item.id}`,
+    date: item.created_at,
+  }));
   if (p?.role === "admin_staff") {
     const [{ data: activities }, { data: reads }] = await Promise.all([
       admin
@@ -60,6 +90,7 @@ export async function GET() {
         url: x.url,
         date: x.created_at,
       })),
+      ...roleAnnouncementItems,
       ...(activities || []).map((x) => ({
         id: `log-${x.id}`,
         title:
@@ -78,12 +109,23 @@ export async function GET() {
   }
   if (p?.role !== "super_admin")
     return Response.json({
-      items: (directNotifications || []).map((x) => ({
-        id: `u-${x.id}`,
-        title: x.title,
-        url: x.url,
-        date: x.created_at,
-      })),
+      items: [
+        ...(directNotifications || []).map((x) => ({
+          id: `u-${x.id}`,
+          title: x.title,
+          url: x.url,
+          date: x.created_at,
+        })),
+        ...roleAnnouncementItems,
+      ]
+        .filter(
+          (item) =>
+            !(commonReads || []).some(
+              (read) => read.notification_id === item.id,
+            ),
+        )
+        .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+        .slice(0, 20),
     });
   const now = new Date().toISOString(),
     [{ data: tickets }, { data: announcements }, { data: reads }] =

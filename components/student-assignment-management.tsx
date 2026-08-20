@@ -162,6 +162,10 @@ export function StudentAssignmentTable({
     [menu, setMenu] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
     [selectedFileName, setSelectedFileName] = useState("");
+  const canSubmit = (row: StudentAssignment) =>
+    row.status === "resubmit" ||
+    (row.status === "not_submitted" &&
+      new Date(row.due).getTime() >= Date.now());
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected) return;
@@ -240,7 +244,7 @@ export function StudentAssignmentTable({
                     </button>
                     {menu === row.id && (
                       <div className="absolute right-4 top-14 z-[120] w-48 rounded-xl border bg-white p-1 shadow-2xl">
-                        {row.status !== "accepted" && (
+                        {canSubmit(row) && (
                           <button
                             onClick={() => {
                               setSelected(row);
@@ -312,7 +316,7 @@ export function StudentAssignmentTable({
                 name="file"
                 type="file"
                 className="absolute inset-0 cursor-pointer opacity-0"
-                required={!selected.fileUrl}
+                required={selected.status === "resubmit" || !selected.fileUrl}
                 onChange={(event) =>
                   setSelectedFileName(event.target.files?.[0]?.name || "")
                 }

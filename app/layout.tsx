@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { MobileTableCards } from "@/components/mobile-table-cards";
 import { FloatingActionMenus } from "@/components/floating-action-menus";
 import { SessionInactivity } from "@/components/session-inactivity";
+import { ActivityTracker } from "@/components/activity-tracker";
 
 export const metadata: Metadata = {
   title: {
@@ -32,6 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <MobileTableCards />
         <FloatingActionMenus />
         <SessionInactivity />
+        <ActivityTracker />
         {children}
         <Toaster richColors />
       </body>

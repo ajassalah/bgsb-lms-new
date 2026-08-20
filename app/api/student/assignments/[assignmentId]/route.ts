@@ -12,7 +12,7 @@ export async function POST(
   const admin = createAdminClient(),
     { data: assignment } = await admin
       .from("assignments")
-      .select("id,course_id,title,instructor_id")
+      .select("id,course_id,title,instructor_id,due_date,course:courses(title)")
       .eq("id", params.assignmentId)
       .maybeSingle();
   if (!assignment)
@@ -40,9 +40,24 @@ export async function POST(
       { error: "Accepted assignments cannot be changed" },
       { status: 403 },
     );
+  if (
+    assignment.due_date &&
+    new Date(assignment.due_date).getTime() < Date.now() &&
+    existing?.review_status !== "resubmit"
+  )
+    return Response.json(
+      { error: "The assignment deadline has passed" },
+      { status: 403 },
+    );
   const form = await request.formData(),
     file = form.get("file"),
     description = String(form.get("description") || "").trim();
+  const hasNewFile = file instanceof File && file.size > 0;
+  if (existing?.review_status === "resubmit" && !hasNewFile)
+    return Response.json(
+      { error: "Upload a new attachment to resubmit this assignment" },
+      { status: 400 },
+    );
   let file_url: string | null = null;
   if (file instanceof File && file.size) {
     const ext =
@@ -87,6 +102,32 @@ export async function POST(
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
 
+  const { data: lastAttempt } = await admin
+    .from("assignment_submission_attempts")
+    .select("attempt_number")
+    .eq("assignment_id", params.assignmentId)
+    .eq("student_id", user.id)
+    .order("attempt_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error: attemptError } = await admin
+    .from("assignment_submission_attempts")
+    .insert({
+      assignment_id: params.assignmentId,
+      student_id: user.id,
+      file_url,
+      description,
+      submitted_at: data.submitted_at,
+      attempt_number: (lastAttempt?.attempt_number || 0) + 1,
+    });
+  if (attemptError)
+    return Response.json(
+      {
+        error: `Submission saved, but attempt history failed: ${attemptError.message}`,
+      },
+      { status: 400 },
+    );
+
   const [{ data: student }, { data: courseInstructors }, { data: staff }] =
     await Promise.all([
       admin.from("profiles").select("full_name").eq("id", user.id).single(),
@@ -100,6 +141,9 @@ export async function POST(
         .in("role", ["super_admin", "admin_staff"])
         .eq("status", "active"),
     ]);
+  const course = Array.isArray((assignment as any).course)
+    ? (assignment as any).course[0]
+    : (assignment as any).course;
   const instructorIds = new Set([
       assignment.instructor_id,
       ...(courseInstructors || []).map((row) => row.instructor_id),
@@ -109,12 +153,12 @@ export async function POST(
         .filter(Boolean)
         .map((user_id) => ({
           user_id,
-          title: `${student?.full_name || "A student"} submitted: ${assignment.title}`,
+          title: `${student?.full_name || "A student"} submitted “${assignment.title}” in ${course?.title || "an assigned course"}. Open the submission to review it.`,
           url: `/dashboard/instructor/assignments/${assignment.course_id}`,
         })),
       ...(staff || []).map((member) => ({
         user_id: member.id,
-        title: `${student?.full_name || "A student"} submitted: ${assignment.title}`,
+        title: `${student?.full_name || "A student"} submitted “${assignment.title}” in ${course?.title || "a course"}. Open the submission to review it.`,
         url:
           member.role === "super_admin"
             ? `/dashboard/super-admin/assignments/${assignment.course_id}`
