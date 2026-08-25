@@ -1,26 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { adminActorCan } from "@/lib/staff-permissions";
 
-async function authorized() {
+async function authorized(action: "edit" | "delete") {
   const db = createClient();
   const {
     data: { user },
   } = await db.auth.getUser();
   if (!user) return false;
-  const { data: profile } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return profile?.role === "super_admin";
+  return adminActorCan(user.id, "curriculum_assignments", action);
 }
 
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await authorized()))
+  if (!(await authorized("edit")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData();
   const parsed = z
@@ -40,11 +36,9 @@ export async function PATCH(
   let file_url: string | undefined;
   if (file instanceof File && file.size) {
     const path = `assignments/${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, "-")}`;
-    const upload = await admin.storage
-      .from("course-media")
-      .upload(path, file, {
-        contentType: file.type || "application/octet-stream",
-      });
+    const upload = await admin.storage.from("course-media").upload(path, file, {
+      contentType: file.type || "application/octet-stream",
+    });
     if (upload.error)
       return Response.json({ error: upload.error.message }, { status: 400 });
     file_url = admin.storage.from("course-media").getPublicUrl(path)
@@ -64,17 +58,7 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  const db = createClient(),
-    {
-      data: { user },
-    } = await db.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (p?.role !== "super_admin")
+  if (!(await authorized("delete")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const { error } = await createAdminClient()
     .from("assignments")

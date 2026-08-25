@@ -218,9 +218,10 @@ export function StudentForm({ student }: { student?: StudentFormValue }) {
         <h2 className="text-lg font-bold text-navy">Identification</h2>
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <Field
-            label="NIC/Passport No"
+            label="NIC/Passport No (Optional)"
             name="nic_passport"
             defaultValue={student?.nic_passport || ""}
+            required={false}
           />
           <label className="text-sm font-semibold">
             Phone Number
@@ -284,16 +285,18 @@ export function StudentForm({ student }: { student?: StudentFormValue }) {
 }
 function Field({
   label,
+  required = true,
   ...props
 }: {
   label: string;
   name: string;
+  required?: boolean;
   [key: string]: any;
 }) {
   return (
     <label className="text-sm font-semibold">
       {label}
-      <input {...props} className="field mt-2" required />
+      <input {...props} className="field mt-2" required={required} />
     </label>
   );
 }

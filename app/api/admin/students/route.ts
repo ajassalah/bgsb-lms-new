@@ -21,7 +21,7 @@ export async function POST(req: Request) {
         gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
         country: z.string().min(2),
         about: z.string().optional(),
-        nic_passport: z.string().trim().min(2),
+        nic_passport: z.string().trim().optional(),
         phone_country_code: z.string().min(1),
         phone: z.string().trim().min(5),
         whatsapp_mode: z.enum(["same", "new"]).optional(),
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       gender: parsed.data.gender,
       country: parsed.data.country,
       about: parsed.data.about || null,
-      nic_passport: parsed.data.nic_passport,
+      nic_passport: parsed.data.nic_passport || null,
       phone_country_code: parsed.data.phone_country_code,
       phone: `${parsed.data.phone_country_code}${parsed.data.phone}`,
       whatsapp_number:

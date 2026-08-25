@@ -11,6 +11,7 @@ import { InstructorDashboard } from "@/components/instructor-dashboard";
 import { StudentDashboard } from "@/components/student-dashboard";
 import { StaffAdminDashboard } from "@/components/staff-admin-dashboard";
 import { StaffPortalShell } from "@/components/staff-portal-shell";
+import { getStaffPermissions } from "@/lib/staff-permissions";
 export default async function Dashboard({
   params,
 }: {
@@ -379,16 +380,10 @@ export default async function Dashboard({
   }
   if (role === "admin_staff") {
     const admin = createAdminClient();
-    const [{ data: staff }, { data: permissionRows }] = await Promise.all([
+    const [{ data: staff }, permissions] = await Promise.all([
       admin.from("profiles").select("staff_role").eq("id", p.id).single(),
-      admin
-        .from("admin_permissions")
-        .select("module,actions")
-        .eq("admin_staff_id", p.id),
+      getStaffPermissions(p.id),
     ]);
-    const permissions = Object.fromEntries(
-      (permissionRows || []).map((row) => [row.module, row.actions || {}]),
-    );
     return (
       <StaffPortalShell
         name={p.full_name}

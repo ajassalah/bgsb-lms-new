@@ -88,7 +88,7 @@ export async function DELETE(
   const actor = await authorized();
   if (!actor) return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
-  if (actor.role === "instructor") {
+  if (["instructor", "student"].includes(actor.role)) {
     const { data: owned } = await admin
       .from("calendar_appointments")
       .select("id")
@@ -101,13 +101,29 @@ export async function DELETE(
         { status: 403 },
       );
   }
-  const { error } = await admin
+  await admin
+    .from("calendar_appointment_users")
+    .delete()
+    .eq("appointment_id", params.id);
+  const { data: deleted, error } = await admin
     .from("calendar_appointments")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .select("id")
+    .maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (!deleted)
+    return Response.json(
+      { error: "Scheduled event was not found or was already deleted" },
+      { status: 404 },
+    );
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/calendar");
+  revalidatePath("/dashboard/admin-staff");
+  revalidatePath("/dashboard/admin-staff/calendar");
+  revalidatePath("/dashboard/instructor");
   revalidatePath("/dashboard/instructor/calendar");
+  revalidatePath("/dashboard/student");
+  revalidatePath("/dashboard/student/calendar");
   return Response.json({ ok: true });
 }

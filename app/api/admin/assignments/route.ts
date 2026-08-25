@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { adminActorCan } from "@/lib/staff-permissions";
 
 export async function POST(req: Request) {
   const db = createClient();
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
     .single();
   if (
     !["super_admin", "admin_staff", "instructor"].includes(profile?.role || "")
+  )
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (
+    profile?.role === "admin_staff" &&
+    !(await adminActorCan(user.id, "curriculum_assignments", "create"))
   )
     return Response.json({ error: "Forbidden" }, { status: 403 });
 

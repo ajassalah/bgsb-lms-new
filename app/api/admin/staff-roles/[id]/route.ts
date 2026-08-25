@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 const reservedPortalRoles = ["Instructor", "Student"];
-async function ok() {
+async function ok(action: "edit" | "delete") {
   const db = createClient(),
     {
       data: { user },
@@ -13,13 +14,17 @@ async function ok() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return data?.role === "super_admin";
+  return (
+    data?.role === "super_admin" ||
+    (data?.role === "admin_staff" &&
+      (await adminActorCan(user.id, "roles", action)))
+  );
 }
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await ok()))
+  if (!(await ok("edit")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const p = z
     .object({ name: z.string().trim().min(2), permissions: z.record(z.any()) })
@@ -88,7 +93,7 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await ok()))
+  if (!(await ok("delete")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const { error } = await createAdminClient()
     .from("staff_roles")

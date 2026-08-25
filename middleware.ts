@@ -4,6 +4,12 @@ import { NextResponse, type NextRequest } from "next/server";
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 const staffRouteModules: [string, string[]][] = [
+  ["/dashboard/admin-staff/class/attendance", ["class_attendance"]],
+  ["/dashboard/admin-staff/class/students", ["class_students"]],
+  ["/dashboard/admin-staff/class/instructors", ["class_instructors"]],
+  ["/dashboard/admin-staff/class/classes", ["class_management"]],
+  ["/dashboard/admin-staff/class/reports", ["class_reports"]],
+  ["/dashboard/admin-staff/class", ["class_dashboard"]],
   ["/dashboard/admin-staff/enrollments", ["enrollment"]],
   ["/dashboard/admin-staff/category", ["categories"]],
   ["/dashboard/admin-staff/curriculum", ["curriculum_overview"]],
@@ -85,15 +91,37 @@ export async function middleware(req: NextRequest) {
       req.nextUrl.pathname.startsWith(prefix),
     );
     if (match) {
-      const { data: rows } = await db
-        .from("admin_permissions")
-        .select("actions")
-        .eq("admin_staff_id", user.id)
-        .in("module", match[1]);
-      const allowed = (rows || []).some((row) =>
-        Object.values((row.actions || {}) as Record<string, boolean>).some(
-          Boolean,
-        ),
+      const [{ data: rows }, { data: staffProfile }] = await Promise.all([
+        db
+          .from("admin_permissions")
+          .select("module,actions")
+          .eq("admin_staff_id", user.id)
+          .in("module", match[1]),
+        db
+          .from("profiles")
+          .select("staff_role")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ]);
+      const { data: assignedRole } = staffProfile?.staff_role
+        ? await db
+            .from("staff_roles")
+            .select("permissions")
+            .ilike("name", staffProfile.staff_role.trim())
+            .maybeSingle()
+        : { data: null };
+      const copied = Object.fromEntries(
+        (rows || []).map((row) => [row.module, row.actions || {}]),
+      );
+      const merged = {
+        ...copied,
+        ...((assignedRole?.permissions || {}) as Record<
+          string,
+          Record<string, boolean>
+        >),
+      };
+      const allowed = match[1].some((module) =>
+        Object.values(merged[module] || {}).some(Boolean),
       );
       if (!allowed)
         return NextResponse.redirect(

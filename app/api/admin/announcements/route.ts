@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 
 async function auth() {
   const db = createClient(),
@@ -8,12 +9,9 @@ async function auth() {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return null;
-  const { data } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return data?.role === "super_admin" ? user : null;
+  return (await adminActorCan(user.id, "announcements", "create"))
+    ? user
+    : null;
 }
 export async function POST(req: Request) {
   const user = await auth();

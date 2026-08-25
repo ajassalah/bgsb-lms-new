@@ -1,18 +1,14 @@
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 export async function POST(req: Request) {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (p?.role !== "super_admin")
+  if (!(await adminActorCan(user.id, "curriculum", "bulk_import")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     file = form.get("file"),
@@ -41,7 +37,12 @@ export async function POST(req: Request) {
     if (!moduleId) {
       const { data, error } = await admin
         .from("course_modules")
-        .insert({ course_id: courseId, title, description: String(row.module_description || "").trim() || null, position: ++position })
+        .insert({
+          course_id: courseId,
+          title,
+          description: String(row.module_description || "").trim() || null,
+          position: ++position,
+        })
         .select("id")
         .single();
       if (error || !data) {
@@ -56,26 +57,22 @@ export async function POST(req: Request) {
       const type = ["video", "audio", "document"].includes(row.lesson_type)
           ? row.lesson_type
           : "document",
-        { error } = await admin
-          .from("lessons")
-          .insert({
-            module_id: moduleId,
-            title: row.lesson_title,
-            content_type: type,
-            content_url: row.content_url || "#",
-            description: row.description || null,
-            position: Number(row.lesson_position || 1),
-          });
+        { error } = await admin.from("lessons").insert({
+          module_id: moduleId,
+          title: row.lesson_title,
+          content_type: type,
+          content_url: row.content_url || "#",
+          description: row.description || null,
+          position: Number(row.lesson_position || 1),
+        });
       error ? failed++ : imported++;
     }
     if (row.quiz_title) {
-      const { error } = await admin
-        .from("quizzes")
-        .insert({
-          course_id: courseId,
-          module_id: moduleId,
-          title: row.quiz_title,
-        });
+      const { error } = await admin.from("quizzes").insert({
+        course_id: courseId,
+        module_id: moduleId,
+        title: row.quiz_title,
+      });
       error ? failed++ : imported++;
     }
   }

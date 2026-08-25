@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export type CalendarAppointment = {
   id: string;
@@ -142,14 +143,24 @@ export function CalendarManagement({
     router.refresh();
   }
   async function remove(id: string) {
+    setBusy(true);
+    setError("");
     const response = await fetch(
       `/api/admin/appointments/${id.replace(/^appointment-/, "")}`,
       { method: "DELETE" },
     );
+    const body = await response.json().catch(() => ({}));
+    setBusy(false);
     if (response.ok) {
       setAppointments((rows) => rows.filter((x) => x.id !== id));
+      setMenu(null);
+      toast.success("Scheduled event deleted");
       router.refresh();
+      return;
     }
+    const message = body.error || "Scheduled event could not be deleted";
+    setError(message);
+    toast.error(message);
   }
   async function assign() {
     if (!assigning) return;
@@ -464,6 +475,7 @@ export function CalendarManagement({
                                 Assign
                               </button>
                               <button
+                                disabled={busy}
                                 onClick={() => remove(row.id)}
                                 className="row-action text-red"
                               >

@@ -1,17 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 async function auth() {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return null;
-  const { data: p } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return p && ["super_admin", "admin_staff"].includes(p.role) ? user : null;
+  return (await adminActorCan(user.id, "email_templates", "create"))
+    ? user
+    : null;
 }
 export async function POST(req: Request) {
   const user = await auth();
@@ -30,11 +28,9 @@ export async function POST(req: Request) {
     attachment_name = null;
   if (file instanceof File && file.size) {
     const path = `email-templates/${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, "-")}`,
-      upload = await admin.storage
-        .from("course-media")
-        .upload(path, file, {
-          contentType: file.type || "application/octet-stream",
-        });
+      upload = await admin.storage.from("course-media").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+      });
     if (upload.error)
       return Response.json({ error: upload.error.message }, { status: 400 });
     attachment_url = admin.storage.from("course-media").getPublicUrl(path)

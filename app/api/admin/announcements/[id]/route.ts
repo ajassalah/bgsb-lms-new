@@ -1,25 +1,21 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 
-async function allowed() {
+async function allowed(action: "edit" | "delete") {
   const db = createClient(),
     {
       data: { user },
     } = await db.auth.getUser();
   if (!user) return false;
-  const { data } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  return data?.role === "super_admin";
+  return adminActorCan(user.id, "announcements", action);
 }
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await allowed()))
+  if (!(await allowed("edit")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     receivers = form.getAll("receiver_types").map(String),
@@ -65,7 +61,7 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } },
 ) {
-  if (!(await allowed()))
+  if (!(await allowed("delete")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const { error } = await createAdminClient()
     .from("announcements")

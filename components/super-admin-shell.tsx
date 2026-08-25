@@ -31,6 +31,7 @@ import {
   Tags,
   UserCog,
   UserRound,
+  School,
   Users,
   Video,
   X,
@@ -52,6 +53,21 @@ const groups = [
       ["Courses", BookCopy, "/dashboard/super-admin/courses"],
       ["Live classes", Video, "/dashboard/super-admin/live-classes"],
       ["Assignments", ClipboardCheck, "/dashboard/super-admin/assignments"],
+    ],
+  },
+  {
+    label: "CLASS",
+    items: [
+      ["Dashboard", LayoutDashboard, "/dashboard/super-admin/class"],
+      ["Attendance", ClipboardCheck, "/dashboard/super-admin/class/attendance"],
+      ["Students", Users, "/dashboard/super-admin/class/students"],
+      [
+        "Instructors",
+        GraduationCap,
+        "/dashboard/super-admin/class/instructors",
+      ],
+      ["Class", School, "/dashboard/super-admin/class/classes"],
+      ["Reports", FileBarChart, "/dashboard/super-admin/class/reports"],
     ],
   },
   {

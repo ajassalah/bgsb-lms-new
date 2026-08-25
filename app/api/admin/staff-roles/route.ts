@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminActorCan } from "@/lib/staff-permissions";
 const reservedPortalRoles = ["Instructor", "Student"];
-async function ok() {
+async function ok(actions: [string, string][]) {
   const db = createClient(),
     {
       data: { user },
@@ -13,10 +14,14 @@ async function ok() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return data?.role === "super_admin";
+  if (data?.role === "super_admin") return true;
+  if (data?.role !== "admin_staff") return false;
+  for (const [module, action] of actions)
+    if (await adminActorCan(user.id, module, action)) return true;
+  return false;
 }
 export async function POST(req: Request) {
-  if (!(await ok()))
+  if (!(await ok([["roles", "create"]])))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const p = z
     .object({ name: z.string().trim().min(2), permissions: z.record(z.any()) })
@@ -48,7 +53,14 @@ export async function POST(req: Request) {
     : Response.json(data);
 }
 export async function GET() {
-  if (!(await ok()))
+  if (
+    !(await ok([
+      ["roles", "create"],
+      ["roles", "edit"],
+      ["staff", "create"],
+      ["staff", "edit"],
+    ]))
+  )
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const { data, error } = await createAdminClient()
     .from("staff_roles")

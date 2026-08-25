@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireProfile } from "@/lib/auth";
 import { StaffPortalShell } from "./staff-portal-shell";
+import { getStaffPermissions } from "@/lib/staff-permissions";
 
 export async function StaffPageShell({
   children,
@@ -10,16 +11,10 @@ export async function StaffPageShell({
 }) {
   const profile = await requireProfile("admin_staff");
   const admin = createAdminClient();
-  const [{ data: staff }, { data: permissionRows }] = await Promise.all([
+  const [{ data: staff }, permissions] = await Promise.all([
     admin.from("profiles").select("staff_role").eq("id", profile.id).single(),
-    admin
-      .from("admin_permissions")
-      .select("module,actions")
-      .eq("admin_staff_id", profile.id),
+    getStaffPermissions(profile.id),
   ]);
-  const permissions = Object.fromEntries(
-    (permissionRows || []).map((row) => [row.module, row.actions || {}]),
-  );
   return (
     <StaffPortalShell
       name={profile.full_name}

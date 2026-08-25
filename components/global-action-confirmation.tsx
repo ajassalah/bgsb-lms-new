@@ -43,7 +43,7 @@ export function GlobalActionConfirmation() {
     });
   }
   return (
-    <div className="fixed inset-0 z-[300] grid place-items-center bg-black/50 p-3 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[20000] grid place-items-center bg-black/50 p-3 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl">
         <span className="mx-auto grid size-12 place-items-center rounded-full bg-red/10 text-red">
           <CircleHelp className="size-6" />
