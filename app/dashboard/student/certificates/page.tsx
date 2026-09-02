@@ -1,9 +1,87 @@
+import { Award, Eye } from "lucide-react";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { FileDownloadButton } from "@/components/file-download-button";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { Award } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function StudentCertificatesPage() {
-  const profile = await requireProfile("student"), { data } = await createClient().from("certificates").select("id,certificate_url,issued_at,course:courses(title)").eq("student_id", profile.id).order("issued_at", { ascending: false });
-  return <DashboardShell role="student" name={profile.full_name} email={profile.email} avatar={profile.avatar_url}><div><p className="text-sm text-slate-400">Learning / Certificates</p><h1 className="mt-1 text-2xl font-bold text-navy">My Certificates</h1></div><article className="mt-6 max-w-sm rounded-2xl border bg-white p-5"><Award className="text-emerald-600"/><b className="mt-3 block text-3xl">{data?.length||0}</b><span className="text-sm text-slate-500">Available Certificates</span></article><div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{(data || []).map((item: any) => <article key={item.id} className="overflow-hidden rounded-xl border bg-white"><div className="grid h-44 place-items-center bg-emerald-50">{item.certificate_url&&/\.(png|jpe?g|webp)(\?|$)/i.test(item.certificate_url)?<img src={item.certificate_url} className="size-full object-cover" alt=""/>:<Award className="size-14 text-emerald-300"/>}</div><div className="p-5"><b className="block text-navy">{item.course?.title || "Course Certificate"}</b><small className="text-emerald-700">Issued {new Date(item.issued_at).toLocaleDateString("en-GB")}</small>{item.certificate_url && <a href={item.certificate_url} target="_blank" rel="noreferrer" className="btn-primary mt-4 flex w-full justify-center">View Certificate</a>}</div></article>)}{!data?.length && <div className="rounded-xl border border-dashed bg-white p-12 text-center text-slate-400">No certificates issued yet.</div>}</div></DashboardShell>;
+  const profile = await requireProfile("student");
+  const { data } = await createClient()
+    .from("certificates")
+    .select("id,certificate_url,issued_at,course:courses(title)")
+    .eq("student_id", profile.id)
+    .order("issued_at", { ascending: false });
+
+  return (
+    <DashboardShell
+      role="student"
+      name={profile.full_name}
+      email={profile.email}
+      avatar={profile.avatar_url}
+    >
+      <div>
+        <p className="text-sm text-slate-400">Learning / Certificates</p>
+        <h1 className="mt-1 text-2xl font-bold text-navy">My Certificates</h1>
+      </div>
+      <article className="mt-6 max-w-sm rounded-2xl border bg-white p-5">
+        <Award className="text-emerald-600" />
+        <b className="mt-3 block text-3xl">{data?.length || 0}</b>
+        <span className="text-sm text-slate-500">Available Certificates</span>
+      </article>
+      <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {(data || []).map((item: any) => (
+          <article
+            key={item.id}
+            className="overflow-hidden rounded-xl border bg-white"
+          >
+            <div className="grid h-44 place-items-center bg-emerald-50">
+              {item.certificate_url &&
+              /\.(png|jpe?g|webp)(\?|$)/i.test(item.certificate_url) ? (
+                <img
+                  src={item.certificate_url}
+                  className="size-full object-cover"
+                  alt="Certificate preview"
+                />
+              ) : (
+                <Award className="size-14 text-emerald-300" />
+              )}
+            </div>
+            <div className="p-5">
+              <b className="block text-navy">
+                {item.course?.title || "Course Certificate"}
+              </b>
+              <small className="text-emerald-700">
+                Issued {new Date(item.issued_at).toLocaleDateString("en-GB")}
+              </small>
+              {item.certificate_url && (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <a
+                    href={item.certificate_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary justify-center gap-2"
+                  >
+                    <Eye className="size-4" /> View
+                  </a>
+                  <FileDownloadButton
+                    href={`/api/student/certificates/${item.id}/download`}
+                    label="Download"
+                    fallbackName="certificate"
+                    className="btn-primary justify-center gap-2"
+                  />
+                </div>
+              )}
+            </div>
+          </article>
+        ))}
+        {!data?.length && (
+          <div className="rounded-xl border border-dashed bg-white p-12 text-center text-slate-400">
+            No certificates issued yet.
+          </div>
+        )}
+      </div>
+    </DashboardShell>
+  );
 }

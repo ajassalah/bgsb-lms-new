@@ -15,10 +15,14 @@ export function ReadOnlyTable({
   title,
   columns,
   rows,
+  directView = false,
+  portalLabel = "Instructor Portal",
 }: {
   title: string;
   columns: string[];
   rows: { id: string; cells: React.ReactNode[]; view?: string }[];
+  directView?: boolean;
+  portalLabel?: string;
 }) {
   const [q, setQ] = useState(""),
     [menu, setMenu] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export function ReadOnlyTable({
   );
   return (
     <>
-      <p className="text-sm text-slate-400">Instructor Portal</p>
+      <p className="text-sm text-slate-400">{portalLabel}</p>
       <h1 className="mt-1 text-2xl font-bold text-navy">{title}</h1>
       <section className="mt-7 overflow-visible rounded-2xl border bg-white">
         <label className="relative m-5 block max-w-lg">
@@ -65,13 +69,22 @@ export function ReadOnlyTable({
                     </td>
                   ))}
                   <td className="relative p-4 text-right">
-                    <button
-                      onClick={() => setMenu(menu === row.id ? null : row.id)}
-                      className="grid size-9 place-items-center rounded-lg border ml-auto"
-                    >
-                      <MoreVertical className="size-4" />
-                    </button>
-                    {menu === row.id && (
+                    {directView && row.view ? (
+                      <Link
+                        href={row.view}
+                        className="btn-secondary ml-auto gap-2"
+                      >
+                        <Eye className="size-4" /> View
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => setMenu(menu === row.id ? null : row.id)}
+                        className="ml-auto grid size-9 place-items-center rounded-lg border"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                    )}
+                    {!directView && menu === row.id && (
                       <div className="absolute right-4 top-14 z-[190] w-36 rounded-xl border bg-white p-1 text-left shadow-2xl">
                         {row.view ? (
                           <Link

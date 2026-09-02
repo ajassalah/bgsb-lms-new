@@ -193,6 +193,7 @@ export const permissionModules: PermissionModule[] = [
     label: "Private Files",
     actions: ["upload_file", "create_folder", "edit", "delete"],
   },
+  { key: "help_support", label: "Help & Support", actions: ["access"] },
   {
     key: "email_configuration",
     label: "Email Configuration",

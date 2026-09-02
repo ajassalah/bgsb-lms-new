@@ -93,10 +93,20 @@ export function StaffTopbar({
     setThemeReady(true);
   }, []);
   useEffect(() => {
-    fetch("/api/admin/notifications", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((x) => setNotifications(x.items || []))
-      .catch(() => {});
+    let active = true;
+    const refreshNotifications = () =>
+      fetch("/api/admin/notifications", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((x) => {
+          if (active) setNotifications(x.items || []);
+        })
+        .catch(() => {});
+    refreshNotifications();
+    const timer = window.setInterval(refreshNotifications, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [path]);
   useEffect(() => {
     if (!themeReady) return;

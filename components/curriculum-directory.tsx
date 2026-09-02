@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Eye, MoreVertical, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { TablePagination } from "./table-pagination";
 
 export type CurriculumCourseRow = {
   id: string;
@@ -20,7 +19,6 @@ export function CurriculumDirectory({
   basePath: string;
 }) {
   const [query, setQuery] = useState(""),
-    [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null);
   const filtered = useMemo(
     () =>
@@ -31,9 +29,6 @@ export function CurriculumDirectory({
       ),
     [rows, query],
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / 20)),
-    visible = filtered.slice((page - 1) * 20, page * 20);
-  useEffect(() => setPage(1), [query]);
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (!(event.target as HTMLElement).closest("[data-curriculum-action]"))
@@ -75,11 +70,9 @@ export function CurriculumDirectory({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {visible.map((row, index) => (
+              {filtered.map((row, index) => (
                 <tr key={row.id}>
-                  <td className="p-4 text-slate-400">
-                    {(page - 1) * 20 + index + 1}
-                  </td>
+                  <td className="p-4 text-slate-400">{index + 1}</td>
                   <td className="p-4 font-bold text-navy">{row.title}</td>
                   <td className="p-4">{row.category}</td>
                   <td className="p-4">
@@ -110,7 +103,7 @@ export function CurriculumDirectory({
                   </td>
                 </tr>
               ))}
-              {!visible.length && (
+              {!filtered.length && (
                 <tr>
                   <td colSpan={5} className="p-14 text-center text-slate-400">
                     No courses match your search.
@@ -120,7 +113,6 @@ export function CurriculumDirectory({
             </tbody>
           </table>
         </div>
-        <TablePagination page={page} total={pages} onChange={setPage} />
       </section>
     </>
   );

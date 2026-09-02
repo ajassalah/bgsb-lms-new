@@ -2,6 +2,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { ReadOnlyTable } from "@/components/instructor-portal-pages";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { htmlToPlainText } from "@/lib/html-text";
 export default async function Page() {
   const p = await requireProfile("instructor"),
     { data } = await createAdminClient()
@@ -19,7 +20,7 @@ export default async function Page() {
           cells: [
             x.question,
             <span className="line-clamp-2" key="answer">
-              {x.answer}
+              {htmlToPlainText(x.answer)}
             </span>,
           ],
           view: `/dashboard/instructor/support/faq/${x.id}`,

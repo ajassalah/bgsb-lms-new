@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Download,
   Edit3,
@@ -25,6 +24,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { BulkImportDialog } from "./bulk-import-dialog";
 import { CollapsibleMedia } from "./collapsible-media";
 import { FileDownloadButton } from "./file-download-button";
+import { QuizQuestionDisplay } from "./quiz-question-display";
 type Lesson = {
   id: string;
   title: string;
@@ -33,7 +33,19 @@ type Lesson = {
   description?: string;
   position: number;
 };
-type Quiz = { id: string; title: string };
+type QuizQuestion = {
+  id: string;
+  question: string;
+  question_type: "single_radio" | "single_dropdown";
+  options: string[];
+  correct_option?: string | null;
+};
+type Quiz = {
+  id: string;
+  title: string;
+  time_limit_minutes?: number | null;
+  quiz_questions?: QuizQuestion[];
+};
 type Assignment = {
   id: string;
   title: string;
@@ -83,11 +95,8 @@ export function CurriculumManagement({
       () => new Set(),
     ),
     [lessonMenu, setLessonMenu] = useState<string | null>(null),
-    [page, setPage] = useState(1),
     [drag, setDrag] = useState<string | null>(null),
     [deleting, setDeleting] = useState<ModuleRow | null>(null);
-  const pages = Math.max(1, Math.ceil(modules.length / 10)),
-    visible = modules.slice((page - 1) * 10, page * 10);
   useEffect(() => setModules(initialModules), [initialModules]);
   async function reorder(target: string) {
     if (!drag || drag === target) return;
@@ -175,7 +184,7 @@ export function CurriculumManagement({
       toast.success("Quiz deleted");
     } else toast.error("Quiz could not be deleted");
   }
-  function saved(item: any) {
+  function saved(item: any, keepOpen = false) {
     if (!modal) return;
     if (modal.type === "module")
       setModules((x) =>
@@ -201,7 +210,9 @@ export function CurriculumManagement({
                     ? y.lessons.map((lesson) =>
                         lesson.id === item.id ? item : lesson,
                       )
-                    : modal.type === "quiz" && modal.quiz
+                    : modal.type === "quiz" &&
+                        modal.quiz &&
+                        y.quizzes.some((quiz) => quiz.id === item.id)
                       ? y.quizzes.map((quiz) =>
                           quiz.id === item.id ? item : quiz,
                         )
@@ -213,7 +224,7 @@ export function CurriculumManagement({
             : y,
         ),
       );
-    setModal(null);
+    if (!keepOpen) setModal(null);
   }
   return (
     <>
@@ -291,7 +302,7 @@ export function CurriculumManagement({
         </section>
       )}
       <div className="mt-7 space-y-5">
-        {visible.map((m) => (
+        {modules.map((m, moduleIndex) => (
           <section
             draggable={!readOnly}
             onDragStart={() => setDrag(m.id)}
@@ -311,11 +322,11 @@ export function CurriculumManagement({
                 </button>
               )}
               <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
-                {m.position}
+                {moduleIndex + 1}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase text-slate-400">
-                  Module No {m.position}
+                  Module No {moduleIndex + 1}
                 </p>
                 <h2 className="font-bold text-navy">{m.title}</h2>
                 {m.description && (
@@ -486,25 +497,6 @@ export function CurriculumManagement({
             )}
           </section>
         ))}
-      </div>
-      <div className="mt-5 flex justify-end gap-1">
-        <Page disabled={page === 1} onClick={() => setPage(page - 1)}>
-          <ChevronLeft />
-          Previous
-        </Page>
-        {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
-          <button
-            onClick={() => setPage(n)}
-            className={`grid size-9 place-items-center rounded-lg ${page === n ? "bg-red text-white" : "border bg-white"}`}
-            key={n}
-          >
-            {n}
-          </button>
-        ))}
-        <Page disabled={page === pages} onClick={() => setPage(page + 1)}>
-          Next
-          <ChevronRight />
-        </Page>
       </div>
       {modal && (
         <EditorModal
@@ -683,7 +675,7 @@ function ModuleContent({
                 </div>
                 {x.content_type === "document" && (
                   <FileDownloadButton
-                    href={x.content_url}
+                    href={`/api/admin/lessons/${x.id}/download`}
                     fallbackName={downloadName(x.title, x.content_url)}
                     label=""
                     className="grid size-8 place-items-center rounded-lg border text-blue-600"
@@ -768,6 +760,11 @@ function ModuleContent({
                   </div>
                 )}
               </div>
+              <QuizQuestionDisplay
+                quizId={q.id}
+                title={q.title}
+                questions={q.quiz_questions}
+              />
             </article>
           ))}
           {module.assignments.map((a, assignmentIndex) => (
@@ -807,7 +804,7 @@ function ModuleContent({
                       <div className="absolute right-0 top-10 z-[120] w-36 rounded-xl border bg-white py-1 shadow-2xl">
                         {a.file_url && (
                           <FileDownloadButton
-                            href={a.file_url}
+                            href={`/api/admin/assignments/${a.id}/download`}
                             fallbackName={downloadName(a.title, a.file_url)}
                             className="action-row"
                           />
@@ -850,10 +847,30 @@ function EditorModal({
   courseId: string;
   state: Modal;
   close: () => void;
-  saved: (x: any) => void;
+  saved: (x: any, keepOpen?: boolean) => void;
 }) {
+  const existingQuestion =
+    state.type === "quiz" ? state.quiz?.quiz_questions?.[0] : undefined;
   const [busy, setBusy] = useState(false),
     [file, setFile] = useState(""),
+    [quizCreateMode, setQuizCreateMode] = useState(false),
+    [questionType, setQuestionType] = useState<
+      "single_radio" | "single_dropdown"
+    >(existingQuestion?.question_type || "single_radio"),
+    [question, setQuestion] = useState(
+      existingQuestion?.question || state.quiz?.title || "",
+    ),
+    [options, setOptions] = useState<string[]>(
+      existingQuestion?.options?.length ? existingQuestion.options : ["", ""],
+    ),
+    [correctOption, setCorrectOption] = useState<number | null>(
+      existingQuestion?.correct_option != null
+        ? Number(existingQuestion.correct_option)
+        : null,
+    ),
+    [timeLimit, setTimeLimit] = useState(
+      String(state.type === "quiz" ? state.quiz?.time_limit_minutes || 15 : 15),
+    ),
     heading =
       state.type === "module"
         ? state.module
@@ -868,6 +885,22 @@ function EditorModal({
             : `Add ${state.lessonType} Lesson`;
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
+    const saveAnother = submitter?.value === "save-another";
+    if (
+      state.type === "quiz" &&
+      (question.trim().length < 2 ||
+        options.filter((option) => option.trim()).length < 2)
+    )
+      return toast.error("Enter a question and at least two options");
+    if (state.type === "quiz" && correctOption === null)
+      return toast.error("Select the correct answer");
+    if (
+      state.type === "quiz" &&
+      (!Number.isInteger(Number(timeLimit)) || Number(timeLimit) < 1)
+    )
+      return toast.error("Enter a valid time limit");
     setBusy(true);
     let url = "",
       method = "POST",
@@ -883,26 +916,49 @@ function EditorModal({
       if (state.lesson) method = "PATCH";
       body = f;
     } else {
-      body = JSON.stringify({
-        ...Object.fromEntries(new FormData(e.currentTarget)),
-        course_id: courseId,
-        module_id: state.module?.id,
-      });
+      body = JSON.stringify(
+        state.type === "quiz"
+          ? {
+              question_type: questionType,
+              question: question.trim(),
+              options: options.map((option) => option.trim()).filter(Boolean),
+              correct_option: correctOption,
+              time_limit_minutes: Number(timeLimit),
+              course_id: courseId,
+              module_id: state.module?.id,
+            }
+          : {
+              ...Object.fromEntries(new FormData(e.currentTarget)),
+              course_id: courseId,
+              module_id: state.module?.id,
+            },
+      );
       headers = { "content-type": "application/json" };
       url =
         state.type === "quiz"
-          ? state.quiz
+          ? state.quiz && !quizCreateMode
             ? `/api/admin/quizzes/${state.quiz.id}`
             : "/api/admin/quizzes"
           : state.module
             ? `/api/admin/modules/${state.module.id}`
             : "/api/admin/modules";
       if (state.type === "module" && state.module) method = "PATCH";
-      if (state.type === "quiz" && state.quiz) method = "PATCH";
+      if (state.type === "quiz" && state.quiz && !quizCreateMode)
+        method = "PATCH";
     }
     const res = await fetch(url, { method, headers, body });
-    if (res.ok) saved(await res.json());
-    else {
+    if (res.ok) {
+      saved(await res.json(), saveAnother);
+      if (saveAnother && state.type === "quiz") {
+        setQuizCreateMode(true);
+        setQuestion("");
+        setQuestionType("single_radio");
+        setOptions(["", ""]);
+        setCorrectOption(null);
+        setTimeLimit("15");
+        setBusy(false);
+      }
+    } else {
       const d = await res.json().catch(() => ({}));
       toast.error(d.error || "Save failed");
       setBusy(false);
@@ -926,21 +982,132 @@ function EditorModal({
             <X />
           </button>
         </div>
-        <label className="mt-6 block text-sm font-semibold">
-          Title
-          <input
-            name="title"
-            defaultValue={
-              state.type === "module"
-                ? state.module?.title
-                : state.type === "quiz"
-                  ? state.quiz?.title || ""
+        {state.type !== "quiz" && (
+          <label className="mt-6 block text-sm font-semibold">
+            Title
+            <input
+              name="title"
+              defaultValue={
+                state.type === "module"
+                  ? state.module?.title
                   : state.lesson?.title || ""
-            }
-            className="field mt-2"
-            required
-          />
-        </label>
+              }
+              className="field mt-2"
+              required
+            />
+          </label>
+        )}
+        {state.type === "quiz" && (
+          <div className="mt-6 space-y-5">
+            <label className="block text-sm font-semibold">
+              Questions Type
+              <select
+                value={questionType}
+                onChange={(event) =>
+                  setQuestionType(
+                    event.target.value as "single_radio" | "single_dropdown",
+                  )
+                }
+                className="field mt-2"
+              >
+                <option value="single_radio">
+                  Single Choice (Radio Button)
+                </option>
+                <option value="single_dropdown">
+                  Single Choice (Dropdown)
+                </option>
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              Question
+              <textarea
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                className="field mt-2 min-h-24"
+                required
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              Time Limit (Minutes)
+              <input
+                type="number"
+                min="1"
+                max="1440"
+                value={timeLimit}
+                onChange={(event) => setTimeLimit(event.target.value)}
+                className="field mt-2"
+                required
+              />
+            </label>
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Options</h3>
+                <button
+                  type="button"
+                  onClick={() => setOptions((current) => [...current, ""])}
+                  className="btn-secondary gap-2"
+                >
+                  <Plus className="size-4" />
+                  Add Option
+                </button>
+              </div>
+              <div className="mt-3 space-y-3">
+                {options.map((option, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                  >
+                    <input
+                      value={option}
+                      onChange={(event) =>
+                        setOptions((current) =>
+                          current.map((item, optionIndex) =>
+                            optionIndex === index ? event.target.value : item,
+                          ),
+                        )
+                      }
+                      className="field"
+                      placeholder={`Option ${index + 1}`}
+                      required
+                    />
+                    <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-3 text-xs font-semibold text-emerald-700 dark:border-slate-700 dark:text-emerald-400">
+                      <input
+                        type="checkbox"
+                        checked={correctOption === index}
+                        onChange={() => setCorrectOption(index)}
+                        className="size-4 accent-emerald-600"
+                      />
+                      Correct answer
+                    </label>
+                    {options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOptions((current) => {
+                            const next = current.filter(
+                              (_, optionIndex) => optionIndex !== index,
+                            );
+                            setCorrectOption((selected) =>
+                              selected === index
+                                ? null
+                                : selected != null && selected > index
+                                  ? selected - 1
+                                  : selected,
+                            );
+                            return next;
+                          })
+                        }
+                        className="grid size-11 shrink-0 place-items-center rounded-lg border text-red"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
         {state.type === "module" && (
           <label className="mt-5 block text-sm font-semibold">
             Description
@@ -989,11 +1156,21 @@ function EditorModal({
           </>
         )}
         <div className="mt-6 flex justify-end gap-2">
+          <button disabled={busy} className="btn-primary">
+            {busy ? "Saving..." : state.type === "quiz" ? "Save" : "Submit"}
+          </button>
+          {state.type === "quiz" && (
+            <button
+              type="submit"
+              value="save-another"
+              disabled={busy}
+              className="btn-secondary"
+            >
+              Save and Add Another
+            </button>
+          )}
           <button type="button" onClick={close} className="btn-secondary">
             Cancel
-          </button>
-          <button disabled={busy} className="btn-primary">
-            {busy ? "Uploading…" : "Submit"}
           </button>
         </div>
       </form>
@@ -1020,18 +1197,4 @@ function youtubeEmbed(url: string) {
   } catch {
     return null;
   }
-}
-
-function Page({
-  children,
-  ...p
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...p}
-      className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-xs disabled:opacity-40"
-    >
-      {children}
-    </button>
-  );
 }

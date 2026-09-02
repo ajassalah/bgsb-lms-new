@@ -139,7 +139,7 @@ export async function POST(
         .from("profiles")
         .select("id,role")
         .in("role", ["super_admin", "admin_staff"])
-        .eq("status", "active"),
+        .or("status.eq.active,status.is.null"),
     ]);
   const course = Array.isArray((assignment as any).course)
     ? (assignment as any).course[0]

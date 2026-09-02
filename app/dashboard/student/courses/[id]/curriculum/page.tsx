@@ -12,6 +12,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { CourseCurriculumMedia } from "@/components/course-curriculum-media";
 import { CollapsibleMedia } from "@/components/collapsible-media";
 import { FileDownloadButton } from "@/components/file-download-button";
+import { QuizQuestionDisplay } from "@/components/quiz-question-display";
 import { VideoPlayer } from "@/components/video-player";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -42,7 +43,7 @@ export default async function StudentCurriculum({
     admin
       .from("course_modules")
       .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title),assignments(id,title,due_date,max_score,file_url)",
+        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,due_date,max_score,file_url)",
       )
       .eq("course_id", params.id)
       .order("position"),
@@ -60,7 +61,7 @@ export default async function StudentCurriculum({
           <img
             src={course.thumbnail_url || "/Thumimage.jpeg"}
             alt={`${course.title} thumbnail`}
-            className="size-full object-fill"
+            className="size-full object-contain"
           />
         </div>
       </section>
@@ -82,7 +83,7 @@ export default async function StudentCurriculum({
             <summary className="flex cursor-pointer list-none items-start gap-3 p-5 transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
               <BookOpen className="mt-1 text-red" />
               <div className="min-w-0 flex-1">
-                <small>Module {module.position}</small>
+                <small>Module {moduleIndex + 1}</small>
                 <h2 className="font-bold text-navy">{module.title}</h2>
                 {module.description && (
                   <p className="mt-1 text-sm text-slate-500">
@@ -152,14 +153,20 @@ export default async function StudentCurriculum({
               {(module.quizzes || []).map((quiz: any) => (
                 <div
                   key={quiz.id}
-                  className="flex gap-2 rounded-xl border bg-blue-50 p-4 text-blue-700"
+                  className="flex w-full max-w-3xl gap-2 rounded-xl border bg-blue-50 p-4 text-blue-700 dark:border-slate-700 dark:bg-slate-900"
                 >
                   <HelpCircle className="mt-0.5 size-4" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <b className="block">{quiz.title}</b>
                     <p className="mt-1 text-xs font-semibold text-blue-500">
                       Quiz
                     </p>
+                    <QuizQuestionDisplay
+                      quizId={quiz.id}
+                      title={quiz.title}
+                      questions={quiz.quiz_questions}
+                      persistenceKey={profile.id}
+                    />
                   </div>
                 </div>
               ))}

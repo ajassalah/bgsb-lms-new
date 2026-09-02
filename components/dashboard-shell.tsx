@@ -129,7 +129,7 @@ export function DashboardShell({
         })
         .catch(() => {});
     refreshNotifications();
-    const timer = window.setInterval(refreshNotifications, 15000);
+    const timer = window.setInterval(refreshNotifications, 5000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -285,11 +285,6 @@ export function DashboardShell({
                       "/dashboard/instructor/support/tickets",
                     ],
                     ["FAQ", CircleHelp, "/dashboard/instructor/support/faq"],
-                    [
-                      "Help & Support",
-                      LifeBuoy,
-                      "/dashboard/instructor/support/help",
-                    ],
                   ].map(([label, Icon, href]) => (
                     <Link
                       key={label as string}

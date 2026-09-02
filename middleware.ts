@@ -40,6 +40,7 @@ const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/messages", ["messages"]],
   ["/dashboard/admin-staff/calendar", ["calendar"]],
   ["/dashboard/admin-staff/email-templates", ["email_templates"]],
+  ["/dashboard/admin-staff/support/help", ["help_support"]],
   ["/dashboard/admin-staff/support/tickets", ["tickets"]],
   ["/dashboard/admin-staff/support/faq", ["faq"]],
   ["/dashboard/admin-staff/reports", ["reports"]],

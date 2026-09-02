@@ -98,7 +98,7 @@ const groups = [
       ["Reports", FileBarChart, "/dashboard/super-admin/reports"],
       ["Private File", FolderLock, "/dashboard/super-admin/private-files"],
       ["System settings", Settings, "#"],
-      ["Help & support", CircleHelp, "#"],
+      ["Help & Support", CircleHelp, "/dashboard/super-admin/support/help"],
     ],
   },
 ] as const;
@@ -180,7 +180,7 @@ export function SuperAdminShell({
         })
         .catch(() => {});
     refreshNotifications();
-    const timer = window.setInterval(refreshNotifications, 15000);
+    const timer = window.setInterval(refreshNotifications, 5000);
     return () => {
       active = false;
       window.clearInterval(timer);

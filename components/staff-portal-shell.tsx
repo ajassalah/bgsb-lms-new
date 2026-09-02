@@ -258,6 +258,12 @@ const groups: { label: string; items: MenuItem[] }[] = [
         modules: ["private_files"],
       },
       {
+        label: "Help & Support",
+        icon: LifeBuoy,
+        href: "/dashboard/admin-staff/support/help",
+        modules: ["help_support"],
+      },
+      {
         label: "System Settings",
         icon: Settings,
         modules: ["email_configuration", "recent_activities", "all_users"],

@@ -14,6 +14,7 @@ import {
 import { VideoPlayer } from "@/components/video-player";
 import { CourseCurriculumMedia } from "@/components/course-curriculum-media";
 import { CollapsibleMedia } from "@/components/collapsible-media";
+import { QuizQuestionDisplay } from "@/components/quiz-question-display";
 
 export default async function InstructorCurriculum({
   params,
@@ -38,7 +39,7 @@ export default async function InstructorCurriculum({
     admin
       .from("course_modules")
       .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title),assignments(id,title,pass_marks,due_date,file_url)",
+        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,pass_marks,due_date,file_url)",
       )
       .eq("course_id", params.id)
       .order("position"),
@@ -81,7 +82,7 @@ export default async function InstructorCurriculum({
               </span>
               <div className="min-w-0 flex-1">
                 <small className="text-slate-400">
-                  Module {module.position}
+                  Module {moduleIndex + 1}
                 </small>
                 <h2 className="font-bold text-navy">{module.title}</h2>
                 {module.description && (
@@ -157,6 +158,11 @@ export default async function InstructorCurriculum({
                   <div className="min-w-0 flex-1">
                     <b className="block">{quiz.title}</b>
                     <small>Quiz</small>
+                    <QuizQuestionDisplay
+                      quizId={quiz.id}
+                      title={quiz.title}
+                      questions={quiz.quiz_questions}
+                    />
                   </div>
                   <a
                     href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Quiz: ${quiz.title}`)}`}

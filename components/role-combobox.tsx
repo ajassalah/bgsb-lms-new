@@ -16,7 +16,12 @@ export function RoleCombobox({
 }) {
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(""),
-    [position, setPosition] = useState({ left: 12, top: 60, width: 280 }),
+    [position, setPosition] = useState({
+      left: 12,
+      top: 60,
+      width: 280,
+      maxHeight: 320,
+    }),
     buttonRef = useRef<HTMLButtonElement>(null),
     panelRef = useRef<HTMLDivElement>(null);
   const choices = useMemo(
@@ -27,16 +32,24 @@ export function RoleCombobox({
     if (open) return setOpen(false);
     const box = buttonRef.current?.getBoundingClientRect();
     if (box) {
-      const width = Math.min(Math.max(box.width, 240), window.innerWidth - 24);
-      const estimatedHeight = 320;
-      const top =
-        box.bottom + estimatedHeight <= window.innerHeight - 12
-          ? box.bottom + 8
-          : Math.max(12, box.top - estimatedHeight - 8);
+      const mobile = window.innerWidth < 640;
+      const width = mobile
+        ? window.innerWidth - 24
+        : Math.min(Math.max(box.width, 240), window.innerWidth - 24);
+      const below = window.innerHeight - box.bottom - 12;
+      const above = box.top - 12;
+      const openBelow = below >= 220 || below >= above;
+      const maxHeight = Math.max(160, Math.min(320, openBelow ? below : above));
+      const top = openBelow
+        ? box.bottom + 8
+        : Math.max(12, box.top - maxHeight - 8);
       setPosition({
-        left: Math.min(window.innerWidth - width - 12, Math.max(12, box.left)),
+        left: mobile
+          ? 12
+          : Math.min(window.innerWidth - width - 12, Math.max(12, box.left)),
         top,
         width,
+        maxHeight,
       });
     }
     setOpen(true);
@@ -78,7 +91,7 @@ export function RoleCombobox({
           <div
             ref={panelRef}
             style={position}
-            className="fixed z-[10010] max-h-[min(22rem,calc(100vh-24px))] overflow-y-auto rounded-xl border bg-white p-2 shadow-2xl"
+            className="fixed z-[10010] overflow-y-auto rounded-xl border bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
           >
             <label className="flex items-center gap-2 rounded-lg border px-3">
               <Search className="size-4 text-slate-400" />
@@ -86,7 +99,7 @@ export function RoleCombobox({
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="h-10 min-w-0 flex-1 outline-none"
+                className="h-10 min-w-0 flex-1 bg-transparent outline-none"
                 placeholder="Search roles..."
               />
             </label>
@@ -100,7 +113,7 @@ export function RoleCombobox({
                     setOpen(false);
                     setQuery("");
                   }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
                   {role}
                   {role === value && <Check className="size-4 text-red" />}

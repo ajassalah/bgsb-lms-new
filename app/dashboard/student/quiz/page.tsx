@@ -1,2 +1,47 @@
-import { DashboardShell } from "@/components/dashboard-shell"; import { ReadOnlyTable } from "@/components/instructor-portal-pages"; import { requireProfile } from "@/lib/auth"; import { createAdminClient } from "@/lib/supabase/admin";
-export default async function StudentQuiz(){const p=await requireProfile("student"),admin=createAdminClient(),{data:enrollments}=await admin.from("enrollments").select("course_id").eq("student_id",p.id).in("status",["approved","completed"]),ids=(enrollments||[]).map(x=>x.course_id),{data}=ids.length?await admin.from("quizzes").select("id,title,time_limit_minutes,course:courses(title)").in("course_id",ids):{data:[]};return <DashboardShell role="student" name={p.full_name} email={p.email} avatar={p.avatar_url}><ReadOnlyTable title="Quiz" columns={["Quiz","Course","Time Limit"]} rows={(data||[]).map((x:any)=>({id:x.id,cells:[x.title,x.course?.title||"Course",`${x.time_limit_minutes||0} minutes`]}))}/></DashboardShell>}
+import { DashboardShell } from "@/components/dashboard-shell";
+import { ReadOnlyTable } from "@/components/instructor-portal-pages";
+import { requireProfile } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+export default async function StudentQuiz() {
+  const profile = await requireProfile("student");
+  const admin = createAdminClient();
+  const { data: enrollments } = await admin
+    .from("enrollments")
+    .select("course_id")
+    .eq("student_id", profile.id)
+    .in("status", ["approved", "completed"]);
+  const courseIds = Array.from(
+    new Set((enrollments || []).map((item) => item.course_id)),
+  );
+  const { data: courses } = courseIds.length
+    ? await admin
+        .from("courses")
+        .select("id,title")
+        .in("id", courseIds)
+        .order("title")
+    : { data: [] };
+
+  return (
+    <DashboardShell
+      role="student"
+      name={profile.full_name}
+      email={profile.email}
+      avatar={profile.avatar_url}
+    >
+      <ReadOnlyTable
+        title="Quiz"
+        portalLabel="Student Portal"
+        directView
+        columns={["My Course"]}
+        rows={(courses || []).map((course: any) => ({
+          id: course.id,
+          cells: [course.title || "Course"],
+          view: `/dashboard/student/quiz/${course.id}`,
+        }))}
+      />
+    </DashboardShell>
+  );
+}
