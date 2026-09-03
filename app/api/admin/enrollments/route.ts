@@ -12,7 +12,14 @@ export async function POST(req: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
   const parsed = z
-    .object({ student_id: z.string().uuid(), course_id: z.string().uuid() })
+    .object({
+      student_id: z.string().uuid(),
+      course_id: z.string().uuid(),
+      batch_id: z
+        .union([z.string().uuid(), z.literal("")])
+        .nullable()
+        .optional(),
+    })
     .safeParse(await req.json());
   if (!parsed.success)
     return Response.json(
@@ -36,6 +43,7 @@ export async function POST(req: Request) {
     .insert({
       student_id: parsed.data.student_id,
       course_id: parsed.data.course_id,
+      batch_id: parsed.data.batch_id || null,
       organization_id: student?.organization_id || null,
       enrolled_via: "manual",
       status: "pending",
@@ -52,6 +60,13 @@ export async function POST(req: Request) {
       },
       { status: 400 },
     );
+  if (parsed.data.batch_id)
+    await admin
+      .from("batch_learners")
+      .upsert({
+        batch_id: parsed.data.batch_id,
+        student_id: parsed.data.student_id,
+      });
   return Response.json({
     id: data.id,
     studentId: parsed.data.student_id,
@@ -61,5 +76,6 @@ export async function POST(req: Request) {
     course: course?.title || "Course",
     date: data.enrolled_at,
     status: data.status,
+    batchId: parsed.data.batch_id || "",
   });
 }

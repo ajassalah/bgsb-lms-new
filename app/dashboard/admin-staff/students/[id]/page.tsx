@@ -29,7 +29,7 @@ export default async function StudentView({
     db
       .from("enrollments")
       .select(
-        "course:courses(id,title,thumbnail_url,course_modules(count),assignments(count),quizzes(count))",
+        "course:courses(id,title,thumbnail_url,course_modules(count),assignments(count),quizzes(count)),batch:batches(batch_name)",
       )
       .eq("student_id", params.id),
     db
@@ -62,6 +62,7 @@ export default async function StudentView({
     modules: e.course?.course_modules?.[0]?.count || 0,
     assignments: e.course?.assignments?.[0]?.count || 0,
     quizzes: e.course?.quizzes?.[0]?.count || 0,
+    batch: e.batch?.batch_name || null,
   }));
   return (
     <StaffPageShell name={profile.full_name}>

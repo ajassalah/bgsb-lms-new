@@ -15,6 +15,7 @@ import { VideoPlayer } from "@/components/video-player";
 import { CourseCurriculumMedia } from "@/components/course-curriculum-media";
 import { CollapsibleMedia } from "@/components/collapsible-media";
 import { QuizQuestionDisplay } from "@/components/quiz-question-display";
+import { loadCurriculumModules } from "@/lib/curriculum-modules";
 
 export default async function InstructorCurriculum({
   params,
@@ -30,21 +31,16 @@ export default async function InstructorCurriculum({
     .eq("instructor_id", profile.id)
     .maybeSingle();
   if (!assignment) notFound();
-  const [{ data: course }, { data: modules }] = await Promise.all([
+  const [{ data: course }, moduleResult] = await Promise.all([
     admin
       .from("courses")
       .select("title,thumbnail_url,video_source,video_url")
       .eq("id", params.id)
       .single(),
-    admin
-      .from("course_modules")
-      .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,pass_marks,due_date,file_url)",
-      )
-      .eq("course_id", params.id)
-      .order("position"),
+    loadCurriculumModules(admin, params.id),
   ]);
   if (!course) notFound();
+  const modules = moduleResult.data || [];
   return (
     <DashboardShell
       role="instructor"

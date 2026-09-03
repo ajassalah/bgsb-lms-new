@@ -6,6 +6,7 @@ import {
   Search,
   Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -21,16 +22,19 @@ export function CourseStudentManagement({
   courseTitle,
   initialEnrolled,
   allStudents,
+  batches,
 }: {
   courseId: string;
   courseTitle: string;
   initialEnrolled: Enrolled[];
   allStudents: Student[];
+  batches: { id: string; name: string }[];
 }) {
   const [enrolled, setEnrolled] = useState(initialEnrolled),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(1),
-    [deleting, setDeleting] = useState<Enrolled | null>(null);
+    [deleting, setDeleting] = useState<Enrolled | null>(null),
+    [assigning, setAssigning] = useState<Student | null>(null);
   const available = useMemo(
     () =>
       allStudents.filter(
@@ -42,11 +46,15 @@ export function CourseStudentManagement({
   );
   const pages = Math.max(1, Math.ceil(available.length / 10)),
     visible = available.slice((page - 1) * 10, page * 10);
-  async function add(s: Student) {
+  async function add(s: Student, batchId: string) {
     const res = await fetch("/api/admin/enrollments", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ student_id: s.id, course_id: courseId }),
+      body: JSON.stringify({
+        student_id: s.id,
+        course_id: courseId,
+        batch_id: batchId || null,
+      }),
     });
     if (res.ok) {
       const x = await res.json();
@@ -55,6 +63,7 @@ export function CourseStudentManagement({
         ...v,
       ]);
       toast.success("Student enrolled");
+      setAssigning(null);
     } else
       toast.error(
         (await res.json().catch(() => ({}))).error || "Enrollment failed",
@@ -152,7 +161,7 @@ export function CourseStudentManagement({
                   <td className="p-4">{s.email}</td>
                   <td className="p-4 text-right">
                     <button
-                      onClick={() => add(s)}
+                      onClick={() => setAssigning(s)}
                       className="inline-flex items-center gap-2 rounded-lg bg-navy px-3 py-2 text-xs font-semibold text-white"
                     >
                       <UserPlus className="size-4" />
@@ -166,7 +175,65 @@ export function CourseStudentManagement({
         </div>
         <Pagination page={page} pages={pages} setPage={setPage} />
       </section>
+      {assigning && (
+        <BatchEnrollment
+          student={assigning}
+          batches={batches}
+          close={() => setAssigning(null)}
+          submit={(batchId) => add(assigning, batchId)}
+        />
+      )}
     </>
+  );
+}
+function BatchEnrollment({
+  student,
+  batches,
+  close,
+  submit,
+}: {
+  student: Student;
+  batches: { id: string; name: string }[];
+  close: () => void;
+  submit: (id: string) => void;
+}) {
+  const [batch, setBatch] = useState("");
+  return (
+    <div className="fixed inset-0 z-[220] grid place-items-center bg-black/55 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5">
+        <div className="flex justify-between">
+          <div>
+            <p className="text-sm text-slate-400">Enroll Student</p>
+            <h2 className="text-xl font-bold text-navy">{student.name}</h2>
+          </div>
+          <button onClick={close}>
+            <X className="size-5" />
+          </button>
+        </div>
+        <label className="mt-5 block text-sm font-bold">
+          Batch
+          <select
+            className="field mt-2"
+            value={batch}
+            onChange={(e) => setBatch(e.target.value)}
+          >
+            <option value="">No batch</option>
+            {batches.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          onClick={() => submit(batch)}
+          className="btn-primary mt-5 w-full"
+        >
+          <UserPlus className="size-4" />
+          Enroll Student
+        </button>
+      </div>
+    </div>
   );
 }
 function Pagination({

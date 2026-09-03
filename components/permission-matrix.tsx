@@ -29,6 +29,16 @@ export const permissionModules: PermissionModule[] = [
     actions: ["create", "edit", "status", "delete"],
   },
   {
+    key: "intakes",
+    label: "Intake",
+    actions: ["create", "view", "edit", "delete"],
+  },
+  {
+    key: "batches",
+    label: "Batch",
+    actions: ["create", "view", "edit", "delete", "verify"],
+  },
+  {
     key: "courses",
     label: "Course List",
     actions: [
@@ -195,6 +205,11 @@ export const permissionModules: PermissionModule[] = [
   },
   { key: "help_support", label: "Help & Support", actions: ["access"] },
   {
+    key: "terms_conditions",
+    label: "Terms & Conditions",
+    actions: ["access", "view"],
+  },
+  {
     key: "email_configuration",
     label: "Email Configuration",
     actions: ["access"],
@@ -220,6 +235,7 @@ const labels: Record<string, string> = {
   access: "Access",
   reply: "Reply",
   verification: "Verification",
+  verify: "Verify",
   whatsapp: "WhatsApp",
   faq: "FAQ",
   curriculum: "Curriculum",
@@ -253,7 +269,9 @@ const iconFor = (action: string) =>
                   ? Users
                   : action.includes("manage_instructor")
                     ? UserCog
-                    : action === "verification" || action === "verify_status"
+                    : action === "verification" ||
+                        action === "verify_status" ||
+                        action === "verify"
                       ? UserCheck
                       : action === "status" || action.includes("toggle")
                         ? ToggleRight

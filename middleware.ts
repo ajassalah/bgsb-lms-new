@@ -11,6 +11,8 @@ const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/class/reports", ["class_reports"]],
   ["/dashboard/admin-staff/class", ["class_dashboard"]],
   ["/dashboard/admin-staff/enrollments", ["enrollment"]],
+  ["/dashboard/admin-staff/intakes", ["intakes"]],
+  ["/dashboard/admin-staff/batches", ["batches"]],
   ["/dashboard/admin-staff/category", ["categories"]],
   ["/dashboard/admin-staff/curriculum", ["curriculum_overview"]],
   [
@@ -45,6 +47,7 @@ const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/support/faq", ["faq"]],
   ["/dashboard/admin-staff/reports", ["reports"]],
   ["/dashboard/admin-staff/private-files", ["private_files"]],
+  ["/dashboard/admin-staff/terms-and-conditions", ["terms_conditions"]],
   ["/dashboard/admin-staff/settings/email", ["email_configuration"]],
   ["/dashboard/admin-staff/settings/activity", ["recent_activities"]],
   ["/dashboard/admin-staff/settings/users", ["all_users"]],
@@ -79,6 +82,30 @@ export async function middleware(req: NextRequest) {
     .single();
   if (!profile || profile.status !== "active")
     return NextResponse.redirect(new URL("/login", req.url));
+
+  const { data: currentTerms } = await db
+    .from("legal_terms")
+    .select("version")
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (currentTerms) {
+    const { data: acceptance } = await db
+      .from("terms_acceptances")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("terms_version", currentTerms.version)
+      .maybeSingle();
+    if (!acceptance) {
+      const acceptanceUrl = new URL("/terms-acceptance", req.url);
+      acceptanceUrl.searchParams.set(
+        "returnTo",
+        `${req.nextUrl.pathname}${req.nextUrl.search}`,
+      );
+      return NextResponse.redirect(acceptanceUrl);
+    }
+  }
 
   const segment = req.nextUrl.pathname.split("/")[2];
   const expectedSegment = profile.role.replace("_", "-");

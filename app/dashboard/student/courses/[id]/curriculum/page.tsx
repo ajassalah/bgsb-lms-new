@@ -16,6 +16,7 @@ import { QuizQuestionDisplay } from "@/components/quiz-question-display";
 import { VideoPlayer } from "@/components/video-player";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadCurriculumModules } from "@/lib/curriculum-modules";
 
 export const dynamic = "force-dynamic";
 
@@ -34,21 +35,20 @@ export default async function StudentCurriculum({
     .in("status", ["approved", "completed"])
     .maybeSingle();
   if (!enrollment) notFound();
-  const [{ data: course }, { data: modules }] = await Promise.all([
+  const [{ data: course }, moduleResult] = await Promise.all([
     admin
       .from("courses")
       .select("title,thumbnail_url,video_source,video_url")
       .eq("id", params.id)
       .single(),
-    admin
-      .from("course_modules")
-      .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,due_date,max_score,file_url)",
-      )
-      .eq("course_id", params.id)
-      .order("position"),
+    loadCurriculumModules(
+      admin,
+      params.id,
+      "id,title,due_date,max_score,file_url",
+    ),
   ]);
   if (!course) notFound();
+  const modules = moduleResult.data || [];
   return (
     <DashboardShell
       role="student"

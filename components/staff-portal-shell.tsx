@@ -6,6 +6,7 @@ import {
   Bell,
   BookCopy,
   CalendarDays,
+  CalendarRange,
   ChevronDown,
   ClipboardCheck,
   FileBarChart,
@@ -19,6 +20,7 @@ import {
   MessageSquareMore,
   Settings,
   School,
+  ScrollText,
   ShieldCheck,
   UserCog,
   Users,
@@ -59,6 +61,18 @@ const groups: { label: string; items: MenuItem[] }[] = [
         icon: LibraryBig,
         href: "/dashboard/admin-staff/enrollments",
         modules: ["enrollment"],
+      },
+      {
+        label: "Intake",
+        icon: CalendarRange,
+        href: "/dashboard/admin-staff/intakes",
+        modules: ["intakes"],
+      },
+      {
+        label: "Batch",
+        icon: ListTree,
+        href: "/dashboard/admin-staff/batches",
+        modules: ["batches"],
       },
       {
         label: "Manage Student",
@@ -132,37 +146,46 @@ const groups: { label: string; items: MenuItem[] }[] = [
         label: "Dashboard",
         icon: LayoutDashboard,
         href: "/dashboard/admin-staff/class",
-        modules: ["class_dashboard"],
-      },
-      {
-        label: "Attendance",
-        icon: ClipboardCheck,
-        href: "/dashboard/admin-staff/class/attendance",
-        modules: ["class_attendance"],
-      },
-      {
-        label: "Students",
-        icon: Users,
-        href: "/dashboard/admin-staff/class/students",
-        modules: ["class_students"],
-      },
-      {
-        label: "Instructors",
-        icon: GraduationCap,
-        href: "/dashboard/admin-staff/class/instructors",
-        modules: ["class_instructors"],
-      },
-      {
-        label: "Class",
-        icon: School,
-        href: "/dashboard/admin-staff/class/classes",
-        modules: ["class_management"],
-      },
-      {
-        label: "Reports",
-        icon: FileBarChart,
-        href: "/dashboard/admin-staff/class/reports",
-        modules: ["class_reports"],
+        modules: [
+          "class_dashboard",
+          "class_attendance",
+          "class_students",
+          "class_instructors",
+          "class_management",
+          "class_reports",
+        ],
+        children: [
+          {
+            label: "Attendance",
+            icon: ClipboardCheck,
+            href: "/dashboard/admin-staff/class/attendance",
+            modules: ["class_attendance"],
+          },
+          {
+            label: "Student",
+            icon: Users,
+            href: "/dashboard/admin-staff/class/students",
+            modules: ["class_students"],
+          },
+          {
+            label: "Instructor",
+            icon: GraduationCap,
+            href: "/dashboard/admin-staff/class/instructors",
+            modules: ["class_instructors"],
+          },
+          {
+            label: "Class",
+            icon: School,
+            href: "/dashboard/admin-staff/class/classes",
+            modules: ["class_management"],
+          },
+          {
+            label: "Report",
+            icon: FileBarChart,
+            href: "/dashboard/admin-staff/class/reports",
+            modules: ["class_reports"],
+          },
+        ],
       },
     ],
   },
@@ -264,6 +287,12 @@ const groups: { label: string; items: MenuItem[] }[] = [
         modules: ["help_support"],
       },
       {
+        label: "Terms & Conditions",
+        icon: ScrollText,
+        href: "/dashboard/admin-staff/terms-and-conditions",
+        modules: ["terms_conditions"],
+      },
+      {
         label: "System Settings",
         icon: Settings,
         modules: ["email_configuration", "recent_activities", "all_users"],
@@ -327,7 +356,14 @@ export function StaffPortalShell({
           >
             <img
               src={expanded ? "https://bgsb.lk/bgs-logo.png" : "/cropped-.png"}
-              className="h-full max-w-full object-contain"
+              className="sidebar-logo-light h-full max-w-full object-contain"
+              alt="BGSB"
+            />
+            <img
+              src={
+                expanded ? "/BGS Logo White-01.png" : "/BGS Logo White-01.png"
+              }
+              className="sidebar-logo-dark h-full max-w-full object-contain"
               alt="BGSB"
             />
           </Link>

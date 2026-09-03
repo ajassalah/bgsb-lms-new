@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -59,7 +60,26 @@ export async function POST(request: NextRequest) {
     );
   }
   const route = `/dashboard/${profile.role.replace("_", "-")}`;
-  const body = NextResponse.json({ ok: true, route });
+  const admin = createAdminClient();
+  const { data: currentTerms } = await admin
+    .from("legal_terms")
+    .select("id,version")
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let nextRoute = route;
+  if (currentTerms) {
+    const { data: acceptance } = await admin
+      .from("terms_acceptances")
+      .select("id")
+      .eq("user_id", data.user.id)
+      .eq("terms_version", currentTerms.version)
+      .maybeSingle();
+    if (!acceptance)
+      nextRoute = `/terms-acceptance?returnTo=${encodeURIComponent(route)}`;
+  }
+  const body = NextResponse.json({ ok: true, route: nextRoute });
   response.cookies.getAll().forEach((cookie) => body.cookies.set(cookie));
   return body;
 }

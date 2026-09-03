@@ -7,6 +7,7 @@ import {
   type ModuleRow,
 } from "@/components/curriculum-management";
 import { staffCan } from "@/lib/staff-permissions";
+import { loadCurriculumModules } from "@/lib/curriculum-modules";
 export default async function Curriculum({
   params,
 }: {
@@ -19,22 +20,16 @@ export default async function Curriculum({
     "curriculum_overview",
     "full_access",
   );
-  const [{ data: course }, { data }] = await Promise.all([
+  const [{ data: course }, moduleResult] = await Promise.all([
     db
       .from("courses")
       .select("id,title,thumbnail_url,video_source,video_url")
       .eq("id", params.id)
       .single(),
-    db
-      .from("course_modules")
-      .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,pass_marks,due_date,file_url)",
-      )
-      .eq("course_id", params.id)
-      .order("position")
-      .order("position", { referencedTable: "lessons" }),
+    loadCurriculumModules(db, params.id),
   ]);
   if (!course) notFound();
+  const data = moduleResult.data || [];
   const modules: ModuleRow[] = (data || []).map((x: any) => ({
     id: x.id,
     courseId: course.id,

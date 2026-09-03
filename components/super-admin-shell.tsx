@@ -7,6 +7,7 @@ import {
   Bell,
   BookCopy,
   CalendarDays,
+  CalendarRange,
   ChevronDown,
   CircleHelp,
   CreditCard,
@@ -32,6 +33,7 @@ import {
   UserCog,
   UserRound,
   School,
+  ScrollText,
   Users,
   Video,
   X,
@@ -49,6 +51,8 @@ const groups = [
     label: "Academic",
     items: [
       ["Enrollment", LibraryBig, "/dashboard/super-admin/enrollments"],
+      ["Intake", CalendarRange, "/dashboard/super-admin/intakes"],
+      ["Batch", ListTree, "/dashboard/super-admin/batches"],
       ["Manage Student", Users, "/dashboard/super-admin/students"],
       ["Courses", BookCopy, "/dashboard/super-admin/courses"],
       ["Live classes", Video, "/dashboard/super-admin/live-classes"],
@@ -99,6 +103,11 @@ const groups = [
       ["Private File", FolderLock, "/dashboard/super-admin/private-files"],
       ["System settings", Settings, "#"],
       ["Help & Support", CircleHelp, "/dashboard/super-admin/support/help"],
+      [
+        "Terms & Conditions",
+        ScrollText,
+        "/dashboard/super-admin/terms-and-conditions",
+      ],
     ],
   },
 ] as const;
@@ -124,6 +133,9 @@ export function SuperAdminShell({
     ),
     [sidebar, setSidebar] = useState(true),
     [coursesOpen, setCoursesOpen] = useState(courseActive),
+    [classOpen, setClassOpen] = useState(
+      pathname.startsWith("/dashboard/super-admin/class"),
+    ),
     [mobile, setMobile] = useState(false),
     [shortcutsOpen, setShortcutsOpen] = useState(false),
     [accountOpen, setAccountOpen] = useState(false),
@@ -246,7 +258,14 @@ export function SuperAdminShell({
             <img
               src={sidebar ? "https://bgsb.lk/bgs-logo.png" : "/cropped-.png"}
               alt="BGSB"
-              className="h-full w-full object-contain"
+              className="sidebar-logo-light h-full w-full object-contain"
+            />
+            <img
+              src={
+                sidebar ? "/BGS Logo White-01.png" : "/BGS Logo White-01.png"
+              }
+              alt="BGSB"
+              className="sidebar-logo-dark h-full w-full object-contain"
             />
           </Link>
           <button
@@ -269,7 +288,51 @@ export function SuperAdminShell({
               </p>
               <nav className="space-y-1">
                 {group.items.map(([label, Icon, href]) =>
-                  label === "Courses" ? (
+                  group.label === "CLASS" ? (
+                    label === "Dashboard" ? (
+                      <div key="class-dashboard">
+                        <button
+                          type="button"
+                          onClick={() => setClassOpen((open) => !open)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${sidebar ? "" : "lg:justify-center lg:px-0"} ${pathname.startsWith("/dashboard/super-admin/class") ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
+                        >
+                          <LayoutDashboard className="size-[18px] shrink-0" />
+                          <span className={sidebar ? "" : "lg:hidden"}>
+                            Dashboard
+                          </span>
+                          <ChevronDown
+                            className={`ml-auto size-3.5 transition ${classOpen ? "rotate-180" : ""} ${sidebar ? "" : "lg:hidden"}`}
+                          />
+                        </button>
+                        {classOpen && sidebar && (
+                          <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                            {(
+                              [
+                                ["Attendance", "attendance", ClipboardCheck],
+                                ["Student", "students", Users],
+                                ["Instructor", "instructors", GraduationCap],
+                                ["Class", "classes", School],
+                                ["Report", "reports", FileBarChart],
+                              ] as const
+                            ).map(([name, slug, ChildIcon]) => {
+                              const url = `/dashboard/super-admin/class/${slug}`;
+                              return (
+                                <Link
+                                  key={slug}
+                                  href={url}
+                                  onClick={() => setMobile(false)}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition ${pathname === url || pathname.startsWith(`${url}/`) ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
+                                >
+                                  <ChildIcon className="size-3.5 shrink-0" />
+                                  {name}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : null
+                  ) : label === "Courses" ? (
                     <div key={label}>
                       <button
                         onClick={() => setCoursesOpen((x) => !x)}

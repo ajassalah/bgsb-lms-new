@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { loadCurriculumModules } from "@/lib/curriculum-modules";
 import { SuperAdminShell } from "@/components/super-admin-shell";
 import {
   CurriculumManagement,
@@ -12,23 +13,17 @@ export default async function Curriculum({
   params: { id: string };
 }) {
   const profile = await requireProfile("super_admin"),
-    db = createClient();
-  const [{ data: course }, { data }] = await Promise.all([
+    db = createAdminClient();
+  const [{ data: course }, moduleResult] = await Promise.all([
     db
       .from("courses")
       .select("id,title,thumbnail_url,video_source,video_url")
       .eq("id", params.id)
       .single(),
-    db
-      .from("course_modules")
-      .select(
-        "id,title,description,position,lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(id,title,pass_marks,due_date,file_url)",
-      )
-      .eq("course_id", params.id)
-      .order("position")
-      .order("position", { referencedTable: "lessons" }),
+    loadCurriculumModules(db, params.id),
   ]);
   if (!course) notFound();
+  const data = moduleResult.data || [];
   const modules: ModuleRow[] = (data || []).map((x: any) => ({
     id: x.id,
     courseId: course.id,

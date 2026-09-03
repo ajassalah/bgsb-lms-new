@@ -35,7 +35,67 @@
   }
   .field {
     @apply w-full min-w-0 rounded-xl border bg-white px-4 py-3 outline-none ring-red/20 focus:ring-4;
+    color: #17233c;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
   }
+}
+select.field {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.9rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+}
+select.field:hover {
+  border-color: #94a3b8;
+}
+.lms-dropdown-menu {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 20px 45px rgb(15 23 42 / 0.18);
+}
+.lms-popup-card {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 25px 70px rgb(15 23 42 / 0.22);
+}
+.batch-verify-action {
+  color: #334155;
+}
+.batch-verify-action:hover {
+  background: #f1f5f9;
+}
+.batch-verify-modal {
+  border-color: #e2e8f0;
+  background: #fff;
+  color: #17233c;
+}
+.batch-verify-trigger {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #17233c;
+}
+.batch-verify-trigger:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+.batch-verify-options {
+  border-color: #e2e8f0;
+  background: #fff;
+}
+.batch-verify-option {
+  color: #334155;
+}
+.batch-verify-option:hover {
+  background: #f1f5f9;
 }
 div:has(> input[name="tags"]) {
   display: none !important;
@@ -194,6 +254,27 @@ table:has(td.relative > div.absolute) {
   background: #07111f !important;
   color: #d7e0ec;
 }
+
+/* Sidebar branding swaps automatically with the persisted portal theme. */
+.sidebar-logo-dark {
+  display: none;
+}
+.admin-dark .sidebar-logo-light {
+  display: none;
+}
+.admin-dark .sidebar-logo-dark {
+  display: block;
+}
+@media (max-width: 1023px) {
+  .admin-dark .sidebar-logo-dark.portal-logo-desktop {
+    display: none;
+  }
+}
+@media (min-width: 1024px) {
+  .admin-dark .sidebar-logo-dark.portal-logo-mobile {
+    display: none;
+  }
+}
 .admin-dark body {
   background: #07111f !important;
   color: #d7e0ec;
@@ -289,6 +370,46 @@ table:has(td.relative > div.absolute) {
 .admin-dark option {
   background: #111f32;
   color: #e2e8f0;
+}
+.admin-dark select.field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.admin-dark .lms-dropdown-menu,
+.admin-dark .lms-popup-card {
+  border-color: #334155 !important;
+  background: #0f1b2d !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.48) !important;
+}
+.admin-dark .batch-verify-action {
+  color: #e2e8f0 !important;
+}
+.admin-dark .batch-verify-action:hover {
+  background: #1e2d42 !important;
+}
+.admin-dark .batch-verify-modal {
+  border-color: #334155 !important;
+  background: #0f1b2d !important;
+  color: #e2e8f0 !important;
+}
+.admin-dark .batch-verify-trigger {
+  border-color: #3b4b62 !important;
+  background: #111f32 !important;
+  color: #e2e8f0 !important;
+}
+.admin-dark .batch-verify-trigger:hover {
+  border-color: #64748b !important;
+  background: #17283e !important;
+}
+.admin-dark .batch-verify-options {
+  border-color: #334155 !important;
+  background: #111f32 !important;
+}
+.admin-dark .batch-verify-option {
+  color: #e2e8f0 !important;
+}
+.admin-dark .batch-verify-option:hover {
+  background: #223149 !important;
 }
 .admin-dark button:not(.btn-primary),
 .admin-dark a {

@@ -27,16 +27,21 @@ export type EnrollmentRow = {
   courseId: string;
   date: string;
   status: string;
+  batchId: string;
+  batch: string;
 };
 type Option = { id: string; name: string };
+type BatchOption = Option & { courseId: string };
 export function EnrollmentManagement({
   initialRows,
   students,
   courses,
+  batches,
 }: {
   initialRows: EnrollmentRow[];
   students: Option[];
   courses: Option[];
+  batches: BatchOption[];
 }) {
   const router = useRouter();
   const canCreate = useStaffCan("enrollment", "create");
@@ -268,6 +273,7 @@ export function EnrollmentManagement({
         <Add
           students={students}
           courses={courses}
+          batches={batches}
           close={() => setAdding(false)}
           saved={(r) => {
             setRows((x) => [r, ...x]);
@@ -280,6 +286,7 @@ export function EnrollmentManagement({
           row={editing}
           students={students}
           courses={courses}
+          batches={batches}
           close={() => setEditing(null)}
           saved={(updated) => {
             setRows((current) =>
@@ -335,17 +342,20 @@ function Page({
 function Add({
   students,
   courses,
+  batches,
   close,
   saved,
 }: {
   students: Option[];
   courses: Option[];
+  batches: BatchOption[];
   close: () => void;
   saved: (r: EnrollmentRow) => void;
 }) {
   const [busy, setBusy] = useState(false),
     [studentId, setStudentId] = useState(""),
-    [courseId, setCourseId] = useState("");
+    [courseId, setCourseId] = useState(""),
+    [batchId, setBatchId] = useState("");
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -394,6 +404,17 @@ function Add({
             onChange={setCourseId}
           />
         </div>
+        <div className="mt-4">
+          <SearchSelect
+            name="batch_id"
+            label="Batch"
+            placeholder="Select batch"
+            options={batches.filter((x) => x.courseId === courseId)}
+            value={batchId}
+            onChange={setBatchId}
+            required={false}
+          />
+        </div>
         <button disabled={busy} className="btn-primary mt-5 w-full gap-2">
           <BookPlus className="size-4" />
           {busy ? "Adding…" : "Add Student"}
@@ -407,18 +428,21 @@ function EditEnrollment({
   row,
   students,
   courses,
+  batches,
   close,
   saved,
 }: {
   row: EnrollmentRow;
   students: Option[];
   courses: Option[];
+  batches: BatchOption[];
   close: () => void;
   saved: (row: EnrollmentRow) => void;
 }) {
   const [busy, setBusy] = useState(false),
     [studentId, setStudentId] = useState(row.studentId),
-    [courseId, setCourseId] = useState(row.courseId);
+    [courseId, setCourseId] = useState(row.courseId),
+    [batchId, setBatchId] = useState(row.batchId || "");
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -444,6 +468,8 @@ function EditEnrollment({
       studentEmail:
         student?.name.match(/\(([^)]+)\)\s*$/)?.[1] || row.studentEmail,
       course: course?.name || row.course,
+      batchId: String(values.batch_id || ""),
+      batch: batches.find((item) => item.id === values.batch_id)?.name || "",
       status: String(values.status),
     });
     toast.success("Enrollment updated");
@@ -483,6 +509,17 @@ function EditEnrollment({
             onChange={setCourseId}
           />
         </div>
+        <div className="mt-4">
+          <SearchSelect
+            name="batch_id"
+            label="Batch"
+            placeholder="Select batch"
+            options={batches.filter((x) => x.courseId === courseId)}
+            value={batchId}
+            onChange={setBatchId}
+            required={false}
+          />
+        </div>
         <label className="mt-4 block text-sm font-bold">
           Status
           <select
@@ -512,6 +549,7 @@ function SearchSelect({
   options,
   value,
   onChange,
+  required = true,
 }: {
   name: string;
   label: string;
@@ -519,6 +557,7 @@ function SearchSelect({
   options: Option[];
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState(""),
@@ -540,7 +579,7 @@ function SearchSelect({
       className={`relative block text-sm font-bold ${open ? "z-[190]" : "z-0"}`}
     >
       {label}
-      <input type="hidden" name={name} value={value} required />
+      <input type="hidden" name={name} value={value} required={required} />
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

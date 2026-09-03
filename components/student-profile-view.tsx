@@ -28,6 +28,7 @@ type Course = {
   modules: number;
   assignments: number;
   quizzes: number;
+  batch?: string | null;
 };
 type Certificate = {
   id: string;
@@ -277,6 +278,11 @@ function Courses({ rows: courses }: { rows: Course[] }) {
               )}
               <div className="min-w-0">
                 <b className="line-clamp-2 text-navy">{c.title}</b>
+                {c.batch && (
+                  <p className="mt-1 text-xs font-semibold text-red">
+                    Batch: {c.batch}
+                  </p>
+                )}
                 <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                   <Count label="Modules" value={c.modules} />
                   <Count label="Assignments" value={c.assignments} />

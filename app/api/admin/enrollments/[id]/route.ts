@@ -32,13 +32,21 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   const body = await req.json();
-  const db = await admin(body.student_id || body.course_id ? "edit" : "status");
+  const db = await admin(
+    body.student_id || body.course_id || body.batch_id !== undefined
+      ? "edit"
+      : "status",
+  );
   if (!db) return Response.json({ error: "Forbidden" }, { status: 403 });
   const parsed = z
     .object({
       status: z.enum(["pending", "approved", "declined", "completed"]),
       student_id: z.string().uuid().optional(),
       course_id: z.string().uuid().optional(),
+      batch_id: z
+        .union([z.string().uuid(), z.literal("")])
+        .nullable()
+        .optional(),
     })
     .safeParse(body);
   if (!parsed.success)
@@ -48,7 +56,7 @@ export async function PATCH(
     );
   const { data: previous } = await db
     .from("enrollments")
-    .select("student_id,course_id,status")
+    .select("student_id,course_id,batch_id,status")
     .eq("id", params.id)
     .maybeSingle();
   if (!previous)
@@ -79,6 +87,21 @@ export async function PATCH(
       },
       { status: 400 },
     );
+  if (parsed.data.batch_id !== undefined) {
+    if (previous.batch_id)
+      await db
+        .from("batch_learners")
+        .delete()
+        .eq("batch_id", previous.batch_id)
+        .eq("student_id", previous.student_id);
+    if (parsed.data.batch_id)
+      await db
+        .from("batch_learners")
+        .upsert({
+          batch_id: parsed.data.batch_id,
+          student_id: parsed.data.student_id || previous.student_id,
+        });
+  }
 
   const studentId = parsed.data.student_id || previous.student_id,
     courseId = parsed.data.course_id || previous.course_id,
@@ -131,7 +154,18 @@ export async function DELETE(
 ) {
   const db = await admin("delete");
   if (!db) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const { data: enrollment } = await db
+    .from("enrollments")
+    .select("batch_id,student_id")
+    .eq("id", params.id)
+    .maybeSingle();
   const { error } = await db.from("enrollments").delete().eq("id", params.id);
+  if (!error && enrollment?.batch_id)
+    await db
+      .from("batch_learners")
+      .delete()
+      .eq("batch_id", enrollment.batch_id)
+      .eq("student_id", enrollment.student_id);
   return error
     ? Response.json({ error: error.message }, { status: 400 })
     : Response.json({ ok: true });

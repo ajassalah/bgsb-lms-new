@@ -23,6 +23,7 @@ import {
   PanelLeftOpen,
   PlusCircle,
   Radio,
+  ScrollText,
   Sun,
   Ticket,
   UserRound,
@@ -80,6 +81,12 @@ export function DashboardShell({
     ["Messages", MessageSquare, "/dashboard/instructor/messages"],
     ["Private File", FolderLock, "/dashboard/instructor/private-files"],
     ["Reports", BarChart3, "/dashboard/instructor/reports"],
+    ["Help & Support", LifeBuoy, "/dashboard/instructor/support/help"],
+    [
+      "Terms & Conditions",
+      ScrollText,
+      "/dashboard/instructor/terms-and-conditions",
+    ],
   ] as const;
   const studentNav = [
     ["Dashboard", LayoutDashboard, "/dashboard/student"],
@@ -94,6 +101,12 @@ export function DashboardShell({
     ["Calendar", CalendarDays, "/dashboard/student/calendar"],
     ["Private File", FolderLock, "/dashboard/student/private-files"],
     ["Report", BarChart3, "/dashboard/student/reports"],
+    ["Help & Support", LifeBuoy, "/dashboard/student/support/help"],
+    [
+      "Terms & Conditions",
+      ScrollText,
+      "/dashboard/student/terms-and-conditions",
+    ],
   ] as const;
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -173,12 +186,26 @@ export function DashboardShell({
               sidebarExpanded ? "https://bgsb.lk/bgs-logo.png" : "/cropped-.png"
             }
             alt="BGSB"
-            className="hidden h-full max-w-full object-contain lg:block"
+            className="sidebar-logo-light hidden h-full max-w-full object-contain lg:block"
+          />
+          <img
+            src={
+              sidebarExpanded
+                ? "/BGS Logo White-01.png"
+                : "/BGS Logo White-01.png"
+            }
+            alt="BGSB"
+            className="sidebar-logo-dark portal-logo-desktop hidden h-full max-w-full object-contain lg:block"
           />
           <img
             src="https://bgsb.lk/bgs-logo.png"
             alt="BGSB"
-            className="h-full max-w-full object-contain lg:hidden"
+            className="sidebar-logo-light h-full max-w-full object-contain lg:hidden"
+          />
+          <img
+            src="/BGS Logo White-01.png"
+            alt="BGSB"
+            className="sidebar-logo-dark portal-logo-mobile h-full max-w-full object-contain lg:hidden"
           />
         </Link>
         <button
@@ -311,7 +338,7 @@ export function DashboardShell({
               <span
                 className={sidebarExpanded ? "flex-1 text-left" : "lg:hidden"}
               >
-                Help & Support
+                Support
               </span>
               <ChevronDown
                 className={`size-4 ${supportOpen ? "rotate-180" : ""} ${sidebarExpanded ? "" : "lg:hidden"}`}
