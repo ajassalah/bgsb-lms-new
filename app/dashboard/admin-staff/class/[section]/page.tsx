@@ -4,7 +4,7 @@ import {
   ClassSectionPage,
   type ClassSection,
 } from "@/components/class-section-page";
-const valid = ["attendance", "students", "instructors", "classes", "reports"];
+const valid = ["attendance", "classes", "reports"];
 export default function Page({ params }: { params: { section: string } }) {
   if (!valid.includes(params.section)) notFound();
   return (

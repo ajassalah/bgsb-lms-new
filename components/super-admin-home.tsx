@@ -10,6 +10,7 @@ import {
   Clock3,
   GraduationCap,
   MoreHorizontal,
+  UserCog,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -40,6 +41,8 @@ export function SuperAdminHome({
   basePath = "/dashboard/super-admin",
   dashboardTitle = "Admin Dashboard",
   showRecentActivity = true,
+  manpowerLabels = { users: "Users", admins: "Total Admin" },
+  enrollmentActivity = [],
 }: {
   counts: Counts;
   bestCourses: { title: string; enrollments: number }[];
@@ -71,6 +74,8 @@ export function SuperAdminHome({
   basePath?: string;
   dashboardTitle?: string;
   showRecentActivity?: boolean;
+  manpowerLabels?: { users: string; admins: string };
+  enrollmentActivity?: string[];
 }) {
   const [now, setNow] = useState(() => new Date());
   const [month, setMonth] = useState(() => new Date());
@@ -159,15 +164,28 @@ export function SuperAdminHome({
     counts.organizations,
     1,
   );
-  const bars = [
-    counts.students,
-    Math.max(1, Math.round(counts.students * 0.72)),
-    Math.max(1, Math.round(counts.students * 0.84)),
-    Math.max(1, Math.round(counts.students * 0.65)),
-    Math.max(1, Math.round(counts.students * 0.92)),
-    Math.max(1, counts.enrollments),
-    Math.max(1, Math.round(counts.enrollments * 1.1)),
-  ];
+  const activityBars = Array.from({ length: 7 }, (_, offset) => {
+    const day = new Date(now);
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - offset));
+    const next = new Date(day);
+    next.setDate(next.getDate() + 1);
+    return enrollmentActivity.filter((date) => {
+      const value = new Date(date);
+      return value >= day && value < next;
+    }).length;
+  });
+  const bars = enrollmentActivity.length
+    ? activityBars
+    : [
+        counts.students,
+        Math.max(1, Math.round(counts.students * 0.72)),
+        Math.max(1, Math.round(counts.students * 0.84)),
+        Math.max(1, Math.round(counts.students * 0.65)),
+        Math.max(1, Math.round(counts.students * 0.92)),
+        Math.max(1, counts.enrollments),
+        Math.max(1, Math.round(counts.enrollments * 1.1)),
+      ];
   return (
     <>
       {staffWelcomeOpen && (
@@ -576,12 +594,16 @@ export function SuperAdminHome({
           </p>
           <div className="mt-6 space-y-4">
             <div className="rounded-xl bg-blue-50 p-5">
-              <p className="text-sm font-semibold text-blue-700">Users</p>
+              <p className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                <Users className="size-4" />
+                {manpowerLabels.users}
+              </p>
               <b className="mt-2 block text-3xl text-navy">{manpower.users}</b>
             </div>
             <div className="rounded-xl bg-violet-50 p-5">
-              <p className="text-sm font-semibold text-violet-700">
-                Total Admin
+              <p className="flex items-center gap-2 text-sm font-semibold text-violet-700">
+                <UserCog className="size-4" />
+                {manpowerLabels.admins}
               </p>
               <b className="mt-2 block text-3xl text-navy">{manpower.admins}</b>
             </div>

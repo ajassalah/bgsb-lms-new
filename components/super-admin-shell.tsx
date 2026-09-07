@@ -62,14 +62,8 @@ const groups = [
   {
     label: "CLASS",
     items: [
-      ["Dashboard", LayoutDashboard, "/dashboard/super-admin/class"],
+      ["Academic", LayoutDashboard, "/dashboard/super-admin/class"],
       ["Attendance", ClipboardCheck, "/dashboard/super-admin/class/attendance"],
-      ["Students", Users, "/dashboard/super-admin/class/students"],
-      [
-        "Instructors",
-        GraduationCap,
-        "/dashboard/super-admin/class/instructors",
-      ],
       ["Class", School, "/dashboard/super-admin/class/classes"],
       ["Reports", FileBarChart, "/dashboard/super-admin/class/reports"],
     ],
@@ -289,7 +283,7 @@ export function SuperAdminShell({
               <nav className="space-y-1">
                 {group.items.map(([label, Icon, href]) =>
                   group.label === "CLASS" ? (
-                    label === "Dashboard" ? (
+                    label === "Academic" ? (
                       <div key="class-dashboard">
                         <button
                           type="button"
@@ -298,7 +292,7 @@ export function SuperAdminShell({
                         >
                           <LayoutDashboard className="size-[18px] shrink-0" />
                           <span className={sidebar ? "" : "lg:hidden"}>
-                            Dashboard
+                            Academic
                           </span>
                           <ChevronDown
                             className={`ml-auto size-3.5 transition ${classOpen ? "rotate-180" : ""} ${sidebar ? "" : "lg:hidden"}`}
@@ -309,8 +303,6 @@ export function SuperAdminShell({
                             {(
                               [
                                 ["Attendance", "attendance", ClipboardCheck],
-                                ["Student", "students", Users],
-                                ["Instructor", "instructors", GraduationCap],
                                 ["Class", "classes", School],
                                 ["Report", "reports", FileBarChart],
                               ] as const
@@ -637,17 +629,13 @@ export function SuperAdminShell({
               }
               title={darkMode ? "Light mode" : "Dark mode"}
               onClick={() => setDarkMode((value) => !value)}
-              className="theme-toggle flex h-10 w-[68px] items-center rounded-full border bg-slate-100 p-1 transition-colors"
+              className="grid size-11 place-items-center rounded-xl border bg-white text-slate-600 shadow-sm transition hover:bg-slate-50"
             >
-              <span
-                className={`grid size-8 place-items-center rounded-full bg-white text-slate-600 shadow-sm transition-transform ${darkMode ? "translate-x-7" : "translate-x-0"}`}
-              >
-                {darkMode ? (
-                  <Moon className="size-4" />
-                ) : (
-                  <Sun className="size-4" />
-                )}
-              </span>
+              {darkMode ? (
+                <Sun className="size-5" />
+              ) : (
+                <Moon className="size-5" />
+              )}
             </button>
             <div className="relative">
               <button

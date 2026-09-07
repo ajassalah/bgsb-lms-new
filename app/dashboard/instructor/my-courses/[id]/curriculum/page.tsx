@@ -53,7 +53,7 @@ export default async function InstructorCurriculum({
           <img
             src={course.thumbnail_url || "/Thumimage.jpeg"}
             alt={`${course.title} thumbnail`}
-            className="size-full object-fill"
+            className="size-full object-cover object-center"
           />
         </div>
       </section>

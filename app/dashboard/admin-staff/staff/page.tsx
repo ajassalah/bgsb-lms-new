@@ -14,7 +14,7 @@ export default async function StaffPage() {
         db
           .from("profiles")
           .select(
-            "id,full_name,email,phone,whatsapp_number,last_login_at,status,avatar_url",
+            "id,full_name,email,phone,whatsapp_number,last_login_at,status,avatar_url,staff_role",
           )
           .eq("role", "admin_staff")
           .order("created_at", { ascending: false }),

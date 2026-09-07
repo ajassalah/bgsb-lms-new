@@ -25,6 +25,7 @@ export type InstructorRow = {
   status: string;
   avatar_url: string | null;
   whatsapp_number: string | null;
+  staff_role?: string | null;
 };
 export function InstructorManagement({
   initialRows,
@@ -156,6 +157,7 @@ export function InstructorManagement({
                 <th className="p-4">#</th>
                 <th className="p-4">Name & Mail</th>
                 <th className="p-4">Phone</th>
+                {entity === "Staff" && <th className="p-4">Role</th>}
                 <th className="p-4">Last Login</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-right">Action</th>
@@ -185,6 +187,13 @@ export function InstructorManagement({
                     </div>
                   </td>
                   <td className="p-4">{r.phone || "—"}</td>
+                  {entity === "Staff" && (
+                    <td className="p-4">
+                      <span className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
+                        {r.staff_role || "Staff"}
+                      </span>
+                    </td>
+                  )}
                   <td className="p-4">
                     {r.last_login_at
                       ? new Date(r.last_login_at).toLocaleString("en-GB")

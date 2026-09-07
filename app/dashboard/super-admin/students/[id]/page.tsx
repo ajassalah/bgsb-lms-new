@@ -17,6 +17,7 @@ export default async function StudentView({
     { data: payments },
     { data: logins },
     { data: liveAssignments },
+    { data: attendance },
   ] = await Promise.all([
     db
       .from("profiles")
@@ -53,6 +54,7 @@ export default async function StudentView({
         "session:live_sessions(id,title,thumbnail_url,description,meeting_url,scheduled_start,scheduled_end)",
       )
       .eq("student_id", params.id),
+    db.from("class_attendance").select("status").eq("student_id", params.id),
   ]);
   if (!student) notFound();
   const courses = (enrollments || []).map((e: any) => ({
@@ -101,6 +103,14 @@ export default async function StudentView({
             scheduled_start: session.scheduled_start,
             scheduled_end: session.scheduled_end,
           }))}
+        attendance={{
+          present: (attendance || []).filter((row) => row.status === "present")
+            .length,
+          absent: (attendance || []).filter((row) => row.status === "absent")
+            .length,
+          late: (attendance || []).filter((row) => row.status === "late")
+            .length,
+        }}
       />
     </SuperAdminShell>
   );

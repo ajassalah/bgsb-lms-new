@@ -124,6 +124,7 @@ export function ReadOnlyTable({
 export function InstructorLiveClasses({
   rows,
   appointmentUrl,
+  trackStudentAttendance = false,
 }: {
   rows: {
     id: string;
@@ -135,12 +136,35 @@ export function InstructorLiveClasses({
     url: string | null;
   }[];
   appointmentUrl?: string;
+  trackStudentAttendance?: boolean;
 }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (!trackStudentAttendance) return;
+    const sessionId = window.localStorage.getItem("bgsb-active-live-class");
+    if (!sessionId) return;
+    fetch(`/api/student/live-classes/${sessionId}/attendance`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "leave" }),
+    }).finally(() => window.localStorage.removeItem("bgsb-active-live-class"));
+  }, [trackStudentAttendance]);
+  async function join(session: (typeof rows)[number]) {
+    if (!session.url) return;
+    if (trackStudentAttendance) {
+      await fetch(`/api/student/live-classes/${session.id}/attendance`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "join" }),
+      }).catch(() => null);
+      window.localStorage.setItem("bgsb-active-live-class", session.id);
+    }
+    window.location.assign(session.url);
+  }
   const section = (title: string, items: typeof rows) => (
     <section className="mt-6 px-3 sm:px-0">
       <h2 className="rounded-xl bg-white px-5 py-4 text-lg font-bold text-navy">
@@ -173,15 +197,19 @@ export function InstructorLiveClasses({
               <p className="mt-3 text-xs font-semibold text-slate-400">
                 {new Date(x.start).toLocaleString("en-GB")}
               </p>
-              {x.url && (
-                <a
-                  href={x.url}
-                  target="_blank"
-                  rel="noreferrer"
+              {x.url && title === "Expired Classes" && (
+                <p className="mt-4 truncate text-sm font-semibold text-slate-400">
+                  {x.url}
+                </p>
+              )}
+              {x.url && title !== "Expired Classes" && (
+                <button
+                  type="button"
+                  onClick={() => join(x)}
                   className="btn-primary mt-4"
                 >
                   Join Class
-                </a>
+                </button>
               )}
             </div>
           </article>

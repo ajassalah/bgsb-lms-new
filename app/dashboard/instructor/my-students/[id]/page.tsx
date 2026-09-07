@@ -30,6 +30,7 @@ export default async function InstructorStudentView({
     { data: certificates },
     { data: logins },
     { data: liveAssignments },
+    { data: attendance },
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -62,6 +63,7 @@ export default async function InstructorStudentView({
         "session:live_sessions(id,title,thumbnail_url,description,meeting_url,scheduled_start,scheduled_end)",
       )
       .eq("student_id", params.id),
+    admin.from("class_attendance").select("status").eq("student_id", params.id),
   ]);
   if (!student) notFound();
   return (
@@ -103,6 +105,14 @@ export default async function InstructorStudentView({
             scheduled_start: x.scheduled_start,
             scheduled_end: x.scheduled_end,
           }))}
+        attendance={{
+          present: (attendance || []).filter((row) => row.status === "present")
+            .length,
+          absent: (attendance || []).filter((row) => row.status === "absent")
+            .length,
+          late: (attendance || []).filter((row) => row.status === "late")
+            .length,
+        }}
       />
     </DashboardShell>
   );

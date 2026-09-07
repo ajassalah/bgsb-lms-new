@@ -133,14 +133,12 @@ export function LiveClassManagement({
                         </button>
                         {menu === r.id && (
                           <div className="absolute right-0 top-11 z-50 w-40 rounded-lg border bg-white py-1 shadow-xl">
-                            <a
-                              href={r.meeting_url}
-                              target="_blank"
-                              className="action-row"
-                            >
-                              <ExternalLink />
-                              View
-                            </a>
+                            {title !== "Expired Classes" && (
+                              <a href={r.meeting_url} className="action-row">
+                                <ExternalLink />
+                                View
+                              </a>
+                            )}
                             {canManageExisting && (
                               <>
                                 <button
@@ -169,13 +167,18 @@ export function LiveClassManagement({
                         )}
                       </div>
                     </div>
-                    <a
-                      href={r.meeting_url}
-                      target="_blank"
-                      className="mt-4 block truncate text-sm font-semibold text-blue-600"
-                    >
-                      {r.meeting_url}
-                    </a>
+                    {title === "Expired Classes" ? (
+                      <p className="mt-4 block truncate text-sm font-semibold text-slate-400">
+                        {r.meeting_url}
+                      </p>
+                    ) : (
+                      <a
+                        href={r.meeting_url}
+                        className="mt-4 block truncate text-sm font-semibold text-blue-600"
+                      >
+                        {r.meeting_url}
+                      </a>
+                    )}
                     <p className="mt-3 text-sm font-semibold text-slate-500">
                       {new Date(r.scheduled_start).toLocaleString("en-GB")} –{" "}
                       {new Date(r.scheduled_end).toLocaleString("en-GB")}

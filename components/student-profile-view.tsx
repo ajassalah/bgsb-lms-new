@@ -8,6 +8,9 @@ import {
   Radio,
   Search,
   ShieldCheck,
+  Timer,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 type Student = {
   full_name: string;
@@ -66,6 +69,7 @@ export function StudentProfileView({
   payments,
   logins,
   liveClasses,
+  attendance = { present: 0, absent: 0, late: 0 },
   hidePayments = false,
 }: {
   student: Student;
@@ -74,11 +78,13 @@ export function StudentProfileView({
   payments: Payment[];
   logins: Login[];
   liveClasses: LiveClass[];
+  attendance?: { present: number; absent: number; late: number };
   hidePayments?: boolean;
 }) {
   const [tab, setTab] = useState<
     | "identification"
     | "courses"
+    | "attendance"
     | "live"
     | "certificates"
     | "payments"
@@ -87,6 +93,7 @@ export function StudentProfileView({
   const tabs = [
     ["identification", "Identification"],
     ["courses", "Enrolled Courses"],
+    ["attendance", "Attendance"],
     ["live", "Live Classes"],
     ["certificates", "Certificate"],
     ["payments", "Payment History"],
@@ -149,6 +156,7 @@ export function StudentProfileView({
           <div className="p-5 sm:p-6">
             {tab === "identification" && <Identification student={student} />}{" "}
             {tab === "courses" && <Courses rows={courses} />}{" "}
+            {tab === "attendance" && <AttendanceOverview counts={attendance} />}{" "}
             {tab === "live" && <LiveClasses rows={liveClasses} />}{" "}
             {tab === "certificates" && <Certificates rows={certificates} />}{" "}
             {tab === "payments" && <PaymentTable rows={payments} />}{" "}
@@ -157,6 +165,61 @@ export function StudentProfileView({
         </main>
       </div>
     </>
+  );
+}
+
+function AttendanceOverview({
+  counts,
+}: {
+  counts: { present: number; absent: number; late: number };
+}) {
+  const total = counts.present + counts.absent + counts.late,
+    presentEnd = total ? (counts.present / total) * 100 : 0,
+    absentEnd = total ? presentEnd + (counts.absent / total) * 100 : 0;
+  const cards = [
+    ["Total Present", counts.present, UserCheck, "bg-amber-50 text-amber-700"],
+    ["Total Absent", counts.absent, UserX, "bg-red/10 text-red"],
+    ["Total Late", counts.late, Timer, "bg-violet-50 text-violet-700"],
+  ] as const;
+  return (
+    <div>
+      <div className="flex flex-col items-center gap-6 rounded-2xl bg-slate-50 p-5 sm:flex-row">
+        <div
+          className="grid size-36 shrink-0 place-items-center rounded-full"
+          style={{
+            background: total
+              ? `conic-gradient(#f59e0b 0 ${presentEnd}%, #ef4444 ${presentEnd}% ${absentEnd}%, #8b5cf6 ${absentEnd}% 100%)`
+              : "#e2e8f0",
+          }}
+        >
+          <span className="grid size-24 place-items-center rounded-full bg-white text-center">
+            <span>
+              <b className="block text-2xl text-navy">{total}</b>
+              <small className="text-slate-400">Total Records</small>
+            </span>
+          </span>
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-navy">Attendance Overview</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Summary of the student&apos;s saved attendance registers.
+          </p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        {cards.map(([label, count, Icon, color]) => (
+          <article key={label} className="rounded-xl border p-4">
+            <span
+              className={`grid size-10 place-items-center rounded-xl ${color}`}
+            >
+              <Icon className="size-5" />
+            </span>
+            <b className="mt-3 block text-2xl text-navy">{count}</b>
+            <p className="text-sm text-slate-500">{label}</p>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -210,7 +273,12 @@ function LiveClasses({ rows }: { rows: LiveClass[] }) {
                   <p className="mt-2 line-clamp-2 text-sm text-slate-500">
                     {liveClass.description}
                   </p>
-                  {liveClass.link && (
+                  {liveClass.link && title === "Expired Classes" && (
+                    <p className="mt-3 block truncate text-sm font-semibold text-slate-400">
+                      {liveClass.link}
+                    </p>
+                  )}
+                  {liveClass.link && title !== "Expired Classes" && (
                     <a
                       href={liveClass.link}
                       target="_blank"

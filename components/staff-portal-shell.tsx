@@ -47,7 +47,7 @@ const groups: { label: string; items: MenuItem[] }[] = [
     label: "Main",
     items: [
       {
-        label: "Dashboard",
+        label: "Academic",
         icon: LayoutDashboard,
         href: "/dashboard/admin-staff",
       },
@@ -149,8 +149,6 @@ const groups: { label: string; items: MenuItem[] }[] = [
         modules: [
           "class_dashboard",
           "class_attendance",
-          "class_students",
-          "class_instructors",
           "class_management",
           "class_reports",
         ],
@@ -160,18 +158,6 @@ const groups: { label: string; items: MenuItem[] }[] = [
             icon: ClipboardCheck,
             href: "/dashboard/admin-staff/class/attendance",
             modules: ["class_attendance"],
-          },
-          {
-            label: "Student",
-            icon: Users,
-            href: "/dashboard/admin-staff/class/students",
-            modules: ["class_students"],
-          },
-          {
-            label: "Instructor",
-            icon: GraduationCap,
-            href: "/dashboard/admin-staff/class/instructors",
-            modules: ["class_instructors"],
           },
           {
             label: "Class",

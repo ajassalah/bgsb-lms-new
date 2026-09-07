@@ -177,13 +177,9 @@ export function StaffTopbar({
         <button
           onClick={() => setDark((x) => !x)}
           aria-label="Toggle light and dark mode"
-          className="theme-toggle flex h-10 w-[68px] items-center rounded-full border bg-slate-100 p-1"
+          className="grid size-11 place-items-center rounded-xl border bg-white text-slate-600 shadow-sm transition hover:bg-slate-50"
         >
-          <span
-            className={`grid size-8 place-items-center rounded-full bg-white shadow transition-transform ${dark ? "translate-x-7" : ""}`}
-          >
-            {dark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-          </span>
+          {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
         <div className="relative">
           <button

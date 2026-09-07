@@ -46,7 +46,7 @@ export default async function TermsAndConditionsPage() {
         )}
         {data ? (
           <div
-            className="prose prose-slate mt-8 max-w-none dark:prose-invert"
+            className="legal-terms-content prose prose-slate mt-8 max-w-none dark:prose-invert"
             dangerouslySetInnerHTML={{ __html: data.content }}
           />
         ) : (

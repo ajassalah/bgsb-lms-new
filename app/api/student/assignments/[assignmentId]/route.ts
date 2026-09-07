@@ -168,6 +168,18 @@ export async function POST(
   if (recipients.length)
     await admin.from("user_notifications").insert(recipients);
 
+  // A successful submission resolves the student's outstanding assignment
+  // reminder so it is not shown again on the next portal visit.
+  await admin
+    .from("user_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq(
+      "url",
+      `/dashboard/student/assignments/${assignment.course_id}/${assignment.id}`,
+    )
+    .is("read_at", null);
+
   return Response.json(data);
 }
 

@@ -46,7 +46,7 @@ export default async function Dashboard({
       db
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .in("role", ["super_admin", "admin_staff"]),
+        .eq("role", "admin_staff"),
       db
         .from("live_sessions")
         .select("id,title,scheduled_start,scheduled_end,status,meeting_url")
@@ -85,7 +85,7 @@ export default async function Dashboard({
       .sort((a, b) => b.enrollments - a.enrollments)
       .slice(0, 5);
     const manpower = {
-      users: queries[7].count || 0,
+      users: queries[0].count || 0,
       admins: queries[8].count || 0,
     };
     return (
@@ -94,6 +94,7 @@ export default async function Dashboard({
           counts={counts}
           bestCourses={bestCourses}
           manpower={manpower}
+          manpowerLabels={{ users: "All Students", admins: "Total Staff" }}
           movement={{
             students: (queries[11].data || []).map((x) => x.created_at),
             instructors: (queries[12].data || []).map((x) => x.created_at),

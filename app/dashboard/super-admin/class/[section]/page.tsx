@@ -5,7 +5,7 @@ import {
   ClassSectionPage,
   type ClassSection,
 } from "@/components/class-section-page";
-const valid = ["attendance", "students", "instructors", "classes", "reports"];
+const valid = ["attendance", "classes", "reports"];
 export default async function Page({
   params,
 }: {

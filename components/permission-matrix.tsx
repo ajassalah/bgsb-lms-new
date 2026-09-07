@@ -108,14 +108,8 @@ export const permissionModules: PermissionModule[] = [
     label: "Assignments / Student Tab",
     actions: ["view"],
   },
-  { key: "class_dashboard", label: "CLASS / Dashboard", actions: ["access"] },
+  { key: "class_dashboard", label: "CLASS / Academic", actions: ["access"] },
   { key: "class_attendance", label: "CLASS / Attendance", actions: ["access"] },
-  { key: "class_students", label: "CLASS / Students", actions: ["access"] },
-  {
-    key: "class_instructors",
-    label: "CLASS / Instructors",
-    actions: ["access"],
-  },
   { key: "class_management", label: "CLASS / Class", actions: ["access"] },
   { key: "class_reports", label: "CLASS / Reports", actions: ["access"] },
   {

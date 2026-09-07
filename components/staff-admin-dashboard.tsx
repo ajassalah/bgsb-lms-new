@@ -23,7 +23,7 @@ export async function StaffAdminDashboard({
       .select("*", { count: "exact", head: true })
       .eq("status", "published"),
     db.from("organizations").select("*", { count: "exact", head: true }),
-    db.from("enrollments").select("*", { count: "exact", head: true }),
+    db.from("enrollments").select("enrolled_at", { count: "exact" }),
     db
       .from("enrollments")
       .select("*", { count: "exact", head: true })
@@ -33,7 +33,7 @@ export async function StaffAdminDashboard({
     db
       .from("profiles")
       .select("*", { count: "exact", head: true })
-      .in("role", ["super_admin", "admin_staff"]),
+      .eq("role", "admin_staff"),
     db
       .from("live_sessions")
       .select("id,title,scheduled_start,scheduled_end,status,meeting_url")
@@ -82,7 +82,9 @@ export async function StaffAdminDashboard({
         }))
         .sort((a, b) => b.enrollments - a.enrollments)
         .slice(0, 5)}
-      manpower={{ users: q[7].count || 0, admins: q[8].count || 0 }}
+      manpower={{ users: q[0].count || 0, admins: q[8].count || 0 }}
+      manpowerLabels={{ users: "All Students", admins: "Total Staff" }}
+      enrollmentActivity={(q[4].data || []).map((row) => row.enrolled_at)}
       movement={{
         students: (q[11].data || []).map((x) => x.created_at),
         instructors: (q[12].data || []).map((x) => x.created_at),

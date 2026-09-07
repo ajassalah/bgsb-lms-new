@@ -5,6 +5,8 @@ import { MobileTableCards } from "@/components/mobile-table-cards";
 import { FloatingActionMenus } from "@/components/floating-action-menus";
 import { SessionInactivity } from "@/components/session-inactivity";
 import { ActivityTracker } from "@/components/activity-tracker";
+import { DashboardNavigationLoader } from "@/components/dashboard-navigation-loader";
+import { PortalEntryNotification } from "@/components/portal-entry-notification";
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +36,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <FloatingActionMenus />
         <SessionInactivity />
         <ActivityTracker />
+        <DashboardNavigationLoader />
+        <PortalEntryNotification />
         {children}
         <Toaster richColors />
       </body>

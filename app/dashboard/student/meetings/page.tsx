@@ -43,6 +43,7 @@ export default async function StudentMeetings() {
       avatar={profile.avatar_url}
     >
       <InstructorLiveClasses
+        trackStudentAttendance
         rows={sessions.map((session: any) => ({
           id: session.id,
           title: session.title,

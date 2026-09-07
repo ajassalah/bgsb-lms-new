@@ -32,11 +32,16 @@ export async function GET() {
     .eq("id", user.id)
     .single();
   const admin = createAdminClient();
+  // Login popups should not revive stale announcements or notifications.
+  const activeSince = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const { data: directNotifications } = await admin
     .from("user_notifications")
     .select("id,title,url,created_at")
     .eq("user_id", user.id)
     .is("read_at", null)
+    .gte("created_at", activeSince)
     .order("created_at", { ascending: false })
     .limit(20);
   const notificationRole = p?.role === "admin_staff" ? "admin_staff" : p?.role;
@@ -47,6 +52,7 @@ export async function GET() {
             .from("announcements")
             .select("id,title,created_at")
             .contains("receiver_types", [notificationRole])
+            .gte("created_at", activeSince)
             .or(
               `scheduled_at.is.null,scheduled_at.lte.${new Date().toISOString()}`,
             )
@@ -73,8 +79,9 @@ export async function GET() {
     const [{ data: activities }, { data: reads }] = await Promise.all([
       admin
         .from("admin_activity_logs")
-        .select("id,action,entity_type,description,created_at")
-        .eq("actor_id", user.id)
+        .select(
+          "id,action,entity_type,description,created_at,actor:profiles!admin_activity_logs_actor_id_fkey(full_name,email,avatar_url)",
+        )
         .order("created_at", { ascending: false })
         .limit(20),
       admin
@@ -93,11 +100,12 @@ export async function GET() {
       ...roleAnnouncementItems,
       ...(activities || []).map((x) => ({
         id: `log-${x.id}`,
-        title:
-          x.description ||
-          `${x.action} ${String(x.entity_type || "record").replaceAll("_", " ")}`,
+        title: `${(x.actor as any)?.full_name || "User"}: ${x.description || `${x.action} ${String(x.entity_type || "record").replaceAll("_", " ")}`}`,
         url: activityUrl(x.entity_type, p.role),
         date: x.created_at,
+        actor: (x.actor as any)?.full_name || "User",
+        email: (x.actor as any)?.email || "",
+        avatar: (x.actor as any)?.avatar_url || null,
       })),
     ]
       .filter((item) => !readIds.has(item.id))
@@ -140,6 +148,7 @@ export async function GET() {
           .from("announcements")
           .select("id,title,created_at")
           .or(`scheduled_at.is.null,scheduled_at.lte.${now}`)
+          .gte("created_at", activeSince)
           .order("created_at", { ascending: false })
           .limit(5),
         db
