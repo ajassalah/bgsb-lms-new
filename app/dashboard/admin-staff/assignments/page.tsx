@@ -19,7 +19,10 @@ export default async function AssignmentsPage() {
   }));
   return (
     <StaffPageShell name={profile.full_name}>
-      <CourseAssignmentManagement initialRows={rows} />
+      <CourseAssignmentManagement
+        initialRows={rows}
+        basePath="/dashboard/admin-staff/assignments"
+      />
     </StaffPageShell>
   );
 }

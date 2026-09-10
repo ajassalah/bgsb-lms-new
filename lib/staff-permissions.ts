@@ -2,6 +2,62 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type StaffPermissions = Record<string, Record<string, boolean>>;
 
+const legacyPermissionAliases: Record<string, string[]> = {
+  Enrollment: ["enrollment"],
+  Courses: ["courses", "curriculum", "curriculum_overview"],
+  Categories: ["categories"],
+  Certificates: ["certificates", "certificate_students"],
+  "Live Classes": ["live_classes"],
+  Assignments: [
+    "assignments",
+    "assignment_tab",
+    "assignment_students",
+    "assignment_student_modules",
+    "submitted_assignments",
+  ],
+  Students: ["students"],
+  Instructors: ["instructors"],
+  Staff: ["staff", "roles"],
+  Announcements: ["announcements"],
+  Messages: ["messages"],
+  Calendar: ["calendar"],
+  Tickets: ["tickets"],
+  "Support Assistants": ["support_assistants"],
+  FAQ: ["faq"],
+  Reports: ["reports"],
+  "System Settings": [
+    "all_users",
+    "email_configuration",
+    "recent_activities",
+    "terms_conditions",
+  ],
+};
+
+function expandActions(actions: Record<string, boolean>) {
+  return {
+    ...actions,
+    access:
+      actions.access ?? actions.view ?? Object.values(actions).some(Boolean),
+    view:
+      actions.view ?? actions.access ?? Object.values(actions).some(Boolean),
+  };
+}
+
+export function normalizeStaffPermissions(
+  permissions: StaffPermissions,
+): StaffPermissions {
+  const normalized: StaffPermissions = {};
+  for (const [module, actions] of Object.entries(permissions || {})) {
+    const targets = legacyPermissionAliases[module] || [module];
+    for (const target of targets)
+      normalized[target] = {
+        ...(normalized[target] || {}),
+        ...expandActions(actions || {}),
+      };
+  }
+  return normalized;
+}
+
 export async function getStaffPermissions(
   userId: string,
 ): Promise<StaffPermissions> {
@@ -30,10 +86,10 @@ export async function getStaffPermissions(
     .select("permissions")
     .ilike("name", profile.staff_role.trim())
     .maybeSingle();
-  return {
+  return normalizeStaffPermissions({
     ...copied,
     ...((assignedRole?.permissions || {}) as StaffPermissions),
-  };
+  });
 }
 
 export async function staffCan(userId: string, module: string, action: string) {

@@ -2,17 +2,18 @@ import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+
 export default async function Page({ params }: { params: { id: string } }) {
-  const p = await requireProfile("instructor"),
-    admin = createAdminClient(),
-    { data } = await admin
-      .from("support_tickets")
-      .select(
-        "id,ticket_no,subject,priority,status,description,attachment_url,created_at",
-      )
-      .eq("id", params.id)
-      .eq("created_by", p.id)
-      .single();
+  const p = await requireProfile("student");
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("support_tickets")
+    .select(
+      "id,ticket_no,subject,priority,status,description,attachment_url,created_at",
+    )
+    .eq("id", params.id)
+    .eq("created_by", p.id)
+    .single();
   if (!data) notFound();
   const { data: links } = await admin
     .from("support_ticket_staff")
@@ -35,7 +36,12 @@ export default async function Page({ params }: { params: { id: string } }) {
   const roleName =
     ((assistant?.role as { name?: string } | null)?.name as string) || "";
   return (
-    <DashboardShell role="instructor" name={p.full_name}>
+    <DashboardShell
+      role="student"
+      name={p.full_name}
+      email={p.email}
+      avatar={p.avatar_url}
+    >
       <p className="text-sm text-slate-400">Support / Tickets / View</p>
       <h1 className="mt-1 text-2xl font-bold text-navy">{data.subject}</h1>
       <section className="mt-7 rounded-2xl border bg-white p-5 sm:p-7">

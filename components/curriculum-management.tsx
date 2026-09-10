@@ -78,6 +78,7 @@ export function CurriculumManagement({
   videoUrl,
   initialModules,
   readOnly = false,
+  basePath = "/dashboard/super-admin",
 }: {
   courseId: string;
   courseTitle: string;
@@ -86,6 +87,7 @@ export function CurriculumManagement({
   videoUrl?: string | null;
   initialModules: ModuleRow[];
   readOnly?: boolean;
+  basePath?: string;
 }) {
   const router = useRouter();
   const [modules, setModules] = useState(initialModules),
@@ -398,7 +400,7 @@ export function CurriculumManagement({
                         Add Quiz
                       </button>
                       <a
-                        href={`/dashboard/super-admin/courses/${courseId}/curriculum/${m.id}/assignments`}
+                        href={`${basePath}/courses/${courseId}/curriculum/${m.id}/assignments`}
                         className="action-row"
                       >
                         <FileText />
@@ -479,6 +481,7 @@ export function CurriculumManagement({
                 readOnly={readOnly}
                 module={m}
                 courseId={courseId}
+                basePath={basePath}
                 onReplace={(lesson) =>
                   setModal({
                     type: "lesson",
@@ -592,6 +595,7 @@ function LessonActions({
 function ModuleContent({
   module,
   courseId,
+  basePath,
   onReplace,
   onEditQuiz,
   onDeleteLesson,
@@ -601,6 +605,7 @@ function ModuleContent({
 }: {
   module: ModuleRow;
   courseId: string;
+  basePath: string;
   onReplace: (lesson: Lesson) => void;
   onEditQuiz: (quiz: Quiz) => void;
   onDeleteLesson: (id: string) => void;
@@ -810,7 +815,7 @@ function ModuleContent({
                           />
                         )}
                         <a
-                          href={`/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`}
+                          href={`${basePath}/courses/${courseId}/curriculum/${module.id}/assignments/${a.id}/edit`}
                           className="action-row"
                         >
                           <Edit3 />

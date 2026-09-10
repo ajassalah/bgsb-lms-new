@@ -15,40 +15,39 @@ export async function POST(request: Request) {
   if (!["instructor", "student"].includes(profile?.role || ""))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await request.formData(),
-    staffIds = form.getAll("staff_ids").map(String),
     parsed = z
       .object({
+        role_id: z.string().uuid(),
         subject: z.string().trim().min(2),
         priority: z.enum(["low", "medium", "high"]),
         description: z.string().trim().min(2),
       })
       .safeParse(Object.fromEntries(form));
-  if (!parsed.success || !staffIds.length)
+  if (!parsed.success)
     return Response.json(
-      { error: "Select staff and enter valid ticket details" },
+      { error: "Select role and enter valid ticket details" },
       { status: 400 },
     );
   const admin = createAdminClient(),
-    { data: staff } = await admin
-      .from("profiles")
-      .select("id")
-      .in("id", staffIds)
-      .eq("role", "admin_staff")
-      .eq("status", "active");
-  if ((staff || []).length !== new Set(staffIds).size)
+    { data: assistants } = await admin
+      .from("support_assistants")
+      .select("user_id")
+      .eq("role_id", parsed.data.role_id);
+  const staffIds = Array.from(
+    new Set((assistants || []).map((assistant) => assistant.user_id)),
+  );
+  if (!staffIds.length)
     return Response.json(
-      { error: "Select valid staff users" },
+      { error: "No support assistants are assigned to this role" },
       { status: 400 },
     );
   let attachment_url: null | string = null;
   const file = form.get("attachment");
   if (file instanceof File && file.size) {
     const path = `support-tickets/instructor-${user.id}/${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, "-")}`,
-      upload = await admin.storage
-        .from("course-media")
-        .upload(path, file, {
-          contentType: file.type || "application/octet-stream",
-        });
+      upload = await admin.storage.from("course-media").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+      });
     if (upload.error)
       return Response.json({ error: upload.error.message }, { status: 400 });
     attachment_url = admin.storage.from("course-media").getPublicUrl(path)
@@ -57,29 +56,35 @@ export async function POST(request: Request) {
   const { data: ticket, error } = await admin
     .from("support_tickets")
     .insert({
-      ...parsed.data,
+      subject: parsed.data.subject,
+      priority: parsed.data.priority,
       status: "pending",
       description: parsed.data.description,
       attachment_url,
       created_by: user.id,
       student_id: null,
     })
-    .select("id,subject,priority,status,created_at")
+    .select("id,ticket_no,subject,priority,status,created_at")
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });
+  const { data: recipients } = await admin
+    .from("profiles")
+    .select("id,role")
+    .in("id", staffIds);
   await Promise.all([
     admin
       .from("support_ticket_staff")
       .insert(staffIds.map((staff_id) => ({ ticket_id: ticket.id, staff_id }))),
-    admin
-      .from("user_notifications")
-      .insert(
-        staffIds.map((user_id) => ({
-          user_id,
-          title: `New ticket: ${ticket.subject}`,
-          url: "/dashboard/admin-staff/support/tickets",
-        })),
-      ),
+    admin.from("user_notifications").insert(
+      (recipients || []).map((recipient) => ({
+        user_id: recipient.id,
+        title: `New ticket: ${ticket.subject}`,
+        url:
+          recipient.role === "super_admin"
+            ? "/dashboard/super-admin/support/tickets"
+            : "/dashboard/admin-staff/support/tickets",
+      })),
+    ),
   ]);
   return Response.json(ticket);
 }

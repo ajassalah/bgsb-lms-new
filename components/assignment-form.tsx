@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ExternalLink, FileText, Save, Search, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useIsStaffPortal } from "./staff-permission-context";
 export function AssignmentForm({
   courseId,
   moduleId,
@@ -23,6 +24,9 @@ export function AssignmentForm({
     file_url?: string | null;
   };
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff"
+    : "/dashboard/super-admin";
   const [query, setQuery] = useState(""),
     [selected, setSelected] = useState(assignment?.instructor_id || ""),
     [open, setOpen] = useState(false),
@@ -59,7 +63,7 @@ export function AssignmentForm({
     if (res.ok) {
       toast.success(assignment ? "Assignment updated" : "Assignment created");
       router.push(
-        `/dashboard/super-admin/courses/${courseId}/curriculum/${moduleId}/assignments`,
+        `${basePath}/courses/${courseId}/curriculum/${moduleId}/assignments`,
       );
       router.refresh();
     } else {

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
 import { CourseMediaFields } from "./course-media-fields";
 import { InstructorPicker } from "./instructor-picker";
+import { useIsStaffPortal } from "./staff-permission-context";
 type Option = { id: string; name: string };
 const makeSlug = (value: string) =>
   value
@@ -24,6 +25,9 @@ export function CourseBuilder({
   subjects: string[];
   tags: string[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/courses"
+    : "/dashboard/super-admin/courses";
   const [step, setStep] = useState(1),
     [busy, setBusy] = useState(false),
     [description, setDescription] = useState(""),
@@ -65,7 +69,7 @@ export function CourseBuilder({
     });
     if (res.ok) {
       toast.success("Course created successfully");
-      router.push("/dashboard/super-admin/courses");
+      router.push(basePath);
       router.refresh();
     } else {
       const body = await res.json().catch(() => ({}));

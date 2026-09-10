@@ -1,25 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-function activityUrl(entity: string | null, role: string) {
-  const base =
-    role === "admin_staff"
-      ? "/dashboard/admin-staff"
-      : "/dashboard/super-admin";
-  const routes: Record<string, string> = {
-    courses: "courses",
-    categories: "category",
-    enrollments: "enrollments",
-    live_sessions: "live-classes",
-    announcements: "announcements",
-    support_tickets: "support/tickets",
-    support_faqs: "support/faq",
-    email_templates: "email-templates",
-    calendar_appointments: "calendar",
-    profiles: "students",
-  };
-  return `${base}/${routes[entity || ""] || ""}`.replace(/\/$/, "");
+function isLiveClassNotification(title: string) {
+  return title.toLowerCase().startsWith("live class scheduled:");
 }
+
+function liveClassTitle(title: string) {
+  return title.replace(/^live class scheduled:\s*/i, "").trim();
+}
+
 export async function GET() {
   const db = createClient(),
     {
@@ -44,6 +33,52 @@ export async function GET() {
     .gte("created_at", activeSince)
     .order("created_at", { ascending: false })
     .limit(20);
+  const nowIso = new Date().toISOString();
+  let visibleDirectNotifications = directNotifications || [];
+  if (
+    p?.role &&
+    ["admin_staff", "instructor", "student"].includes(p.role) &&
+    visibleDirectNotifications.some((item) =>
+      isLiveClassNotification(item.title),
+    )
+  ) {
+    let liveRows: { title: string; scheduled_end: string }[] = [];
+    if (p.role === "instructor") {
+      const [{ data: links }, { data: direct }] = await Promise.all([
+        admin
+          .from("live_session_instructors")
+          .select("session:live_sessions(title,scheduled_end)")
+          .eq("instructor_id", user.id),
+        admin
+          .from("live_sessions")
+          .select("title,scheduled_end")
+          .eq("instructor_id", user.id),
+      ]);
+      liveRows = [
+        ...(links || []).map((row: any) => row.session).filter(Boolean),
+        ...(direct || []),
+      ];
+    } else {
+      const table =
+        p.role === "student" ? "live_session_students" : "live_session_staff";
+      const key = p.role === "student" ? "student_id" : "staff_id";
+      const { data } = await admin
+        .from(table)
+        .select("session:live_sessions(title,scheduled_end)")
+        .eq(key, user.id);
+      liveRows = (data || []).map((row: any) => row.session).filter(Boolean);
+    }
+    const activeLiveClasses = new Set(
+      liveRows
+        .filter((row) => row.scheduled_end && row.scheduled_end >= nowIso)
+        .map((row) => row.title),
+    );
+    visibleDirectNotifications = visibleDirectNotifications.filter(
+      (item) =>
+        !isLiveClassNotification(item.title) ||
+        activeLiveClasses.has(liveClassTitle(item.title)),
+    );
+  }
   const notificationRole = p?.role === "admin_staff" ? "admin_staff" : p?.role;
   const [{ data: roleAnnouncements }, { data: commonReads }] =
     notificationRole && notificationRole !== "super_admin"
@@ -76,37 +111,17 @@ export async function GET() {
     date: item.created_at,
   }));
   if (p?.role === "admin_staff") {
-    const [{ data: activities }, { data: reads }] = await Promise.all([
-      admin
-        .from("admin_activity_logs")
-        .select(
-          "id,action,entity_type,description,created_at,actor:profiles!admin_activity_logs_actor_id_fkey(full_name,email,avatar_url)",
-        )
-        .order("created_at", { ascending: false })
-        .limit(20),
-      admin
-        .from("notification_reads")
-        .select("notification_id")
-        .eq("user_id", user.id),
-    ]);
-    const readIds = new Set((reads || []).map((row) => row.notification_id));
+    const readIds = new Set(
+      (commonReads || []).map((row) => row.notification_id),
+    );
     const items = [
-      ...(directNotifications || []).map((x) => ({
+      ...visibleDirectNotifications.map((x) => ({
         id: `u-${x.id}`,
         title: x.title,
         url: x.url,
         date: x.created_at,
       })),
       ...roleAnnouncementItems,
-      ...(activities || []).map((x) => ({
-        id: `log-${x.id}`,
-        title: `${(x.actor as any)?.full_name || "User"}: ${x.description || `${x.action} ${String(x.entity_type || "record").replaceAll("_", " ")}`}`,
-        url: activityUrl(x.entity_type, p.role),
-        date: x.created_at,
-        actor: (x.actor as any)?.full_name || "User",
-        email: (x.actor as any)?.email || "",
-        avatar: (x.actor as any)?.avatar_url || null,
-      })),
     ]
       .filter((item) => !readIds.has(item.id))
       .sort((a, b) => +new Date(b.date) - +new Date(a.date))
@@ -118,7 +133,7 @@ export async function GET() {
   if (p?.role !== "super_admin")
     return Response.json({
       items: [
-        ...(directNotifications || []).map((x) => ({
+        ...visibleDirectNotifications.map((x) => ({
           id: `u-${x.id}`,
           title: x.title,
           url: x.url,

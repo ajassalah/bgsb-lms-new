@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
+import { useIsStaffPortal } from "./staff-permission-context";
 type Value = {
   id: string;
   title: string;
@@ -26,6 +27,9 @@ const types = [
   { value: "student", label: "Students" },
 ];
 export function AnnouncementForm({ value }: { value?: Value }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/announcements"
+    : "/dashboard/super-admin/announcements";
   const [body, setBody] = useState(value?.body || ""),
     [selected, setSelected] = useState<string[]>(
       (value?.receiver_types || []).filter((item) =>
@@ -62,7 +66,7 @@ export function AnnouncementForm({ value }: { value?: Value }) {
     );
     if (res.ok) {
       toast.success(value ? "Announcement updated" : "Announcement created");
-      router.push("/dashboard/super-admin/announcements");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error((await res.json().catch(() => ({}))).error || "Save failed");

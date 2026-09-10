@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
 import { CourseMediaFields } from "./course-media-fields";
 import { InstructorPicker } from "./instructor-picker";
+import { useIsStaffPortal } from "./staff-permission-context";
 type Option = { id: string; name: string };
 type Course = {
   id: string;
@@ -42,6 +43,9 @@ export function CourseEditForm({
   categories: Option[];
   instructors: Option[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/courses"
+    : "/dashboard/super-admin/courses";
   const [step, setStep] = useState(1),
     [busy, setBusy] = useState(false),
     [basic, setBasic] = useState<Record<string, string>>({}),
@@ -94,7 +98,7 @@ export function CourseEditForm({
     });
     if (res.ok) {
       toast.success("Course updated");
-      router.push("/dashboard/super-admin/courses");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error(

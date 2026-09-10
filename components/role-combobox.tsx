@@ -16,6 +16,7 @@ export function RoleCombobox({
 }) {
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(""),
+    [mobilePanel, setMobilePanel] = useState(false),
     [position, setPosition] = useState({
       left: 12,
       top: 60,
@@ -28,11 +29,20 @@ export function RoleCombobox({
     () => options.filter((x) => x.toLowerCase().includes(query.toLowerCase())),
     [options, query],
   );
+  const panelStyle = mobilePanel
+    ? {
+        bottom: 12,
+        left: 12,
+        maxHeight: "min(70vh, 420px)",
+        right: 12,
+      }
+    : position;
   function openDropdown() {
     if (open) return setOpen(false);
     const box = buttonRef.current?.getBoundingClientRect();
     if (box) {
       const mobile = window.innerWidth < 640;
+      setMobilePanel(mobile);
       const width = mobile
         ? window.innerWidth - 24
         : Math.min(Math.max(box.width, 240), window.innerWidth - 24);
@@ -68,11 +78,9 @@ export function RoleCombobox({
     const closeOnViewportChange = () => setOpen(false);
     document.addEventListener("pointerdown", close);
     window.addEventListener("resize", closeOnViewportChange);
-    window.addEventListener("scroll", closeOnViewportChange, true);
     return () => {
       document.removeEventListener("pointerdown", close);
       window.removeEventListener("resize", closeOnViewportChange);
-      window.removeEventListener("scroll", closeOnViewportChange, true);
     };
   }, [open]);
   return (
@@ -88,53 +96,58 @@ export function RoleCombobox({
       </button>
       {open &&
         createPortal(
-          <div
-            ref={panelRef}
-            style={position}
-            className="fixed z-[10010] overflow-y-auto rounded-xl border bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-          >
-            <label className="flex items-center gap-2 rounded-lg border px-3">
-              <Search className="size-4 text-slate-400" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="h-10 min-w-0 flex-1 bg-transparent outline-none"
-                placeholder="Search roles..."
-              />
-            </label>
-            <div className="mt-2 max-h-52 overflow-y-auto">
-              {choices.map((role) => (
+          <>
+            {mobilePanel && (
+              <div className="fixed inset-0 z-[10000] bg-black/20 sm:hidden" />
+            )}
+            <div
+              ref={panelRef}
+              style={panelStyle}
+              className="fixed z-[10010] overflow-y-auto rounded-t-2xl border bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-xl"
+            >
+              <label className="flex items-center gap-2 rounded-lg border px-3">
+                <Search className="size-4 text-slate-400" />
+                <input
+                  autoFocus={!mobilePanel}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none sm:h-10 sm:text-sm"
+                  placeholder="Search roles..."
+                />
+              </label>
+              <div className="mt-2 max-h-64 overflow-y-auto sm:max-h-52">
+                {choices.map((role) => (
+                  <button
+                    type="button"
+                    key={role}
+                    onClick={() => {
+                      onChange(role);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                  >
+                    {role}
+                    {role === value && <Check className="size-4 text-red" />}
+                  </button>
+                ))}
+              </div>
+              {onAddNew && (
                 <button
                   type="button"
-                  key={role}
                   onClick={() => {
-                    onChange(role);
                     setOpen(false);
                     setQuery("");
+                    onAddNew();
                   }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                  className="mt-2 flex min-h-11 w-full items-center gap-2 border-t px-3 pt-3 text-left text-sm font-bold text-red"
                 >
-                  {role}
-                  {role === value && <Check className="size-4 text-red" />}
+                  <Plus className="size-4" />
+                  Add New Role Name
                 </button>
-              ))}
+              )}
             </div>
-            {onAddNew && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setQuery("");
-                  onAddNew();
-                }}
-                className="mt-2 flex w-full items-center gap-2 border-t px-3 pt-3 text-left text-sm font-bold text-red"
-              >
-                <Plus className="size-4" />
-                Add New Role Name
-              </button>
-            )}
-          </div>,
+          </>,
           document.body,
         )}
     </div>

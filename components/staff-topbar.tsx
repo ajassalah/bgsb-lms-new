@@ -103,9 +103,11 @@ export function StaffTopbar({
         .catch(() => {});
     refreshNotifications();
     const timer = window.setInterval(refreshNotifications, 5000);
+    window.addEventListener("notifications-read", refreshNotifications);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("notifications-read", refreshNotifications);
     };
   }, [path]);
   useEffect(() => {

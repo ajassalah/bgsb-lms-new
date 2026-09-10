@@ -5,11 +5,15 @@ import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionMatrix, type PermissionSet } from "./permission-matrix";
 import { RoleCombobox } from "./role-combobox";
+import { useIsStaffPortal } from "./staff-permission-context";
 export function StaffRoleForm({
   value,
 }: {
   value?: { id: string; name: string; permissions: PermissionSet };
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/roles"
+    : "/dashboard/super-admin/roles";
   const [name, setName] = useState(value?.name || ""),
     [permissions, setPermissions] = useState<PermissionSet>(
       value?.permissions || {},
@@ -45,7 +49,7 @@ export function StaffRoleForm({
     );
     if (res.ok) {
       toast.success(value ? "Role updated" : "Role permissions saved");
-      router.push("/dashboard/super-admin/roles");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error((await res.json()).error || "Save failed");
@@ -113,7 +117,7 @@ export function StaffRoleForm({
         <div className="flex justify-end">
           <button disabled={busy} className="btn-primary gap-2">
             <Save className="size-4" />
-            {busy ? "Saving…" : "Save Role"}
+            {busy ? "Saving..." : "Save Role"}
           </button>
         </div>
       </form>

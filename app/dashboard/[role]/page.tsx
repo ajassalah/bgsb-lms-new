@@ -397,7 +397,9 @@ export default async function Dashboard({
             full_name: p.full_name,
             avatar_url: p.avatar_url,
           }}
-          showRecentActivity={!!permissions.recent_activities?.access}
+          showRecentActivity={
+            staff?.staff_role?.trim().toLowerCase() === "manager"
+          }
         />
       </StaffPortalShell>
     );

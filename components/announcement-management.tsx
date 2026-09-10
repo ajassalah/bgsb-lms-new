@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useIsStaffPortal } from "./staff-permission-context";
 export type AnnouncementRow = {
   id: string;
   title: string;
@@ -23,6 +24,9 @@ export function AnnouncementManagement({
 }: {
   initialRows: AnnouncementRow[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/announcements"
+    : "/dashboard/super-admin/announcements";
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
@@ -51,9 +55,7 @@ export function AnnouncementManagement({
           <h1 className="mt-1 text-2xl font-bold text-navy">Announcements</h1>
         </div>
         <button
-          onClick={() =>
-            router.push("/dashboard/super-admin/announcements/new")
-          }
+          onClick={() => router.push(`${basePath}/new`)}
           className="btn-primary gap-2"
         >
           <Plus className="size-4" />
@@ -111,19 +113,13 @@ export function AnnouncementManagement({
                         <Action
                           icon={Eye}
                           text="View"
-                          click={() =>
-                            router.push(
-                              `/dashboard/super-admin/announcements/${row.id}`,
-                            )
-                          }
+                          click={() => router.push(`${basePath}/${row.id}`)}
                         />
                         <Action
                           icon={Edit3}
                           text="Edit"
                           click={() =>
-                            router.push(
-                              `/dashboard/super-admin/announcements/${row.id}/edit`,
-                            )
+                            router.push(`${basePath}/${row.id}/edit`)
                           }
                         />
                         <Action

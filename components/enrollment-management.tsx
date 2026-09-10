@@ -173,7 +173,7 @@ export function EnrollmentManagement({
                       </div>
                     )}
                     {menu === r.id && (
-                      <div className="absolute right-4 top-14 z-[100] w-44 rounded-lg border bg-white py-1 shadow-xl">
+                      <div className="enrollment-action-menu absolute right-4 top-14 z-[100] w-44 rounded-lg border bg-white py-1 shadow-xl">
                         {canEdit && (
                           <button
                             onClick={() => {
@@ -199,7 +199,7 @@ export function EnrollmentManagement({
                               <ChevronRight className="ml-auto" />
                             </button>
                             {statusMenu === r.id && (
-                              <div className="mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
+                              <div className="enrollment-status-menu mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
                                 <button
                                   onClick={() => status(r, "approved")}
                                   className="row-action"
@@ -238,25 +238,29 @@ export function EnrollmentManagement({
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t p-4">
-          <small className="text-slate-400">15 enrollments per page</small>
-          <div className="flex gap-1">
+        <div className="flex flex-col gap-3 border-t p-4 sm:flex-row sm:items-center sm:justify-between">
+          <small className="text-center text-slate-400 sm:text-left">
+            15 enrollments per page
+          </small>
+          <div className="flex items-center justify-center gap-1 overflow-x-auto pb-1 sm:justify-end sm:overflow-visible sm:pb-0">
             <Page disabled={page === 1} onClick={() => setPage(page - 1)}>
-              <ChevronLeft />
-              Previous
+              <ChevronLeft className="size-4" />
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sr-only sm:hidden">Previous</span>
             </Page>
             {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
               <button
                 onClick={() => setPage(n)}
-                className={`grid size-9 place-items-center rounded-lg ${page === n ? "bg-red text-white" : "border"}`}
+                className={`grid size-9 shrink-0 place-items-center rounded-lg text-sm font-semibold ${page === n ? "bg-red text-white" : "border bg-white text-slate-500"}`}
                 key={n}
               >
                 {n}
               </button>
             ))}
             <Page disabled={page === pages} onClick={() => setPage(page + 1)}>
-              Next
-              <ChevronRight />
+              <span className="hidden sm:inline">Next</span>
+              <span className="sr-only sm:hidden">Next</span>
+              <ChevronRight className="size-4" />
             </Page>
           </div>
         </div>
@@ -313,6 +317,28 @@ export function EnrollmentManagement({
           width: 1rem;
           height: 1rem;
         }
+        @media (max-width: 640px) {
+          .enrollment-action-menu {
+            position: fixed !important;
+            left: 0.75rem !important;
+            right: 0.75rem !important;
+            bottom: 0.75rem !important;
+            top: auto !important;
+            width: auto !important;
+            z-index: 320 !important;
+            border-radius: 1rem;
+            padding: 0.5rem;
+          }
+          .row-action {
+            min-height: 3rem;
+            font-size: 0.95rem;
+          }
+          .enrollment-status-menu {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.25rem;
+          }
+        }
       `}</style>
     </>
   );
@@ -333,7 +359,7 @@ function Page({
   return (
     <button
       {...p}
-      className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
+      className="flex size-9 shrink-0 items-center justify-center gap-1 rounded-lg border bg-white text-xs font-semibold text-slate-600 disabled:opacity-40 sm:w-auto sm:px-3 sm:py-2"
     >
       {children}
     </button>
@@ -373,7 +399,7 @@ function Add({
     }
   }
   return (
-    <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+    <div className="fixed inset-0 z-[300] grid place-items-center overflow-y-auto bg-black/50 p-3 sm:p-4">
       <form
         onSubmit={submit}
         className="my-auto w-full max-w-sm overflow-visible rounded-xl bg-white p-4 sm:max-w-md sm:rounded-2xl sm:p-6"
@@ -417,7 +443,7 @@ function Add({
         </div>
         <button disabled={busy} className="btn-primary mt-5 w-full gap-2">
           <BookPlus className="size-4" />
-          {busy ? "Adding…" : "Add Student"}
+          {busy ? "Adding..." : "Add Student"}
         </button>
       </form>
     </div>
@@ -475,10 +501,10 @@ function EditEnrollment({
     toast.success("Enrollment updated");
   }
   return (
-    <div className="fixed inset-0 z-[140] grid place-items-center bg-black/50 p-3">
+    <div className="fixed inset-0 z-[300] grid place-items-center overflow-y-auto bg-black/50 p-3">
       <form
         onSubmit={submit}
-        className="w-full max-w-md rounded-2xl bg-white p-5 sm:p-6"
+        className="my-auto w-full max-w-md overflow-visible rounded-2xl bg-white p-5 sm:p-6"
       >
         <div className="flex items-center justify-between">
           <div>
@@ -525,7 +551,7 @@ function EditEnrollment({
           <select
             name="status"
             defaultValue={row.status}
-            className="field mt-2"
+            className="field mt-2 border-slate-200 bg-slate-50 font-semibold capitalize text-navy shadow-sm transition focus:border-red focus:bg-white"
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -576,22 +602,22 @@ function SearchSelect({
   return (
     <label
       ref={containerRef}
-      className={`relative block text-sm font-bold ${open ? "z-[190]" : "z-0"}`}
+      className={`relative block text-sm font-bold ${open ? "z-[360]" : "z-0"}`}
     >
       {label}
       <input type="hidden" name={name} value={value} required={required} />
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="field mt-2 flex w-full items-center justify-between text-left font-normal"
+        className="field mt-2 flex w-full items-center justify-between border-slate-200 bg-slate-50 text-left font-semibold text-navy shadow-sm transition focus:border-red focus:bg-white"
       >
         <span className={selected ? "text-navy" : "text-slate-400"}>
           {selected?.name || placeholder}
         </span>
-        <ChevronDown className="size-4 text-slate-400" />
+        <ChevronDown className="size-4 text-red" />
       </button>
       {open && (
-        <div className="absolute z-[170] mt-2 w-full rounded-xl border bg-white p-2 shadow-2xl">
+        <div className="absolute z-[370] mt-2 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-2xl">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input

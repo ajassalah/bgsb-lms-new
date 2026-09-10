@@ -5,11 +5,15 @@ import { Edit3, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { TablePagination } from "./table-pagination";
+import { useIsStaffPortal } from "./staff-permission-context";
 export function EmailTemplateManagement({
   initialRows,
 }: {
   initialRows: { id: string; subject: string }[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/email-templates"
+    : "/dashboard/super-admin/email-templates";
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
@@ -36,9 +40,7 @@ export function EmailTemplateManagement({
           <h1 className="mt-1 text-2xl font-bold text-navy">Email Templates</h1>
         </div>
         <button
-          onClick={() =>
-            router.push("/dashboard/super-admin/email-templates/new")
-          }
+          onClick={() => router.push(`${basePath}/new`)}
           className="btn-primary gap-2"
         >
           <Plus className="size-4" />
@@ -68,11 +70,7 @@ export function EmailTemplateManagement({
                   {menu === r.id && (
                     <div className="absolute right-6 top-12 z-50 w-36 rounded-xl border bg-white p-2 text-left shadow-xl">
                       <button
-                        onClick={() =>
-                          router.push(
-                            `/dashboard/super-admin/email-templates/${r.id}/edit`,
-                          )
-                        }
+                        onClick={() => router.push(`${basePath}/${r.id}/edit`)}
                         className="flex w-full gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"
                       >
                         <Edit3 className="size-4" />

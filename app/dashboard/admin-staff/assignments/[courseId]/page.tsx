@@ -51,6 +51,7 @@ export default async function AssignmentCourseView({
             avatar: row.student?.avatar_url || null,
           }))
           .filter((x: any) => x.id)}
+        basePath="/dashboard/admin-staff/assignments"
       />
     </StaffPageShell>
   );

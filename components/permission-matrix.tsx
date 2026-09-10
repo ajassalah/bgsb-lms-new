@@ -184,7 +184,12 @@ export const permissionModules: PermissionModule[] = [
   {
     key: "tickets",
     label: "Ticket",
-    actions: ["create", "reply", "verify_status"],
+    actions: ["view", "create", "reply", "verify_status"],
+  },
+  {
+    key: "support_assistants",
+    label: "Support Assistants",
+    actions: ["view", "create", "edit", "delete"],
   },
   {
     key: "faq",

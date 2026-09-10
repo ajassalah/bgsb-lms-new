@@ -4,6 +4,7 @@ import { Save, Search, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { countries } from "@/lib/countries";
+import { useIsStaffPortal } from "./staff-permission-context";
 export type StudentFormValue = {
   id: string;
   first_name: string | null;
@@ -21,6 +22,9 @@ export type StudentFormValue = {
   whatsapp_number: string | null;
 };
 export function StudentForm({ student }: { student?: StudentFormValue }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/students"
+    : "/dashboard/super-admin/students";
   const initialCountry =
     countries.find((x) => x.name === student?.country) || null;
   const [countryQuery, setCountryQuery] = useState(""),
@@ -63,7 +67,7 @@ export function StudentForm({ student }: { student?: StudentFormValue }) {
       toast.success(
         student ? "Student updated" : "Student created and invitation sent",
       );
-      router.push("/dashboard/super-admin/students");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error(

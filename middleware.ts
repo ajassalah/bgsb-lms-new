@@ -3,6 +3,61 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
+type StaffPermissions = Record<string, Record<string, boolean>>;
+
+const legacyPermissionAliases: Record<string, string[]> = {
+  Enrollment: ["enrollment"],
+  Courses: ["courses", "curriculum", "curriculum_overview"],
+  Categories: ["categories"],
+  Certificates: ["certificates", "certificate_students"],
+  "Live Classes": ["live_classes"],
+  Assignments: [
+    "assignments",
+    "assignment_tab",
+    "assignment_students",
+    "assignment_student_modules",
+    "submitted_assignments",
+  ],
+  Students: ["students"],
+  Instructors: ["instructors"],
+  Staff: ["staff", "roles"],
+  Announcements: ["announcements"],
+  Messages: ["messages"],
+  Calendar: ["calendar"],
+  Tickets: ["tickets"],
+  "Support Assistants": ["support_assistants"],
+  FAQ: ["faq"],
+  Reports: ["reports"],
+  "System Settings": [
+    "all_users",
+    "email_configuration",
+    "recent_activities",
+    "terms_conditions",
+  ],
+};
+
+function expandActions(actions: Record<string, boolean>) {
+  const allowed = Object.values(actions).some(Boolean);
+  return {
+    ...actions,
+    access: actions.access ?? actions.view ?? allowed,
+    view: actions.view ?? actions.access ?? allowed,
+  };
+}
+
+function normalizeStaffPermissions(permissions: StaffPermissions) {
+  const normalized: StaffPermissions = {};
+  for (const [module, actions] of Object.entries(permissions || {})) {
+    const targets = legacyPermissionAliases[module] || [module];
+    for (const target of targets)
+      normalized[target] = {
+        ...(normalized[target] || {}),
+        ...expandActions(actions || {}),
+      };
+  }
+  return normalized;
+}
+
 const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/class/attendance", ["class_attendance"]],
   ["/dashboard/admin-staff/class/students", ["class_students"]],
@@ -43,6 +98,7 @@ const staffRouteModules: [string, string[]][] = [
   ["/dashboard/admin-staff/calendar", ["calendar"]],
   ["/dashboard/admin-staff/email-templates", ["email_templates"]],
   ["/dashboard/admin-staff/support/help", ["help_support"]],
+  ["/dashboard/admin-staff/support/assistants", ["support_assistants"]],
   ["/dashboard/admin-staff/support/tickets", ["tickets"]],
   ["/dashboard/admin-staff/support/faq", ["faq"]],
   ["/dashboard/admin-staff/reports", ["reports"]],
@@ -141,15 +197,17 @@ export async function middleware(req: NextRequest) {
       const copied = Object.fromEntries(
         (rows || []).map((row) => [row.module, row.actions || {}]),
       );
-      const merged = {
+      const merged = normalizeStaffPermissions({
         ...copied,
         ...((assignedRole?.permissions || {}) as Record<
           string,
           Record<string, boolean>
         >),
-      };
+      });
       const allowed = match[1].some((module) =>
-        Object.values(merged[module] || {}).some(Boolean),
+        module === "recent_activities"
+          ? staffProfile?.staff_role?.trim().toLowerCase() === "manager"
+          : Object.values(merged[module] || {}).some(Boolean),
       );
       if (!allowed)
         return NextResponse.redirect(

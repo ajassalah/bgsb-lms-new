@@ -47,7 +47,7 @@ const groups: { label: string; items: MenuItem[] }[] = [
     label: "Main",
     items: [
       {
-        label: "Academic",
+        label: "Dashboard",
         icon: LayoutDashboard,
         href: "/dashboard/admin-staff",
       },
@@ -143,15 +143,9 @@ const groups: { label: string; items: MenuItem[] }[] = [
     label: "CLASS",
     items: [
       {
-        label: "Dashboard",
+        label: "Class",
         icon: LayoutDashboard,
-        href: "/dashboard/admin-staff/class",
-        modules: [
-          "class_dashboard",
-          "class_attendance",
-          "class_management",
-          "class_reports",
-        ],
+        modules: ["class_attendance", "class_management", "class_reports"],
         children: [
           {
             label: "Attendance",
@@ -243,6 +237,11 @@ const groups: { label: string; items: MenuItem[] }[] = [
             modules: ["tickets"],
           },
           {
+            label: "Support Assistants",
+            href: "/dashboard/admin-staff/support/assistants",
+            modules: ["support_assistants"],
+          },
+          {
             label: "FAQ",
             href: "/dashboard/admin-staff/support/faq",
             modules: ["faq"],
@@ -318,9 +317,14 @@ export function StaffPortalShell({
     [mobile, setMobile] = useState(false),
     [expanded, setExpanded] = useState(true),
     [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const isManager = roleName.trim().toLowerCase() === "manager";
   const hasModule = (modules?: string[]) =>
     !modules ||
-    modules.some((key) => Object.values(permissions[key] || {}).some(Boolean));
+    modules.some((key) =>
+      key === "recent_activities"
+        ? isManager
+        : Object.values(permissions[key] || {}).some(Boolean),
+    );
   const visibleGroups = groups
     .map((group) => ({
       ...group,

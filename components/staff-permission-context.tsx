@@ -22,13 +22,18 @@ export function StaffPermissionProvider({
 export function useStaffCan(module: string, action: string) {
   const permissions = useContext(StaffPermissionContext);
   // Shared Admin components remain unrestricted outside the Staff portal.
-  return permissions === null || !!permissions[module]?.[action];
+  return (
+    permissions === null ||
+    !!permissions[module]?.full_access ||
+    !!permissions[module]?.[action]
+  );
 }
 
 export function useStaffHasModule(module: string) {
   const permissions = useContext(StaffPermissionContext);
   return (
     permissions === null ||
+    !!permissions[module]?.full_access ||
     Object.values(permissions[module] || {}).some(Boolean)
   );
 }

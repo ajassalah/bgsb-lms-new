@@ -227,7 +227,7 @@ export function AssignmentCourseOverview({
                         a.file_url ||
                         (readOnly
                           ? "#"
-                          : `/dashboard/super-admin/courses/${courseId}/curriculum/${module.id}/assignments`)
+                          : `${basePath.replace(/\/assignments$/, "")}/courses/${courseId}/curriculum/${module.id}/assignments`)
                       }
                       target={a.file_url ? "_blank" : undefined}
                       rel={a.file_url ? "noreferrer" : undefined}

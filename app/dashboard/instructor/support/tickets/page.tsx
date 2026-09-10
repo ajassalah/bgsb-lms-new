@@ -8,7 +8,7 @@ export default async function Page() {
   const p = await requireProfile("instructor"),
     { data } = await createAdminClient()
       .from("support_tickets")
-      .select("id,subject,priority,status,created_at")
+      .select("id,ticket_no,subject,priority,status,created_at")
       .eq("created_by", p.id)
       .order("created_at", { ascending: false });
   return (
@@ -24,10 +24,11 @@ export default async function Page() {
       </div>
       <ReadOnlyTable
         title="Tickets"
-        columns={["Subject", "Priority", "Created", "Status"]}
+        columns={["Ticket No", "Subject", "Priority", "Created", "Status"]}
         rows={(data || []).map((x) => ({
           id: x.id,
           cells: [
+            x.ticket_no || x.id.slice(0, 8).toUpperCase(),
             x.subject,
             x.priority,
             new Date(x.created_at).toLocaleString("en-GB"),

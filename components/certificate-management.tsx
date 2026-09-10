@@ -14,6 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { TablePagination } from "./table-pagination";
+import { useIsStaffPortal } from "./staff-permission-context";
 export type CertificateCourse = {
   courseId: string;
   course: string;
@@ -29,6 +30,9 @@ export function CertificateManagement({
 }: {
   initialRows: CertificateCourse[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/certificates"
+    : "/dashboard/super-admin/certificates";
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
@@ -129,7 +133,7 @@ export function CertificateManagement({
                     {menu === row.courseId && (
                       <div className="absolute right-5 top-14 z-[100] w-52 overflow-hidden rounded-lg border bg-white py-1 shadow-xl">
                         <Link
-                          href={`/dashboard/super-admin/certificates/${row.courseId}/students`}
+                          href={`${basePath}/${row.courseId}/students`}
                           className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
                         >
                           <Users className="size-4 text-violet-600" />

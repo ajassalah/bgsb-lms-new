@@ -1,4 +1,4 @@
-import { DashboardShell } from "@/components/dashboard-shell";
+import { StaffPageShell } from "@/components/staff-page-shell";
 import {
   SupportTicketManagement,
   type TicketRow,
@@ -13,17 +13,28 @@ export default async function Page() {
       .select("ticket_id")
       .eq("staff_id", p.id),
     ids = (links || []).map((x) => x.ticket_id),
-    { data } = ids.length
-      ? await db
-          .from("support_tickets")
-          .select(
-            "id,subject,priority,status,created_at,creator:profiles!support_tickets_created_by_fkey(full_name,email)",
-          )
-          .in("id", ids)
-          .order("created_at", { ascending: false })
-      : { data: [] };
+    [{ data }, { data: assistantRole }] = await Promise.all([
+      ids.length
+        ? db
+            .from("support_tickets")
+            .select(
+              "id,ticket_no,subject,priority,status,created_at,creator:profiles!support_tickets_created_by_fkey(full_name,email)",
+            )
+            .in("id", ids)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] }),
+      db
+        .from("support_assistants")
+        .select("role:support_assistant_roles(name)")
+        .eq("user_id", p.id)
+        .maybeSingle(),
+    ]);
+  const roleName =
+    ((assistantRole?.role as { name?: string } | null)?.name as string) || "";
   const rows: TicketRow[] = (data || []).map((x: any) => ({
     id: x.id,
+    ticketNo: x.ticket_no || x.id.slice(0, 8).toUpperCase(),
+    roleName,
     name: x.creator?.full_name || "Instructor",
     email: x.creator?.email || "",
     subject: x.subject,
@@ -32,8 +43,8 @@ export default async function Page() {
     status: x.status,
   }));
   return (
-    <DashboardShell role="admin_staff" name={p.full_name}>
+    <StaffPageShell name={p.full_name}>
       <SupportTicketManagement initialRows={rows} />
-    </DashboardShell>
+    </StaffPageShell>
   );
 }

@@ -143,9 +143,11 @@ export function DashboardShell({
         .catch(() => {});
     refreshNotifications();
     const timer = window.setInterval(refreshNotifications, 5000);
+    window.addEventListener("notifications-read", refreshNotifications);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("notifications-read", refreshNotifications);
     };
   }, [pathname]);
   useEffect(() => {

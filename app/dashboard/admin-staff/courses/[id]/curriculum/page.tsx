@@ -50,6 +50,7 @@ export default async function Curriculum({
         videoUrl={course.video_url}
         initialModules={modules}
         readOnly={!fullAccess}
+        basePath="/dashboard/admin-staff"
       />
     </StaffPageShell>
   );

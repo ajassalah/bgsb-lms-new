@@ -425,6 +425,7 @@ export function SuperAdminShell({
                         <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
                           {[
                             ["Ticket", "tickets"],
+                            ["Support Assistants", "assistants"],
                             ["FAQ", "faq"],
                           ].map(([name, slug]) => {
                             const url = `/dashboard/super-admin/support/${slug}`;

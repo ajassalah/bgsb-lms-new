@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, Upload } from "lucide-react";
+import { ArrowLeft, ChevronDown, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
+import { useIsStaffPortal } from "./staff-permission-context";
 
 export function SupportTicketReplyForm({
   ticket,
@@ -17,6 +18,9 @@ export function SupportTicketReplyForm({
   };
   initialStatus: "closed" | "answered";
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/support/tickets"
+    : "/dashboard/super-admin/support/tickets";
   const [response, setResponse] = useState(""),
     [file, setFile] = useState(""),
     [busy, setBusy] = useState(false),
@@ -34,7 +38,7 @@ export function SupportTicketReplyForm({
     });
     if (res.ok) {
       toast.success("Ticket response submitted");
-      router.push("/dashboard/super-admin/support/tickets");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error(
@@ -79,15 +83,18 @@ export function SupportTicketReplyForm({
       >
         <label className="block max-w-sm text-sm font-semibold">
           Status
-          <select
-            name="status"
-            defaultValue={initialStatus}
-            className="field mt-2"
-            required
-          >
-            <option value="answered">Answered</option>
-            <option value="closed">Close</option>
-          </select>
+          <span className="relative mt-2 block">
+            <select
+              name="status"
+              defaultValue={initialStatus}
+              className="field appearance-none border-slate-200 bg-slate-50 pr-10 font-semibold text-navy shadow-sm transition focus:border-red focus:bg-white"
+              required
+            >
+              <option value="answered">Answered</option>
+              <option value="closed">Close</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-red" />
+          </span>
         </label>
         <section>
           <label className="mb-2 block text-sm font-semibold">Response</label>
@@ -121,7 +128,7 @@ export function SupportTicketReplyForm({
           </button>
           <button disabled={busy} className="btn-primary gap-2">
             <Send className="size-4" />
-            {busy ? "Submitting…" : "Submit Response"}
+            {busy ? "Submitting..." : "Submit Response"}
           </button>
         </div>
       </form>

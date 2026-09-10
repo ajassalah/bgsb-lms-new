@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Paperclip, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
+import { useIsStaffPortal } from "./staff-permission-context";
 export function EmailTemplateForm({
   template,
 }: {
@@ -15,6 +16,9 @@ export function EmailTemplateForm({
     attachment_url: string | null;
   };
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/email-templates"
+    : "/dashboard/super-admin/email-templates";
   const [body, setBody] = useState(template?.body || ""),
     [busy, setBusy] = useState(false),
     [attachment, setAttachment] = useState<File | null>(null),
@@ -45,7 +49,7 @@ export function EmailTemplateForm({
     );
     if (res.ok) {
       toast.success(template ? "Template updated" : "Template created");
-      router.push("/dashboard/super-admin/email-templates");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error((await res.json()).error || "Save failed");

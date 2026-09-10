@@ -66,7 +66,46 @@ export async function POST(
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.id);
+  if (!updateError)
+    await notifyTicketCreator(admin, params.id, parsed.data.status);
   return updateError
     ? Response.json({ error: updateError.message }, { status: 400 })
     : Response.json({ ok: true });
+}
+
+async function notifyTicketCreator(
+  admin: ReturnType<typeof createAdminClient>,
+  ticketId: string,
+  status: "answered" | "closed",
+) {
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id,subject,created_by,student_id")
+    .eq("id", ticketId)
+    .maybeSingle();
+  const ids = Array.from(
+    new Set(
+      [ticket?.created_by, ticket?.student_id].filter(Boolean) as string[],
+    ),
+  );
+  if (!ticket || !ids.length) return;
+  const { data: recipients } = await admin
+    .from("profiles")
+    .select("id,role")
+    .in("id", ids);
+  const label = status === "closed" ? "closed" : "answered";
+  await admin.from("user_notifications").insert(
+    (recipients || []).map((recipient) => ({
+      user_id: recipient.id,
+      title: `Ticket ${label}: ${ticket.subject}`,
+      url:
+        recipient.role === "student"
+          ? `/dashboard/student/support/tickets/${ticket.id}`
+          : recipient.role === "instructor"
+            ? `/dashboard/instructor/support/tickets/${ticket.id}`
+            : recipient.role === "super_admin"
+              ? "/dashboard/super-admin/support/tickets"
+              : "/dashboard/admin-staff/support/tickets",
+    })),
+  );
 }

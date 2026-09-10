@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown, Search, Upload } from "lucide-react";
+import { ArrowLeft, ChevronDown, Search, Upload, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { CourseEditor } from "./course-editor";
+import { useIsStaffPortal } from "./staff-permission-context";
 
 type Student = {
   id: string;
@@ -12,7 +13,19 @@ type Student = {
   email: string;
   avatar: string | null;
 };
-export function SupportTicketForm({ students }: { students: Student[] }) {
+type SupportRole = { id: string; name: string };
+export function SupportTicketForm({
+  students = [],
+  roles = [],
+  assignByRole = false,
+}: {
+  students?: Student[];
+  roles?: SupportRole[];
+  assignByRole?: boolean;
+}) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/support/tickets"
+    : "/dashboard/super-admin/support/tickets";
   const [selected, setSelected] = useState(""),
     [open, setOpen] = useState(false),
     [query, setQuery] = useState(""),
@@ -29,15 +42,24 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
         ),
       [students, query],
     ),
-    student = students.find((item) => item.id === selected);
+    visibleRoles = useMemo(
+      () =>
+        roles.filter((role) =>
+          role.name.toLowerCase().includes(query.toLowerCase()),
+        ),
+      [roles, query],
+    ),
+    student = students.find((item) => item.id === selected),
+    role = roles.find((item) => item.id === selected);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selected) return toast.error("Select a student");
+    if (!selected)
+      return toast.error(assignByRole ? "Select a role" : "Select a student");
     if (description.replace(/<[^>]*>/g, "").trim().length < 2)
       return toast.error("Enter a ticket description");
     setBusy(true);
     const form = new FormData(event.currentTarget);
-    form.set("student_id", selected);
+    form.set(assignByRole ? "role_id" : "student_id", selected);
     form.set("description", description);
     const res = await fetch("/api/admin/support-tickets", {
       method: "POST",
@@ -45,7 +67,7 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
     });
     if (res.ok) {
       toast.success("Ticket created");
-      router.push("/dashboard/super-admin/support/tickets");
+      router.push(basePath);
       router.refresh();
     } else {
       toast.error(
@@ -74,14 +96,32 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <div className="relative md:col-span-2">
               <label className="mb-2 block text-sm font-semibold">
-                Student
+                {assignByRole ? "Role" : "Student"}
               </label>
               <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className="field flex items-center justify-between text-left"
+                className={`field flex items-center justify-between text-left font-semibold text-navy shadow-sm transition focus:border-red focus:bg-white ${
+                  assignByRole
+                    ? "min-h-14 border-2 border-red/40 bg-red/10 ring-4 ring-red/5"
+                    : "border-slate-200 bg-slate-50"
+                }`}
               >
-                {student ? (
+                {assignByRole && role ? (
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-red text-white">
+                      <UserCog className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <b className="block truncate text-sm text-navy">
+                        {role.name}
+                      </b>
+                      <small className="block truncate text-slate-400">
+                        Support role
+                      </small>
+                    </span>
+                  </span>
+                ) : student ? (
                   <span className="flex min-w-0 items-center gap-3">
                     <Avatar student={student} />
                     <span className="min-w-0">
@@ -94,24 +134,36 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
                     </span>
                   </span>
                 ) : (
-                  <span className="text-slate-400">Select student</span>
+                  <span className="text-slate-400">
+                    {assignByRole ? "Select role" : "Select student"}
+                  </span>
                 )}
-                <ChevronDown className="size-4 shrink-0" />
+                <ChevronDown className="size-4 shrink-0 text-red" />
               </button>
               {open && (
-                <div className="absolute z-50 mt-2 w-full rounded-xl border bg-white p-2 shadow-xl">
-                  <label className="flex items-center gap-2 rounded-lg border px-3">
+                <div
+                  className={`absolute z-50 mt-2 w-full rounded-xl border p-2 shadow-xl ${
+                    assignByRole
+                      ? "border-2 border-red/30 bg-white shadow-2xl ring-4 ring-red/5"
+                      : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3">
                     <Search className="size-4 text-slate-400" />
                     <input
                       autoFocus
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search student name or email..."
+                      placeholder={
+                        assignByRole
+                          ? "Search support role..."
+                          : "Search student name or email..."
+                      }
                       className="h-11 w-full outline-none"
                     />
                   </label>
                   <div className="mt-2 max-h-60 overflow-y-auto">
-                    {visible.map((item) => (
+                    {(assignByRole ? visibleRoles : visible).map((item) => (
                       <button
                         key={item.id}
                         type="button"
@@ -119,22 +171,32 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
                           setSelected(item.id);
                           setOpen(false);
                         }}
-                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-slate-50"
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-red/5"
                       >
-                        <Avatar student={item} />
+                        {assignByRole ? (
+                          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-red text-white">
+                            <UserCog className="size-4" />
+                          </span>
+                        ) : (
+                          <Avatar student={item as Student} />
+                        )}
                         <span className="min-w-0">
                           <b className="block truncate text-sm text-navy">
                             {item.name}
                           </b>
-                          <small className="block truncate text-slate-400">
-                            {item.email}
-                          </small>
+                          {"email" in item && (
+                            <small className="block truncate text-slate-400">
+                              {(item as Student).email}
+                            </small>
+                          )}
                         </span>
                       </button>
                     ))}
-                    {!visible.length && (
+                    {!(assignByRole ? visibleRoles : visible).length && (
                       <p className="p-4 text-center text-sm text-slate-400">
-                        No students found.
+                        {assignByRole
+                          ? "No roles found."
+                          : "No students found."}
                       </p>
                     )}
                   </div>
@@ -199,7 +261,7 @@ export function SupportTicketForm({ students }: { students: Student[] }) {
             Cancel
           </button>
           <button disabled={busy} className="btn-primary">
-            {busy ? "Creating…" : "Create Ticket"}
+            {busy ? "Creating..." : "Create Ticket"}
           </button>
         </div>
       </form>
@@ -240,13 +302,20 @@ function Select({
   return (
     <label className="block text-sm font-semibold">
       {label}
-      <select name={name} className="field mt-2 capitalize" required>
-        {values.map(([value, text]) => (
-          <option key={value} value={value}>
-            {text}
-          </option>
-        ))}
-      </select>
+      <span className="relative mt-2 block">
+        <select
+          name={name}
+          className="field appearance-none border-slate-200 bg-slate-50 pr-10 font-semibold capitalize text-navy shadow-sm transition focus:border-red focus:bg-white"
+          required
+        >
+          {values.map(([value, text]) => (
+            <option key={value} value={value}>
+              {text}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-red" />
+      </span>
     </label>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useIsStaffPortal } from "./staff-permission-context";
 export type RoleRow = {
   id: string;
   name: string;
@@ -22,6 +23,9 @@ export function StaffRoleManagement({
 }: {
   initialRows: RoleRow[];
 }) {
+  const basePath = useIsStaffPortal()
+    ? "/dashboard/admin-staff/roles"
+    : "/dashboard/super-admin/roles";
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
@@ -50,7 +54,7 @@ export function StaffRoleManagement({
           </h1>
         </div>
         <button
-          onClick={() => router.push("/dashboard/super-admin/roles/new")}
+          onClick={() => router.push(`${basePath}/new`)}
           className="btn-primary gap-2"
         >
           <Plus className="size-4" />
@@ -87,9 +91,7 @@ export function StaffRoleManagement({
                       <div className="absolute right-4 top-14 z-[180] w-40 rounded-xl border bg-white p-1 shadow-xl">
                         <button
                           onClick={() =>
-                            router.push(
-                              `/dashboard/super-admin/roles/${r.id}/edit`,
-                            )
+                            router.push(`${basePath}/${r.id}/edit`)
                           }
                           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50"
                         >
