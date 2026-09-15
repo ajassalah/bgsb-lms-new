@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   Edit3,
+  Download,
   File,
   Folder,
   FolderPlus,
@@ -234,6 +235,17 @@ export function PrivateFileManager({
               </button>
               {menu === x.id && (
                 <div className="absolute right-2 top-12 z-[100] w-36 rounded-xl border bg-white p-1 shadow-xl">
+                  {x.item_type === "file" && (
+                    <a
+                      href={`/api/private-files/${x.id}/download`}
+                      download={x.name}
+                      onClick={() => setMenu(null)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50"
+                    >
+                      <Download className="size-4" />
+                      Download
+                    </a>
+                  )}
                   <button
                     onClick={() => {
                       setEditing(x);
