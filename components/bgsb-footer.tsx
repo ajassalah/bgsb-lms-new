@@ -50,11 +50,7 @@ export function BgsbFooter() {
             ["Student Life", `${official}/student-life`],
             ["Resources", `${official}/resources`],
             ["Events & News", `${official}/events-news`],
-            [
-              "Student Portal",
-              "https://studentportal.britishgraduateschool.co.uk",
-            ],
-            ["Apply Now", "https://hub.bgsb.lk"],
+            ["Apply Now", "https://bgsb.lk/admissions"],
           ]}
         />
         <div>

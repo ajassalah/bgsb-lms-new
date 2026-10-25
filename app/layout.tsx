@@ -10,8 +10,8 @@ import { PortalEntryNotification } from "@/components/portal-entry-notification"
 
 export const metadata: Metadata = {
   title: {
-    default: "BGSB Learning",
-    template: "%s | BGSB Learning",
+    default: "BGSB LMS",
+    template: "%s | BGSB LMS",
   },
   description: "British Graduates School of Business learning platform",
   icons: {
