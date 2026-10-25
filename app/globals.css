@@ -578,3 +578,177 @@ table:has(td.relative > div.absolute) {
     animation-duration: 2.5s;
   }
 }
+
+/* Public landing page. */
+.landing-grid {
+  background-image:
+    linear-gradient(rgb(10 38 71 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(10 38 71 / 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse at top, #000 20%, transparent 70%);
+}
+.landing-rise {
+  animation: landing-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.landing-hero-image {
+  animation: landing-zoom 18s ease-out both;
+}
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes landing-zoom {
+  from {
+    transform: scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-rise,
+  .landing-hero-image {
+    animation: none;
+  }
+}
+/* Dark mode: one continuous page colour so overlaps never expose blocks. */
+.admin-dark main.landing,
+.admin-dark .landing section {
+  background-color: #0b1626 !important;
+}
+.admin-dark .landing .landing-hero {
+  background-image: linear-gradient(#0e1a2c, #0b1626);
+}
+.admin-dark .landing .landing-band {
+  background-color: #0e1a2c !important;
+}
+.admin-dark .landing .landing-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+}
+.admin-dark .landing .card,
+.admin-dark .landing .landing-chip {
+  background-color: #12203a !important;
+}
+.admin-dark .landing .landing-chip {
+  color: #e2e8f0;
+}
+.admin-dark .landing .landing-chip:hover {
+  border-color: rgb(239 154 154 / 0.5) !important;
+  color: #fca5a5;
+}
+.admin-dark .landing .landing-feature:hover {
+  background-color: #172438 !important;
+}
+.admin-dark .landing-hero .border-white {
+  border-color: #1e2d45 !important;
+}
+.admin-dark .landing p.text-red {
+  color: #ef6b6b;
+}
+.admin-dark .landing h2 span.text-red {
+  color: #ef6b6b !important;
+}
+.admin-dark .landing .landing-watermark {
+  color: #1a2a42;
+}
+
+/* Public site typography: Fraunces for display headings, Plus Jakarta Sans for text. */
+.public-site {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+.public-site h1,
+.public-site h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+}
+.public-site h3 {
+  letter-spacing: -0.01em;
+}
+.public-site .font-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+}
+
+/* Rich-text legal content on public pages. */
+.legal-prose {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.legal-prose > :first-child {
+  margin-top: 0;
+}
+.legal-prose h1,
+.legal-prose h2,
+.legal-prose h3,
+.legal-prose h4 {
+  margin: 2.25em 0 0.6em;
+  line-height: 1.25;
+}
+.legal-prose h1 {
+  font-size: 2rem;
+}
+.legal-prose h2 {
+  font-size: 1.6rem;
+}
+.legal-prose h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.legal-prose h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.legal-prose p,
+.legal-prose ul,
+.legal-prose ol,
+.legal-prose table,
+.legal-prose blockquote {
+  margin: 1em 0;
+}
+.legal-prose ul,
+.legal-prose ol {
+  padding-left: 1.5em;
+}
+.legal-prose ul {
+  list-style: disc;
+}
+.legal-prose ol {
+  list-style: decimal;
+}
+.legal-prose li {
+  margin: 0.4em 0;
+  padding-left: 0.25em;
+}
+.legal-prose li::marker {
+  color: #c62828;
+}
+.legal-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-prose blockquote {
+  border-left: 3px solid #c62828;
+  padding-left: 1.25em;
+  font-style: italic;
+}
+.legal-prose hr {
+  margin: 2.5em 0;
+}
+.legal-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.legal-prose th,
+.legal-prose td {
+  border: 1px solid #e2e8f0;
+  padding: 0.6em 0.8em;
+  text-align: left;
+}
+.admin-dark .legal-prose th,
+.admin-dark .legal-prose td {
+  border-color: #263449;
+}

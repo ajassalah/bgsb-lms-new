@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('bgsb-admin-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('admin-dark',d)}catch(e){}})()`,
+            __html: `(function(){try{var a=location.pathname.indexOf('/dashboard')===0;var t=localStorage.getItem(a?'bgsb-admin-theme':'bgsb-public-theme');var d=t?t==='dark':a&&matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('admin-dark',d)}catch(e){}})()`,
           }}
         />
       </head>

@@ -35,49 +35,52 @@ const fields = [
 export function HomeAboutSections() {
   return (
     <>
-      <section className="relative overflow-hidden bg-navy px-6 py-24 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(198,40,40,.25),transparent_35%)]" />
-        <div className="relative mx-auto max-w-7xl">
-          <p className="font-bold uppercase tracking-[.22em] text-red-300">
-            About BGSB
-          </p>
-          <h2 className="mt-5 max-w-4xl text-5xl font-bold leading-tight md:text-7xl">
-            Higher education, without the gatekeeping.
-          </h2>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-white/65">
-            British Graduates School of Business was established on 25 November
-            2022 with a simple conviction: quality education should be
-            accessible to everyone, everywhere.
-          </p>
+      <section className="relative overflow-hidden px-6 pb-24 pt-28 md:pb-32 md:pt-36">
+        <div className="landing-grid absolute inset-0" />
+        <div className="absolute -right-40 top-0 size-[32rem] rounded-full bg-red/10 blur-[120px]" />
+        <div className="relative mx-auto max-w-[77rem]">
+          <div className="grid items-end gap-8 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <Eyebrow>About BGSB</Eyebrow>
+              <h2 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-navy md:text-6xl">
+                Higher education, without the{" "}
+                <span className="text-red">gatekeeping.</span>
+              </h2>
+            </div>
+            <p className="border-l-2 border-red pl-6 text-lg leading-8 text-slate-600">
+              British Graduates School of Business was established on 25
+              November 2022 with a simple conviction: quality education should
+              be accessible to everyone, everywhere.
+            </p>
+          </div>
+          <div className="mt-16 grid gap-6 md:grid-cols-2">
+            <InfoCard icon={Target} title="Our Mission">
+              To make internationally accredited higher education accessible,
+              affordable and applicable—meeting learners where they are and
+              equipping them for the work ahead.
+            </InfoCard>
+            <InfoCard icon={Lightbulb} title="Our Vision">
+              A Sri Lanka where a student&apos;s postcode, income or age never
+              limits the credential they can earn or the career they can
+              build.
+            </InfoCard>
+          </div>
         </div>
       </section>
-      <section className="mx-auto grid max-w-7xl gap-6 px-6 py-16 md:grid-cols-2">
-        <InfoCard icon={Target} title="Our Mission">
-          To make internationally accredited higher education accessible,
-          affordable and applicable—meeting learners where they are and
-          equipping them for the work ahead.
-        </InfoCard>
-        <InfoCard icon={Lightbulb} title="Our Vision">
-          A Sri Lanka where a student&apos;s postcode, income or age never
-          limits the credential they can earn or the career they can build.
-        </InfoCard>
-      </section>
-      <section className="bg-white px-6 py-20">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+      <section className="landing-band border-y bg-white px-6 py-24 md:py-32">
+        <div className="mx-auto grid max-w-[77rem] items-center gap-14 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <p className="font-bold uppercase tracking-widest text-red">
-              Our story
-            </p>
-            <h2 className="mt-3 text-4xl font-bold text-navy">
+            <Eyebrow>Our story</Eyebrow>
+            <h2 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-navy md:text-5xl">
               A young institution with an old belief.
             </h2>
-            <p className="mt-6 leading-8 text-slate-600">
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
               BGSB opened its doors in late 2022, born from a partnership
               between educators and industry leaders who wanted to close the gap
               between what employers need and what qualifications deliver.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:gap-5">
             <Fact icon={BookOpen} value="L3–L8" label="Diploma pathways" />
             <Fact icon={Globe2} value="21" label="Specialisations" />
             <Fact icon={Users} value="1000s" label="Learners supported" />
@@ -85,26 +88,33 @@ export function HomeAboutSections() {
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <p className="font-bold uppercase tracking-widest text-red">
-          Academic breadth
-        </p>
-        <h2 className="mt-3 text-4xl font-bold text-navy">
-          21 specialisations, one campus.
-        </h2>
-        <div className="mt-9 flex flex-wrap gap-3">
-          {fields.map((field) => (
-            <span
-              className="rounded-full border bg-white px-4 py-2 text-sm font-semibold text-navy"
-              key={field}
-            >
-              {field}
+      <section className="px-6 py-24 md:py-28">
+        <div className="mx-auto max-w-[77rem]">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <Eyebrow>Academic breadth</Eyebrow>
+              <h2 className="mt-4 text-4xl font-bold tracking-tight text-navy md:text-5xl">
+                21 specialisations, one campus.
+              </h2>
+            </div>
+            <span className="landing-watermark font-display text-7xl font-bold leading-none tracking-tight text-slate-200 md:text-8xl">
+              21
             </span>
-          ))}
+          </div>
+          <div className="mt-12 flex flex-wrap gap-3">
+            {fields.map((field) => (
+              <span
+                className="landing-chip cursor-default rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-navy transition hover:-translate-y-0.5 hover:border-red/40 hover:text-red hover:shadow-soft"
+                key={field}
+              >
+                {field}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
-      <section className="bg-navy px-6 py-20 text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-3">
+      <section className="landing-band border-t bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto grid max-w-[77rem] gap-5 md:grid-cols-3">
           <Value icon={Users} title="Experienced faculty">
             Qualified faculty, active industry practice and learner-centred
             teaching.
@@ -122,6 +132,14 @@ export function HomeAboutSections() {
   );
 }
 
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[.25em] text-red">
+      <span className="h-px w-8 bg-current" />
+      {children}
+    </p>
+  );
+}
 function InfoCard({
   icon: Icon,
   title,
@@ -132,10 +150,13 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="card">
-      <Icon className="text-red" />
-      <h2 className="mt-5 text-2xl font-bold text-navy">{title}</h2>
-      <p className="mt-3 leading-7 text-slate-500">{children}</p>
+    <div className="card group relative overflow-hidden p-8 transition hover:-translate-y-1 md:p-10">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red to-red/0" />
+      <span className="grid size-14 place-items-center rounded-2xl bg-navy text-white transition group-hover:bg-red">
+        <Icon className="size-6" />
+      </span>
+      <h2 className="mt-7 text-2xl font-bold text-navy md:text-3xl">{title}</h2>
+      <p className="mt-4 text-lg leading-8 text-slate-500">{children}</p>
     </div>
   );
 }
@@ -149,10 +170,14 @@ function Fact({
   label: string;
 }) {
   return (
-    <div className="card">
-      <Icon className="text-red" />
-      <b className="mt-5 block text-3xl text-navy">{value}</b>
-      <span className="text-sm text-slate-500">{label}</span>
+    <div className="card group p-6 transition hover:-translate-y-1 hover:border-red/30 sm:p-8">
+      <Icon className="size-6 text-red" />
+      <b className="font-display mt-8 block text-3xl font-bold tracking-tight text-navy sm:text-4xl">
+        {value}
+      </b>
+      <span className="mt-1 block text-sm font-medium text-slate-500">
+        {label}
+      </span>
     </div>
   );
 }
@@ -166,10 +191,12 @@ function Value({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <Icon className="text-red-300" />
-      <h3 className="mt-5 text-xl font-bold">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-white/55">{children}</p>
+    <div className="card group p-8 transition hover:-translate-y-1 hover:border-red/30">
+      <span className="grid size-12 place-items-center rounded-2xl bg-red/10 text-red transition group-hover:bg-red group-hover:text-white">
+        <Icon className="size-5" />
+      </span>
+      <h3 className="mt-6 text-xl font-bold text-navy">{title}</h3>
+      <p className="mt-3 text-sm leading-7 text-slate-500">{children}</p>
     </div>
   );
 }
