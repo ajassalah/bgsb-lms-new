@@ -13,7 +13,7 @@ export default async function Instructors() {
         db
           .from("profiles")
           .select(
-            "id,full_name,email,phone,whatsapp_number,last_login_at,status,avatar_url",
+            "id,full_name,email,phone,designation,whatsapp_number,last_login_at,status,avatar_url",
           )
           .eq("role", "instructor")
           .order("created_at", { ascending: false }),
@@ -30,6 +30,8 @@ export default async function Instructors() {
         initialRows={(data || []) as InstructorRow[]}
         emailTemplates={templates || []}
         fromEmail={configuration?.from_email || "Not configured"}
+        basePath="/dashboard/admin-staff/instructors"
+        currentUserId={profile.id}
       />
     </StaffPageShell>
   );

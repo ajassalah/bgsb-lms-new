@@ -14,9 +14,9 @@ export default async function StaffPage() {
         db
           .from("profiles")
           .select(
-            "id,full_name,email,phone,whatsapp_number,last_login_at,status,avatar_url,staff_role",
+            "id,full_name,email,phone,designation,whatsapp_number,last_login_at,status,avatar_url,staff_role,role",
           )
-          .eq("role", "admin_staff")
+          .in("role", ["admin_staff", "super_admin"])
           .order("created_at", { ascending: false }),
         db.from("email_templates").select("id,subject").order("subject"),
         db
@@ -34,6 +34,7 @@ export default async function StaffPage() {
         profileRole="admin_staff"
         emailTemplates={templates || []}
         fromEmail={configuration?.from_email || "Not configured"}
+        currentUserId={profile.id}
       />
     </SuperAdminShell>
   );

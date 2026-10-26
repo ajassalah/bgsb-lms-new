@@ -14,7 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
 import { TablePagination } from "./table-pagination";
-import { useIsStaffPortal } from "./staff-permission-context";
+import { useIsStaffPortal, useStaffCan } from "./staff-permission-context";
 export type CertificateCourse = {
   courseId: string;
   course: string;
@@ -30,7 +30,16 @@ export function CertificateManagement({
 }: {
   initialRows: CertificateCourse[];
 }) {
-  const basePath = useIsStaffPortal()
+  const isStaffPortal = useIsStaffPortal(),
+    canAddTemplate = useStaffCan("certificates", "add_certificate"),
+    canManageTemplate = useStaffCan("certificates", "manage_certificate"),
+    canRemoveTemplate = useStaffCan("certificates", "remove_certificate"),
+    canViewTemplate = useStaffCan("certificates", "view_certificate"),
+    canManageStudents =
+      useStaffCan("certificates", "manage_student") ||
+      useStaffCan("certificate_students", "add_certificate") ||
+      useStaffCan("certificate_students", "remove_certificate"),
+    basePath = isStaffPortal
     ? "/dashboard/admin-staff/certificates"
     : "/dashboard/super-admin/certificates";
   const [rows, setRows] = useState(initialRows),
@@ -132,26 +141,30 @@ export function CertificateManagement({
                     </div>
                     {menu === row.courseId && (
                       <div className="absolute right-5 top-14 z-[100] w-52 overflow-hidden rounded-lg border bg-white py-1 shadow-xl">
-                        <Link
-                          href={`${basePath}/${row.courseId}/students`}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
-                        >
-                          <Users className="size-4 text-violet-600" />
-                          Manage Students
-                        </Link>
+                        {canManageStudents && (
+                          <Link
+                            href={`${basePath}/${row.courseId}/students`}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                          >
+                            <Users className="size-4 text-violet-600" />
+                            Manage Students
+                          </Link>
+                        )}
                         {row.templateId ? (
                           <>
-                            <button
-                              onClick={() => {
-                                setSelected(row);
-                                setMenu(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
-                            >
-                              <Award className="size-4 text-blue-600" />
-                              Manage Certificate
-                            </button>
-                            {row.url && (
+                            {(canAddTemplate || canManageTemplate) && (
+                              <button
+                                onClick={() => {
+                                  setSelected(row);
+                                  setMenu(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                              >
+                                <Award className="size-4 text-blue-600" />
+                                Manage Certificate
+                              </button>
+                            )}
+                            {row.url && canViewTemplate && (
                               <a
                                 href={row.url}
                                 target="_blank"
@@ -161,28 +174,32 @@ export function CertificateManagement({
                                 View Certificate
                               </a>
                             )}
-                            <button
-                              onClick={() => {
-                                setDeleting(row);
-                                setMenu(null);
-                              }}
-                              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"
-                            >
-                              <Trash2 className="size-4" />
-                              Remove Certificate
-                            </button>
+                            {canRemoveTemplate && (
+                              <button
+                                onClick={() => {
+                                  setDeleting(row);
+                                  setMenu(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red hover:bg-red/5"
+                              >
+                                <Trash2 className="size-4" />
+                                Remove Certificate
+                              </button>
+                            )}
                           </>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setSelected(row);
-                              setMenu(null);
-                            }}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
-                          >
-                            <Plus className="size-4 text-red" />
-                            Add Certificate
-                          </button>
+                          canAddTemplate && (
+                            <button
+                              onClick={() => {
+                                setSelected(row);
+                                setMenu(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50"
+                            >
+                              <Plus className="size-4 text-red" />
+                              Add Certificate
+                            </button>
+                          )
                         )}
                       </div>
                     )}

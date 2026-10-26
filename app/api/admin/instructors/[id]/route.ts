@@ -222,6 +222,27 @@ export async function DELETE(
   )
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const admin = createAdminClient();
+  const session = createClient();
+  const {
+    data: { user },
+  } = await session.auth.getUser();
+  if (user?.id === params.id)
+    return Response.json(
+      { error: "You cannot delete your own account" },
+      { status: 400 },
+    );
+  const { data: target } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (target?.role === "super_admin")
+    return Response.json(
+      { error: "Super Admin accounts cannot be deleted" },
+      { status: 403 },
+    );
+  if (target?.role !== profileRole)
+    return Response.json({ error: "Account not found" }, { status: 404 });
   if (profileRole === "instructor") {
     await admin
       .from("live_sessions")

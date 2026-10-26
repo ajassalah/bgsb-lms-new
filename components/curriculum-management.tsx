@@ -53,11 +53,13 @@ type Assignment = {
   due_date: string;
   file_url?: string | null;
 };
+type ContentKind = "module" | "specification";
 export type ModuleRow = {
   id: string;
   courseId: string;
   title: string;
   description?: string | null;
+  contentKind?: ContentKind;
   position: number;
   lessons: Lesson[];
   quizzes: Quiz[];
@@ -65,6 +67,7 @@ export type ModuleRow = {
 };
 type Modal = {
   type: "module" | "lesson" | "quiz";
+  contentKind?: ContentKind;
   module?: ModuleRow;
   lessonType?: "video" | "audio" | "document";
   lesson?: Lesson;
@@ -93,6 +96,7 @@ export function CurriculumManagement({
   const [modules, setModules] = useState(initialModules),
     [modal, setModal] = useState<Modal | null>(null),
     [menu, setMenu] = useState<string | null>(null),
+    [addMenu, setAddMenu] = useState(false),
     [collapsedModules, setCollapsedModules] = useState<Set<string>>(
       () => new Set(),
     ),
@@ -193,12 +197,24 @@ export function CurriculumManagement({
         modal.module
           ? x.map((y) =>
               y.id === item.id
-                ? { ...y, title: item.title, description: item.description }
+                ? {
+                    ...y,
+                    title: item.title,
+                    description: item.description,
+                    contentKind: item.content_kind || y.contentKind || "module",
+                  }
                 : y,
             )
           : [
               ...x,
-              { ...item, courseId, lessons: [], quizzes: [], assignments: [] },
+              {
+                ...item,
+                courseId,
+                contentKind: item.content_kind || "module",
+                lessons: [],
+                quizzes: [],
+                assignments: [],
+              },
             ],
       );
     else if (modal.module)
@@ -258,13 +274,46 @@ export function CurriculumManagement({
               extraFields={{ course_id: courseId }}
               template={`module_title,module_description,lesson_title,lesson_type,content_url,description,lesson_position,quiz_title\nIntroduction,Core concepts for new learners,Welcome Video,video,https://example.com/video.mp4,Course introduction,1,Introduction Quiz\nAdvanced Topics,In-depth learning materials,Reading Guide,document,https://example.com/guide.pdf,Download the guide,1,`}
             />
-            <button
-              onClick={() => setModal({ type: "module" })}
-              className="btn-primary gap-2"
-            >
-              <Plus className="size-4" />
-              Add Module
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAddMenu((open) => !open)}
+                className="btn-primary gap-2"
+              >
+                <Plus className="size-4" />
+                Add
+                <ChevronDown className="size-4" />
+              </button>
+              {addMenu && (
+                <div className="absolute right-0 top-12 z-[110] w-44 overflow-hidden rounded-xl border bg-white py-1 shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModal({ type: "module", contentKind: "module" });
+                      setAddMenu(false);
+                    }}
+                    className="action-row"
+                  >
+                    <Plus />
+                    Add Modules
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModal({
+                        type: "module",
+                        contentKind: "specification",
+                      });
+                      setAddMenu(false);
+                    }}
+                    className="action-row"
+                  >
+                    <FileText />
+                    Specification
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -304,7 +353,12 @@ export function CurriculumManagement({
         </section>
       )}
       <div className="mt-7 space-y-5">
-        {modules.map((m, moduleIndex) => (
+        {modules.map((m, moduleIndex) => {
+          const isSpecification = m.contentKind === "specification";
+          const moduleNumber = modules
+            .slice(0, moduleIndex + 1)
+            .filter((item) => item.contentKind !== "specification").length;
+          return (
           <section
             draggable={!readOnly}
             onDragStart={() => setDrag(m.id)}
@@ -324,11 +378,11 @@ export function CurriculumManagement({
                 </button>
               )}
               <span className="grid size-10 place-items-center rounded-lg bg-navy font-bold text-white">
-                {moduleIndex + 1}
+                {isSpecification ? <FileText className="size-5" /> : moduleNumber}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase text-slate-400">
-                  Module No {moduleIndex + 1}
+                  {isSpecification ? "Specification" : `Module No ${moduleNumber}`}
                 </p>
                 <h2 className="font-bold text-navy">{m.title}</h2>
                 {m.description && (
@@ -499,7 +553,8 @@ export function CurriculumManagement({
               />
             )}
           </section>
-        ))}
+          );
+        })}
       </div>
       {modal && (
         <EditorModal
@@ -879,8 +934,8 @@ function EditorModal({
     heading =
       state.type === "module"
         ? state.module
-          ? "Edit Section"
-          : "Add Module"
+          ? `Edit ${state.module.contentKind === "specification" ? "Specification" : "Module"}`
+          : `Add ${state.contentKind === "specification" ? "Specification" : "Module"}`
         : state.type === "quiz"
           ? state.quiz
             ? "Edit Quiz"
@@ -936,6 +991,8 @@ function EditorModal({
               ...Object.fromEntries(new FormData(e.currentTarget)),
               course_id: courseId,
               module_id: state.module?.id,
+              content_kind:
+                state.contentKind || state.module?.contentKind || "module",
             },
       );
       headers = { "content-type": "application/json" };

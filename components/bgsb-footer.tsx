@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Music2, Phone } from "lucide-react";
 const official = "https://bgsb.lk";
 export function BgsbFooter() {
   return (
@@ -20,17 +20,26 @@ export function BgsbFooter() {
           <div className="mt-5 flex gap-3">
             <a
               aria-label="Facebook"
-              href="https://web.facebook.com/bgsb.lk"
+              href="https://www.facebook.com/people/British-Graduates-School-of-Business/61572994924072/"
               className="grid size-9 place-items-center rounded-lg bg-white/10"
             >
               <Facebook className="size-4" />
             </a>
             <a
               aria-label="Instagram"
-              href="https://www.instagram.com/bgsb.lk/"
+              href="https://www.instagram.com/bgsblk?igsh=b3c0YWhoYndoeTB0"
               className="grid size-9 place-items-center rounded-lg bg-white/10"
             >
               <Instagram className="size-4" />
+            </a>
+            <a
+              aria-label="TikTok"
+              href="https://www.tiktok.com/@bgs.__.lk?_r=1&_t=ZS-984uCuewsy2"
+              target="_blank"
+              rel="noreferrer"
+              className="grid size-9 place-items-center rounded-lg bg-white/10 transition hover:bg-white/20"
+            >
+              <Music2 className="size-4" />
             </a>
           </div>
         </div>
@@ -47,26 +56,26 @@ export function BgsbFooter() {
         <FooterGroup
           title="Student Services"
           links={[
-            ["Student Life", `${official}/student-life`],
-            ["Resources", `${official}/resources`],
-            ["Events & News", `${official}/events-news`],
+            ["Student Life", `https://bgsb.lk/student-life`],
+            ["Resources", `https://bgsb.lk/careers`],
+            ["Events & News", `https://bgsb.lk/blog`],
             ["Apply Now", "https://bgsb.lk/admissions"],
           ]}
         />
         <div>
           <h3 className="font-bold">Contact Information</h3>
           <div className="mt-5 space-y-4 text-sm leading-6 text-white/55">
-            <p className="flex gap-3">
-              <MapPin className="mt-1 size-4 shrink-0 text-red-300" />
-              No 19, Haig Road, Colombo 04, Bambalapitiya, Sri Lanka 00400
+            <p className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-3">
+              <MapPin className="mt-1 size-4 text-red-300" />
+              <span>No 19, Haig Road, Colombo 04, Bambalapitiya, Sri Lanka 00400</span>
             </p>
-            <a href="tel:+94117221192" className="flex gap-3">
-              <Phone className="size-4 shrink-0 text-red-300" />
-              +94 117 221 192
+            <a href="tel:+94117221192" className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-3">
+              <Phone className="mt-1 size-4 text-red-300" />
+              <span>+94 117 221 192</span>
             </a>
-            <a href="mailto:info@bgsb.lk" className="flex gap-3">
-              <Mail className="size-4 shrink-0 text-red-300" />
-              info@bgsb.lk
+            <a href="mailto:info@bgsb.lk" className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-3">
+              <Mail className="mt-1 size-4 text-red-300" />
+              <span>info@bgsb.lk</span>
             </a>
           </div>
         </div>

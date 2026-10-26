@@ -9,7 +9,7 @@ export function PublicLayoutShell({ children }: { children: React.ReactNode }) {
     loginPage = pathname === "/login";
   return (
     <>
-      <PublicNav />
+      {!loginPage && <PublicNav />}
       {children}
       {!loginPage && <BgsbFooter />}
     </>

@@ -15,11 +15,12 @@ export default async function Curriculum({
 }) {
   const profile = await requireProfile("admin_staff"),
     db = createAdminClient();
-  const fullAccess = await staffCan(
-    profile.id,
-    "curriculum_overview",
-    "full_access",
+  const curriculumActions = await Promise.all(
+    ["create", "edit", "delete"].map((action) =>
+      staffCan(profile.id, "curriculum", action),
+    ),
   );
+  const canManageCurriculum = curriculumActions.some(Boolean);
   const [{ data: course }, moduleResult] = await Promise.all([
     db
       .from("courses")
@@ -35,6 +36,7 @@ export default async function Curriculum({
     courseId: course.id,
     title: x.title,
     description: x.description,
+    contentKind: x.content_kind || "module",
     position: x.position,
     lessons: x.lessons || [],
     quizzes: x.quizzes || [],
@@ -49,7 +51,7 @@ export default async function Curriculum({
         videoSource={course.video_source}
         videoUrl={course.video_url}
         initialModules={modules}
-        readOnly={!fullAccess}
+        readOnly={!canManageCurriculum}
         basePath="/dashboard/admin-staff"
       />
     </StaffPageShell>

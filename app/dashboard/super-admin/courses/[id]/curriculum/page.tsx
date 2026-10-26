@@ -29,6 +29,7 @@ export default async function Curriculum({
     courseId: course.id,
     title: x.title,
     description: x.description,
+    contentKind: x.content_kind || "module",
     position: x.position,
     lessons: x.lessons || [],
     quizzes: x.quizzes || [],

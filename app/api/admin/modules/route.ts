@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       course_id: z.string().uuid(),
       title: z.string().trim().min(2),
       description: z.string().trim().optional(),
+      content_kind: z.enum(["module", "specification"]).optional(),
     })
     .safeParse(await req.json());
   if (!parsed.success)
@@ -32,9 +33,10 @@ export async function POST(req: Request) {
     .insert({
       ...parsed.data,
       description: parsed.data.description || null,
+      content_kind: parsed.data.content_kind || "module",
       position: (last?.position || 0) + 1,
     })
-    .select("id,title,description,position")
+    .select("id,title,description,content_kind,position")
     .single();
   return error
     ? Response.json({ error: error.message }, { status: 400 })

@@ -1,3 +1,4 @@
+// @ts-ignore Next.js loads global CSS at runtime; TypeScript may not have a CSS module declaration.
 import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";

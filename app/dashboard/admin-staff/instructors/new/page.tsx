@@ -11,7 +11,10 @@ export default async function NewInstructor() {
       .order("name");
   return (
     <StaffPageShell name={profile.full_name}>
-      <InstructorForm organizations={data || []} />
+      <InstructorForm
+        organizations={data || []}
+        basePath="/dashboard/admin-staff/instructors"
+      />
     </StaffPageShell>
   );
 }

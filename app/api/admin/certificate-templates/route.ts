@@ -1,6 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { staffCan } from "@/lib/staff-permissions";
+
+async function canManageTemplate(userId: string, role?: string) {
+  if (role === "super_admin") return true;
+  if (role !== "admin_staff") return false;
+  return (
+    (await staffCan(userId, "certificates", "add_certificate")) ||
+    (await staffCan(userId, "certificates", "manage_certificate"))
+  );
+}
+
 export async function POST(req: Request) {
   const db = createClient(),
     {
@@ -12,7 +23,7 @@ export async function POST(req: Request) {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (p?.role !== "super_admin")
+  if (!(await canManageTemplate(user.id, p?.role)))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData(),
     parsed = z

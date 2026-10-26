@@ -10,7 +10,7 @@ export async function loadCurriculumModules(
   const relations = `lessons(id,title,content_type,content_url,description,position),quizzes(id,title,time_limit_minutes,quiz_questions(id,question,question_type,options,correct_option)),assignments(${assignmentFields})`;
   const current = await db
     .from("course_modules")
-    .select(`id,title,description,position,${relations}`)
+    .select(`id,title,description,content_kind,position,${relations}`)
     .eq("course_id", courseId)
     .order("position")
     .order("position", { referencedTable: "lessons" });

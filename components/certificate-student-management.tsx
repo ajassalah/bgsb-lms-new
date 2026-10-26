@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "./confirm-dialog";
+import { useStaffCan } from "./staff-permission-context";
 
 export type CertificateStudent = {
   id: string;
@@ -32,7 +33,10 @@ export function CertificateStudentManagement({
   templateReady: boolean;
   initialStudents: CertificateStudent[];
 }) {
-  const [students, setStudents] = useState(initialStudents),
+  const canAdd = useStaffCan("certificate_students", "add_certificate"),
+    canRemove = useStaffCan("certificate_students", "remove_certificate"),
+    canVerify = canAdd || canRemove,
+    [students, setStudents] = useState(initialStudents),
     [menu, setMenu] = useState<string | null>(null),
     [verificationMenu, setVerificationMenu] = useState<string | null>(null),
     [removing, setRemoving] = useState<CertificateStudent | null>(null),
@@ -171,37 +175,41 @@ export function CertificateStudentManagement({
                   </small>
                 )}
               </div>
-              <button
-                disabled={busy === student.id}
-                onClick={() => setMenu(menu === student.id ? null : student.id)}
-                className="grid size-9 place-items-center rounded-lg border disabled:opacity-50"
-              >
-                <MoreVertical className="size-4" />
-              </button>
+              {(canAdd || canRemove) && (
+                <button
+                  disabled={busy === student.id}
+                  onClick={() => setMenu(menu === student.id ? null : student.id)}
+                  className="grid size-9 place-items-center rounded-lg border disabled:opacity-50"
+                >
+                  <MoreVertical className="size-4" />
+                </button>
+              )}
               {menu === student.id && (
                 <div className="absolute right-5 top-14 z-[100] w-52 rounded-xl border bg-white py-1 shadow-2xl">
-                  {student.certificateId ? (
-                    <button
-                      onClick={() => {
-                        setRemoving(student);
-                        setMenu(null);
-                      }}
-                      className="flex w-full items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="size-4" />
-                      Remove Certificate
-                    </button>
-                  ) : (
-                    <button
-                      disabled={!templateReady}
-                      onClick={() => add(student)}
-                      className="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      <Plus className="size-4 text-emerald-600" />
-                      Add Certificate
-                    </button>
-                  )}
-                  <button
+                  {student.certificateId
+                    ? canRemove && (
+                        <button
+                          onClick={() => {
+                            setRemoving(student);
+                            setMenu(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="size-4" />
+                          Remove Certificate
+                        </button>
+                      )
+                    : canAdd && (
+                        <button
+                          disabled={!templateReady}
+                          onClick={() => add(student)}
+                          className="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          <Plus className="size-4 text-emerald-600" />
+                          Add Certificate
+                        </button>
+                      )}
+                  {canVerify && <button
                     onClick={() =>
                       setVerificationMenu(
                         verificationMenu === student.id ? null : student.id,
@@ -212,8 +220,8 @@ export function CertificateStudentManagement({
                     <ShieldCheck className="size-4 text-blue-600" />
                     Certificate Verification
                     <ChevronRight className="ml-auto size-4" />
-                  </button>
-                  {verificationMenu === student.id && (
+                  </button>}
+                  {canVerify && verificationMenu === student.id && (
                     <div className="border-t bg-slate-50 p-1">
                       {[
                         ["certificate_claimed", "Certificate Claimed"],

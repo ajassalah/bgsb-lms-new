@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { staffCan } from "@/lib/staff-permissions";
 
 export async function PATCH(
   request: Request,
@@ -17,7 +18,12 @@ export async function PATCH(
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
-  if (!["super_admin", "admin_staff"].includes(profile?.role || ""))
+  const allowed =
+    profile?.role === "super_admin" ||
+    (profile?.role === "admin_staff" &&
+      ((await staffCan(user.id, "certificate_students", "add_certificate")) ||
+        (await staffCan(user.id, "certificate_students", "remove_certificate"))));
+  if (!allowed)
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const parsed = z
     .object({

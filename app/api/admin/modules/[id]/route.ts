@@ -22,6 +22,7 @@ export async function PATCH(
     .object({
       title: z.string().trim().min(2),
       description: z.string().trim().optional(),
+      content_kind: z.enum(["module", "specification"]).optional(),
     })
     .safeParse(await req.json());
   if (!parsed.success)
@@ -31,9 +32,12 @@ export async function PATCH(
     .update({
       title: parsed.data.title,
       description: parsed.data.description || null,
+      ...(parsed.data.content_kind
+        ? { content_kind: parsed.data.content_kind }
+        : {}),
     })
     .eq("id", params.id)
-    .select("id,title,description")
+    .select("id,title,description,content_kind")
     .single();
   return error
     ? Response.json({ error: error.message }, { status: 400 })

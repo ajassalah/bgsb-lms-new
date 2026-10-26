@@ -1,2 +1,17 @@
-import {LoginForm} from '@/components/login-form';
-export default function Login(){return <main className="grid min-h-[calc(100vh-96px)] lg:grid-cols-2"><section className="relative hidden overflow-hidden p-16 text-white lg:flex lg:flex-col lg:justify-end"><img src="/awarder%20image.jpeg" alt="BGSB graduates celebrating their graduation" className="absolute inset-0 size-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/45 to-transparent"/><div className="relative"><p className="text-sm font-bold uppercase tracking-widest text-red-200">British Graduates School of Business</p><h2 className="mt-5 max-w-xl text-5xl font-bold leading-tight drop-shadow">Knowledge that moves your career forward.</h2><p className="mt-5 text-white/75">One secure learning environment for students, faculty and partner organisations.</p></div></section><section className="flex items-center justify-center px-6 py-16"><LoginForm/></section></main>}
+import { LoginForm } from "@/components/login-form";
+
+export default function Login() {
+  return (
+    <main className="relative grid min-h-screen place-items-center overflow-hidden px-6 py-12 sm:px-8">
+      <img
+        src="/login page bg.png"
+        alt="bgs-background"
+        className="absolute inset-0 size-full object-cover"
+      />
+      <div className="absolute inset-0 bg-navy/35" />
+      <section className="relative w-full max-w-md rounded-3xl border border-white/40 bg-white/75 p-7 shadow-2xl shadow-navy/30 backdrop-blur-: sm blur(2px) sm:p-10">
+        <LoginForm />
+      </section>
+    </main>
+  );
+}

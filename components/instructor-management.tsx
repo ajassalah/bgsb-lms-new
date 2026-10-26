@@ -21,11 +21,13 @@ export type InstructorRow = {
   full_name: string;
   email: string;
   phone: string | null;
+  designation?: string | null;
   last_login_at: string | null;
   status: string;
   avatar_url: string | null;
   whatsapp_number: string | null;
   staff_role?: string | null;
+  role?: "super_admin" | "admin_staff" | "instructor";
 };
 export function InstructorManagement({
   initialRows,
@@ -34,6 +36,7 @@ export function InstructorManagement({
   profileRole = "instructor",
   emailTemplates = [],
   fromEmail = "Not configured",
+  currentUserId,
 }: {
   initialRows: InstructorRow[];
   entity?: "Instructor" | "Staff";
@@ -41,6 +44,7 @@ export function InstructorManagement({
   profileRole?: "instructor" | "admin_staff";
   emailTemplates?: { id: string; subject: string }[];
   fromEmail?: string;
+  currentUserId?: string;
 }) {
   const permissionModule = entity === "Staff" ? "staff" : "instructors";
   const canCreate = useStaffCan(permissionModule, "create"),
@@ -55,13 +59,16 @@ export function InstructorManagement({
     [page, setPage] = useState(1),
     [menu, setMenu] = useState<string | null>(null),
     [deleting, setDeleting] = useState<InstructorRow | null>(null),
+    [protectedDeletion, setProtectedDeletion] = useState<InstructorRow | null>(
+      null,
+    ),
     [emailing, setEmailing] = useState<InstructorRow | null>(null),
     [sending, setSending] = useState(false),
     router = useRouter(),
     filtered = useMemo(
       () =>
         rows.filter((x) =>
-          `${x.full_name} ${x.email}`
+          `${x.full_name} ${x.email} ${x.designation || ""}`
             .toLowerCase()
             .includes(query.toLowerCase()),
         ),
@@ -156,6 +163,7 @@ export function InstructorManagement({
               <tr>
                 <th className="p-4">#</th>
                 <th className="p-4">Name & Mail</th>
+                <th className="p-4">Designation</th>
                 <th className="p-4">Phone</th>
                 {entity === "Staff" && <th className="p-4">Role</th>}
                 <th className="p-4">Last Login</th>
@@ -186,11 +194,14 @@ export function InstructorManagement({
                       </span>
                     </div>
                   </td>
+                  <td className="p-4">{r.designation || "—"}</td>
                   <td className="p-4">{r.phone || "—"}</td>
                   {entity === "Staff" && (
                     <td className="p-4">
                       <span className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
-                        {r.staff_role || "Staff"}
+                        {r.role === "super_admin"
+                          ? "Super Admin"
+                          : r.staff_role || "Staff"}
                       </span>
                     </td>
                   )}
@@ -231,7 +242,7 @@ export function InstructorManagement({
                     )}
                     {menu === r.id && (
                       <div className="absolute right-4 top-14 z-[190] w-48 rounded-xl border bg-white py-1 shadow-2xl">
-                        {canView && (
+                        {canView && r.role !== "super_admin" && (
                           <button
                             onClick={() => router.push(`${basePath}/${r.id}`)}
                             className="instructor-action"
@@ -240,7 +251,7 @@ export function InstructorManagement({
                             View
                           </button>
                         )}
-                        {canEdit && (
+                        {canEdit && r.role !== "super_admin" && (
                           <button
                             onClick={() =>
                               router.push(`${basePath}/${r.id}/edit`)
@@ -254,7 +265,12 @@ export function InstructorManagement({
                         {canDelete && (
                           <button
                             onClick={() => {
-                              setDeleting(r);
+                              if (
+                                r.id === currentUserId ||
+                                r.role === "super_admin"
+                              )
+                                setProtectedDeletion(r);
+                              else setDeleting(r);
                               setMenu(null);
                             }}
                             className="instructor-action text-red"
@@ -263,7 +279,7 @@ export function InstructorManagement({
                             Delete
                           </button>
                         )}
-                        {canEmail && (
+                        {canEmail && r.role !== "super_admin" && (
                           <button
                             onClick={() => {
                               setEmailing(r);
@@ -275,7 +291,9 @@ export function InstructorManagement({
                             Send Email
                           </button>
                         )}
-                        {canWhatsapp && r.whatsapp_number && (
+                        {canWhatsapp &&
+                          r.role !== "super_admin" &&
+                          r.whatsapp_number && (
                           <a
                             href={`https://wa.me/${r.whatsapp_number.replace(/\D/g, "")}`}
                             target="_blank"
@@ -303,6 +321,18 @@ export function InstructorManagement({
         confirmLabel={`Delete ${entity}`}
         onCancel={() => setDeleting(null)}
         onConfirm={remove}
+      />
+      <ConfirmDialog
+        open={!!protectedDeletion}
+        title="Account cannot be deleted"
+        description={
+          protectedDeletion?.role === "super_admin"
+            ? "Super Admin accounts are protected and cannot be deleted."
+            : "You cannot delete the staff account you are currently signed in with."
+        }
+        confirmLabel="Close"
+        onCancel={() => setProtectedDeletion(null)}
+        onConfirm={() => setProtectedDeletion(null)}
       />
       {emailing && (
         <div className="fixed inset-0 z-[220] grid place-items-center bg-black/50 p-3 backdrop-blur-sm">
