@@ -7,6 +7,8 @@ import colors from "tailwindcss/colors";
  * them for the Atlassian-style blue/ink palette defined in globals.css.
  */
 export default {
+  // `dark:` variants follow the in-app theme toggle (html.admin-dark), not the OS setting.
+  darkMode: ["class", ".admin-dark"],
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {

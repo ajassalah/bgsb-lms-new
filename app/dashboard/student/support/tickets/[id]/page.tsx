@@ -1,3 +1,4 @@
+import { TicketView } from "@/components/ticket-view";
 import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireProfile } from "@/lib/auth";
@@ -42,76 +43,17 @@ export default async function Page({ params }: { params: { id: string } }) {
       email={p.email}
       avatar={p.avatar_url}
     >
-      <p className="text-sm text-slate-400">Support / Tickets / View</p>
-      <h1 className="mt-1 text-2xl font-bold text-navy">{data.subject}</h1>
-      <section className="mt-7 rounded-2xl border bg-white p-5 sm:p-7">
-        <p className="mb-4 text-sm font-bold text-navy">
-          Ticket No: {data.ticket_no || params.id.slice(0, 8).toUpperCase()}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold capitalize text-amber-700">
-            {data.priority}
-          </span>
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-700">
-            {data.status.replace("_", " ")}
-          </span>
-        </div>
-        <p className="mt-4 text-xs text-slate-400">
-          Created {new Date(data.created_at).toLocaleString("en-GB")}
-        </p>
-        <div
-          className="prose mt-6 max-w-none"
-          dangerouslySetInnerHTML={{ __html: data.description }}
-        />
-        {(data.status === "answered" || data.status === "closed") && (
-          <section className="mt-6 rounded-xl border bg-slate-50 p-4">
-            <h2 className="text-sm font-bold text-navy">Response</h2>
-            {(replies || []).length ? (
-              <div className="mt-3 space-y-4">
-                {(replies || []).map((reply) => (
-                  <article key={reply.id} className="rounded-lg bg-white p-4">
-                    <p className="text-xs text-slate-400">
-                      {new Date(reply.created_at).toLocaleString("en-GB")}
-                    </p>
-                    <div
-                      className="prose mt-3 max-w-none text-sm"
-                      dangerouslySetInnerHTML={{ __html: reply.message }}
-                    />
-                    {reply.attachment_url && (
-                      <a
-                        href={reply.attachment_url}
-                        target="_blank"
-                        className="btn-secondary mt-3"
-                      >
-                        View Response Attachment
-                      </a>
-                    )}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-slate-500">
-                No response has been recorded.
-              </p>
-            )}
-          </section>
-        )}
-        <div className="mt-6">
-          <b className="text-sm text-navy">Role</b>
-          <p className="mt-2 text-sm text-slate-500">
-            {roleName || "Not assigned"}
-          </p>
-        </div>
-        {data.attachment_url && (
-          <a
-            href={data.attachment_url}
-            target="_blank"
-            className="btn-secondary mt-6"
-          >
-            View Attachment
-          </a>
-        )}
-      </section>
+      <TicketView
+        ticket={data as any}
+        fallbackNo={params.id}
+        roleName={roleName}
+        replies={
+          data.status === "answered" || data.status === "closed"
+            ? (replies as any) || []
+            : undefined
+        }
+        backHref="/dashboard/student/support/tickets"
+      />
     </DashboardShell>
   );
 }

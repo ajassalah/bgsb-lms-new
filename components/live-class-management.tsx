@@ -598,7 +598,6 @@ function MultiSelect({
             ? `${selected.length} ${label.toLowerCase()} selected`
             : placeholder}
         </span>
-        <span className="text-xs text-slate-400">▼</span>
       </button>
       {selectedOptions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">

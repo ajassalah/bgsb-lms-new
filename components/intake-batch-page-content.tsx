@@ -1,4 +1,25 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
+  CalendarRange,
+  CircleDot,
+  Clock3,
+  Hash,
+  Layers,
+  Pencil,
+  Tag,
+  Users,
+} from "lucide-react";
+import {
+  DetailList,
+  DetailPage,
+  DetailSection,
+  Lozenge,
+  formatDate,
+} from "@/components/portal/object-detail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   IntakeBatchManagement,
@@ -60,19 +81,45 @@ export async function IntakeViewContent({
     .maybeSingle();
   if (!data) notFound();
   return (
-    <Details
+    <DetailPage
       title={data.name}
-      back={basePath}
-      items={[
-        ["Ref No", data.ref_no],
-        ["Course", data.course?.title || "—"],
-        ["Type", data.type],
-        ["Year", data.year],
-        ["Status", data.status],
-        ["Created", new Date(data.created_at).toLocaleString()],
-        ["Description", data.description || "—"],
-      ]}
-    />
+      icon={CalendarRange}
+      status={data.status}
+      meta={<span>Intake · {data.ref_no}</span>}
+      back={{ href: basePath, label: "Back to intakes" }}
+      actions={editAction(basePath, id)}
+      aside={
+        <DetailSection title="Details">
+          <DetailList
+            compact
+            items={[
+              { label: "Status", value: <Lozenge value={data.status} />, icon: CircleDot },
+              { label: "Created", value: formatDate(data.created_at, true), icon: Clock3 },
+            ]}
+          />
+        </DetailSection>
+      }
+    >
+      <DetailSection title="Overview">
+        <DetailList
+          items={[
+            { label: "Reference no", value: data.ref_no, icon: Hash },
+            { label: "Course", value: data.course?.title, icon: BookOpen },
+            { label: "Type", value: <span className="capitalize">{data.type}</span>, icon: Tag },
+            { label: "Year", value: data.year, icon: CalendarDays },
+          ]}
+        />
+      </DetailSection>
+      <DetailSection title="Description">
+        {data.description ? (
+          <p className="whitespace-pre-line text-sm leading-6 text-[#172B4D]">
+            {data.description}
+          </p>
+        ) : (
+          <p className="text-sm text-[#6B778C]">No description added.</p>
+        )}
+      </DetailSection>
+    </DetailPage>
   );
 }
 export async function BatchListContent({ basePath }: { basePath: string }) {
@@ -146,51 +193,83 @@ export async function BatchViewContent({
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
+  const learners = data.batch_learners?.[0]?.count || 0;
   return (
-    <Details
+    <DetailPage
       title={data.batch_name}
-      back={basePath}
-      items={[
-        ["Ref No", data.ref_no],
-        ["Course", data.course?.title || "—"],
-        ["Intake", data.intake?.name || "—"],
-        ["Start Date", data.start_date],
-        ["End Date", data.end_date],
-        ["Duration", `${data.duration_value} ${data.duration_unit}`],
-        ["Status", data.status],
-        ["Learners", data.batch_learners?.[0]?.count || 0],
-      ]}
-    />
+      icon={Layers}
+      status={data.status}
+      meta={<span>Batch · {data.ref_no}</span>}
+      back={{ href: basePath, label: "Back to batches" }}
+      actions={editAction(basePath, id)}
+      aside={
+        <>
+          <DetailSection title="Learners">
+            <p className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-[3px] bg-[#E3FCEF] text-[#006644]">
+                <Users className="size-5" />
+              </span>
+              <span>
+                <b className="block text-2xl font-semibold leading-7 text-[#172B4D]">
+                  {learners}
+                </b>
+                <span className="text-xs text-[#6B778C]">
+                  {learners === 1 ? "learner enrolled" : "learners enrolled"}
+                </span>
+              </span>
+            </p>
+          </DetailSection>
+          <DetailSection title="Details">
+            <DetailList
+              compact
+              items={[
+                { label: "Status", value: <Lozenge value={data.status} />, icon: CircleDot },
+                {
+                  label: "Duration",
+                  value: data.duration_value
+                    ? `${data.duration_value} ${data.duration_unit || ""}`
+                    : null,
+                  icon: Clock3,
+                },
+              ]}
+            />
+          </DetailSection>
+        </>
+      }
+    >
+      <DetailSection title="Overview">
+        <DetailList
+          items={[
+            { label: "Reference no", value: data.ref_no, icon: Hash },
+            { label: "Course", value: data.course?.title, icon: BookOpen },
+            {
+              label: "Intake",
+              value: data.intake
+                ? `${data.intake.name}${data.intake.ref_no ? ` (${data.intake.ref_no})` : ""}`
+                : null,
+              icon: CalendarRange,
+            },
+          ]}
+        />
+      </DetailSection>
+      <DetailSection title="Schedule">
+        <DetailList
+          items={[
+            { label: "Start date", value: formatDate(data.start_date), icon: CalendarDays },
+            { label: "End date", value: formatDate(data.end_date), icon: CalendarCheck },
+          ]}
+        />
+      </DetailSection>
+    </DetailPage>
   );
 }
-function Details({
-  title,
-  back,
-  items,
-}: {
-  title: string;
-  back: string;
-  items: [string, unknown][];
-}) {
+
+/** Edit is only linked where the route is open to the viewer (super admin). */
+function editAction(basePath: string, id: string) {
+  if (!basePath.includes("/super-admin/")) return null;
   return (
-    <>
-      <a href={back} className="text-sm font-bold text-red">
-        ← Back
-      </a>
-      <h1 className="mt-3 text-2xl font-bold text-navy">{title}</h1>
-      <section className="mt-6 grid gap-4 rounded-2xl border bg-white p-5 sm:grid-cols-2">
-        {items.map(([label, value]) => (
-          <div
-            key={label}
-            className={label === "Description" ? "sm:col-span-2" : ""}
-          >
-            <p className="text-xs font-bold uppercase text-slate-400">
-              {label}
-            </p>
-            <p className="mt-1 capitalize text-navy">{String(value)}</p>
-          </div>
-        ))}
-      </section>
-    </>
+    <Link href={`${basePath}/${id}/edit`} className="btn-secondary">
+      <Pencil className="size-4" /> Edit
+    </Link>
   );
 }

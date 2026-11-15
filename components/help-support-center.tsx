@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
-  CheckCircle2,
-  ChevronDown,
+  ChevronRight,
   CircleHelp,
   Clock3,
   FileText,
@@ -17,7 +16,6 @@ import {
   MonitorPlay,
   ReceiptText,
   Search,
-  Send,
   Settings2,
   ShieldCheck,
   TicketCheck,
@@ -178,112 +176,109 @@ export function HelpSupportCenter({
     [faqs, search],
   );
 
+  const statusLabel =
+    status === "checking"
+      ? "Checking"
+      : status === "operational"
+        ? "All systems operational"
+        : "Check required";
+  const statusTone =
+    status === "operational"
+      ? "bg-[#E3FCEF] text-[#006644]"
+      : status === "issue"
+        ? "bg-[#FFF4E5] text-[#974F0C]"
+        : "bg-[#091E420F] text-[#42526E]";
+  const dotTone =
+    status === "operational"
+      ? "bg-[#36B37E]"
+      : status === "issue"
+        ? "bg-[#FF8B00]"
+        : "bg-[#C1C7D0]";
+  const quickLinks = [
+    { icon: Headphones, title: "Raise a request", text: "Report a technical issue or ask the support team for help.", label: "Create a ticket", href: ticketNewUrl, tone: "bg-[#DEEBFF] text-[#0052CC]" },
+    { icon: BookOpen, title: "User guides", text: "Step-by-step guides for using the BGSB LMS.", label: "Browse guides", href: "#guides", tone: "bg-[#EAE6FF] text-[#403294]" },
+    { icon: CircleHelp, title: "FAQs", text: "Quick answers to the most common questions.", label: "View FAQs", href: faqUrl, tone: "bg-[#E3FCEF] text-[#006644]" },
+    { icon: MessageCircle, title: "Contact support", text: "Reach the support team by email or phone.", label: "Contact us", href: "#contact-support", tone: "bg-[#FFF4E5] text-[#974F0C]" },
+  ];
+  const contactRows = [
+    { label: "Email", value: contact.email, icon: MessageCircle },
+    { label: "Phone", value: contact.phone, icon: Headphones },
+    { label: "Hours", value: contact.hours, icon: Clock3 },
+  ];
+
   return (
-    <div className="space-y-10 pb-10">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#10203a] via-[#152a49] to-[#263d62] px-5 py-12 text-center text-white shadow-xl sm:px-10 sm:py-16">
-        <LifeBuoy className="mx-auto size-11 text-red-300" />
-        <h1 className="mt-4 text-3xl font-black sm:text-4xl">
-          How can we help you?
+    <div className="mx-auto w-full max-w-[1200px] space-y-8 pb-10">
+      <section className="ds-help-hero rounded-[3px] border border-[#DFE1E6] px-5 py-10 text-center sm:px-10 sm:py-12">
+        <span className="mx-auto grid size-12 place-items-center rounded-[3px] bg-[#0052CC] text-white">
+          <LifeBuoy className="size-6" />
+        </span>
+        <h1 className="mt-4 text-[28px] font-semibold leading-8 text-[#172B4D]">
+          How can we help?
         </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-white/70 sm:text-base">
-          Find answers, explore LMS guides, or contact our support team.
+        <p className="mx-auto mt-2 max-w-xl text-sm text-[#42526E]">
+          Search the help articles and FAQs, or contact the BGSB LMS support team.
         </p>
-        <label className="mx-auto mt-7 flex max-w-3xl items-center gap-3 rounded-2xl bg-white px-4 shadow-lg">
-          <Search className="size-5 shrink-0 text-slate-400" />
+        <label className="mx-auto mt-6 flex h-12 max-w-2xl items-center gap-3 rounded-[3px] border border-[#8590A2] bg-white px-4">
+          <Search aria-hidden className="size-5 shrink-0 text-[#6B778C]" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-14 min-w-0 flex-1 bg-transparent text-slate-900 outline-none"
-            placeholder="Search for help, guides, or common questions..."
+            aria-label="Search help"
+            className="ds-bare h-full min-w-0 flex-1 bg-transparent text-base text-[#172B4D] outline-none placeholder:text-[#6B778C]"
+            placeholder="Search for help, guides or common questions"
           />
         </label>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          [
-            Headphones,
-            "Submit a Support Request",
-            "Report a technical issue or request assistance from our support team.",
-            "Submit a Ticket",
-            ticketNewUrl,
-          ],
-          [
-            BookOpen,
-            "LMS User Guide",
-            "Learn how to use the BGS LMS with step-by-step guides.",
-            "View Guides",
-            "#guides",
-          ],
-          [
-            CircleHelp,
-            "Frequently Asked Questions",
-            "Find quick answers to common LMS questions.",
-            "Browse FAQs",
-            faqUrl,
-          ],
-          [
-            MessageCircle,
-            "Contact Support",
-            "Contact the BGS LMS support team for additional assistance.",
-            "Contact Us",
-            "#contact-support",
-          ],
-        ].map(([Icon, title, description, label, href]) => (
-          <article
-            key={title as string}
-            className="flex flex-col rounded-2xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+      <section aria-label="Get help" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {quickLinks.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            className="card group flex flex-col !p-5 transition-shadow hover:shadow-[0_4px_8px_-2px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)]"
           >
-            <span className="grid size-11 place-items-center rounded-xl bg-red/10 text-red">
-              <Icon className="size-5" />
+            <span className={`grid size-10 place-items-center rounded-[3px] ${item.tone}`}>
+              <item.icon className="size-5" />
             </span>
-            <h2 className="mt-4 font-bold text-navy dark:text-white">
-              {title as string}
-            </h2>
-            <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">
-              {description as string}
-            </p>
-            <Link
-              href={href as string}
-              className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-red"
-            >
-              {label as string}
-              <Send className="size-3.5" />
-            </Link>
-          </article>
+            <h2 className="mt-4 text-base font-semibold text-[#172B4D]">{item.title}</h2>
+            <p className="mt-1 flex-1 text-sm leading-5 text-[#42526E]">{item.text}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#0052CC] group-hover:underline">
+              {item.label}
+              <ChevronRight className="size-4" />
+            </span>
+          </Link>
         ))}
       </section>
 
-      <section id="guides">
+      <section id="guides" className="scroll-mt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-red">Browse support</p>
-            <h2 className="text-2xl font-bold text-navy dark:text-white">
-              Help Categories
-            </h2>
+            <h2 className="text-xl font-semibold text-[#172B4D]">Browse by topic</h2>
+            <p className="mt-1 text-sm text-[#6B778C]">
+              {visibleCategories.length} {visibleCategories.length === 1 ? "topic" : "topics"}
+              {search ? ` matching "${query.trim()}"` : ""}
+            </p>
           </div>
-          <Link href={ticketsUrl} className="btn-secondary gap-2">
-            <TicketCheck className="size-4" /> My Support Tickets
+          <Link href={ticketsUrl} className="btn-secondary">
+            <TicketCheck className="size-4" /> My support tickets
           </Link>
         </div>
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleCategories.map((category) => (
-            <article
-              key={category.name}
-              className="rounded-2xl border bg-white p-5 dark:border-slate-700 dark:bg-slate-900"
-            >
-              <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-slate-100 text-navy dark:bg-slate-800 dark:text-white">
-                  <category.icon className="size-5" />
+            <article key={category.name} className="card !p-0">
+              <header className="flex items-center gap-3 border-b border-[#DFE1E6] px-5 py-3.5">
+                <span className="grid size-8 place-items-center rounded-[3px] bg-[#DEEBFF] text-[#0052CC]">
+                  <category.icon className="size-4" />
                 </span>
-                <h3 className="font-bold text-navy dark:text-white">
-                  {category.name}
-                </h3>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-slate-500">
+                <h3 className="text-sm font-semibold text-[#172B4D]">{category.name}</h3>
+              </header>
+              <ul className="px-2 py-2">
                 {category.topics.map((topic) => (
-                  <li key={topic} className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                  <li
+                    key={topic}
+                    className="flex items-center gap-2.5 rounded-[3px] px-3 py-1.5 text-sm text-[#42526E]"
+                  >
+                    <FileText aria-hidden className="size-4 shrink-0 text-[#6B778C]" />
                     {topic}
                   </li>
                 ))}
@@ -291,39 +286,35 @@ export function HelpSupportCenter({
             </article>
           ))}
           {!visibleCategories.length && (
-            <p className="col-span-full rounded-2xl border border-dashed p-10 text-center text-slate-400">
-              No help categories match your search.
+            <p className="col-span-full rounded-[3px] border border-dashed border-[#C1C7D0] p-10 text-center text-sm text-[#6B778C]">
+              No topics match your search.
             </p>
           )}
         </div>
       </section>
 
       <section>
-        <p className="text-sm font-bold text-red">Common questions</p>
-        <h2 className="text-2xl font-bold text-navy dark:text-white">
-          Frequently Asked Questions
-        </h2>
-        <div className="mt-5 space-y-3">
-          {visibleFaqs.map((faq) => {
+        <h2 className="text-xl font-semibold text-[#172B4D]">Frequently asked questions</h2>
+        <div className="card mt-4 !p-0">
+          {visibleFaqs.map((faq, index) => {
             const open = openFaq === faq.id;
             return (
-              <article
-                key={faq.id}
-                className="overflow-hidden rounded-xl border bg-white dark:border-slate-700 dark:bg-slate-900"
-              >
+              <article key={faq.id} className={index ? "border-t border-[#DFE1E6]" : ""}>
                 <button
                   type="button"
+                  aria-expanded={open}
                   onClick={() => setOpenFaq(open ? null : faq.id)}
-                  className="flex w-full items-center justify-between gap-4 p-4 text-left font-semibold text-navy dark:text-white sm:p-5"
+                  className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-sm font-medium text-[#172B4D] transition-colors hover:bg-[#091E420F]"
                 >
-                  {faq.question}
-                  <ChevronDown
-                    className={`size-5 shrink-0 transition ${open ? "rotate-180" : ""}`}
+                  <ChevronRight
+                    aria-hidden
+                    className={`size-4 shrink-0 text-[#6B778C] transition-transform ${open ? "rotate-90" : ""}`}
                   />
+                  {faq.question}
                 </button>
                 {open && (
                   <div
-                    className="border-t px-4 py-5 text-sm leading-7 text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:px-5"
+                    className="legal-prose px-5 pb-4 pl-12 text-sm leading-6 text-[#42526E]"
                     dangerouslySetInnerHTML={{ __html: faq.answer }}
                   />
                 )}
@@ -331,88 +322,62 @@ export function HelpSupportCenter({
             );
           })}
           {!visibleFaqs.length && (
-            <p className="rounded-xl border border-dashed p-10 text-center text-slate-400">
-              No FAQs match your search.
-            </p>
+            <p className="p-10 text-center text-sm text-[#6B778C]">No FAQs match your search.</p>
           )}
         </div>
       </section>
 
       <section
         id="contact-support"
-        className="grid gap-5 lg:grid-cols-[1.4fr_1fr]"
+        className="grid scroll-mt-6 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]"
       >
-        <article className="rounded-2xl border bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="text-xl font-bold text-navy dark:text-white">
-            BGS LMS Support Team
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Need additional assistance? Our support team is available to help
-            with LMS-related questions and technical issues.
-          </p>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-            <div>
-              <dt className="text-xs font-bold uppercase text-slate-400">
-                Support Email
-              </dt>
-              <dd className="mt-1 break-all font-semibold text-navy dark:text-white">
-                {contact.email}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-slate-400">
-                Support Phone
-              </dt>
-              <dd className="mt-1 font-semibold text-navy dark:text-white">
-                {contact.phone}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-slate-400">
-                Support Hours
-              </dt>
-              <dd className="mt-1 font-semibold text-navy dark:text-white">
-                {contact.hours}
-              </dd>
-            </div>
-          </dl>
-        </article>
-        <article className="rounded-2xl border bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-navy dark:text-white">
-              LMS System Status
-            </h2>
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${status === "operational" ? "bg-emerald-100 text-emerald-700" : status === "issue" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}
-            >
-              {status === "checking"
-                ? "Checking"
-                : status === "operational"
-                  ? "Operational"
-                  : "Check required"}
-            </span>
-          </div>
-          <div className="mt-4 space-y-3">
-            {[
-              "LMS Platform",
-              "Login Services",
-              "Course Access",
-              "Assignment Submission",
-              "Live Classes",
-            ].map((service) => (
+        <article className="card !p-0">
+          <header className="border-b border-[#DFE1E6] px-5 py-3.5">
+            <h2 className="text-base font-semibold text-[#172B4D]">Contact the support team</h2>
+            <p className="mt-0.5 text-xs text-[#6B778C]">
+              Need more help? We&apos;re available for LMS questions and technical issues.
+            </p>
+          </header>
+          <dl className="px-5 py-2">
+            {contactRows.map((row) => (
               <div
-                key={service}
-                className="flex items-center justify-between text-sm"
+                key={row.label}
+                className="ds-detail-row grid gap-1 py-3 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-4"
               >
-                <span>{service}</span>
-                <span
-                  className={`size-2.5 rounded-full ${status === "operational" ? "bg-emerald-500" : status === "issue" ? "bg-amber-500" : "bg-slate-300"}`}
-                />
+                <dt className="flex items-center gap-2 text-sm text-[#6B778C]">
+                  <row.icon className="size-4" />
+                  {row.label}
+                </dt>
+                <dd className="break-all text-sm font-medium text-[#172B4D]">{row.value}</dd>
               </div>
             ))}
-          </div>
-          <p className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-            <Clock3 className="size-3.5" /> Last checked: just now
+          </dl>
+        </article>
+        <article className="card !p-0">
+          <header className="flex items-center justify-between gap-3 border-b border-[#DFE1E6] px-5 py-3.5">
+            <h2 className="text-base font-semibold text-[#172B4D]">System status</h2>
+            <span className={`rounded-[3px] px-1 text-[11px] font-bold uppercase leading-4 ${statusTone}`}>
+              {statusLabel}
+            </span>
+          </header>
+          <ul className="px-5 py-2">
+            {["LMS platform", "Login services", "Course access", "Assignment submission", "Live classes"].map(
+              (service) => (
+                <li
+                  key={service}
+                  className="ds-detail-row flex items-center justify-between py-2.5 text-sm text-[#172B4D]"
+                >
+                  {service}
+                  <span className="inline-flex items-center gap-2 text-xs text-[#6B778C]">
+                    <span className={`size-2 rounded-full ${dotTone}`} />
+                    {status === "operational" ? "Operational" : status === "issue" ? "Check" : "Checking"}
+                  </span>
+                </li>
+              ),
+            )}
+          </ul>
+          <p className="flex items-center gap-2 border-t border-[#DFE1E6] px-5 py-3 text-xs text-[#6B778C]">
+            <Clock3 className="size-3.5" /> Last checked just now
           </p>
         </article>
       </section>

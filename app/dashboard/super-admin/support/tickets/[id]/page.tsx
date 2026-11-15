@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { TicketView } from "@/components/ticket-view";
 import { notFound } from "next/navigation";
 import { SuperAdminShell } from "@/components/super-admin-shell";
 import { requireProfile } from "@/lib/auth";
@@ -52,79 +54,21 @@ export default async function TicketViewPage({
 
   return (
     <SuperAdminShell name={profile.full_name}>
-      <TicketDetails
-        ticket={{ ...ticket, creator, student } as any}
+      <TicketView
+        ticket={ticket as any}
+        fallbackNo={params.id}
         roleName={
           ((assistant?.role as { name?: string } | null)?.name as string) || ""
         }
-        fallbackNo={params.id}
+        createdBy={creator?.full_name || student?.full_name || "Unknown"}
+        backHref="/dashboard/super-admin/support/tickets"
+        actions={
+          <Link href={`/dashboard/super-admin/support/tickets/${params.id}/reply`} className="btn-primary">
+            Reply
+          </Link>
+        }
       />
     </SuperAdminShell>
   );
 }
 
-function TicketDetails({
-  ticket,
-  roleName,
-  fallbackNo,
-}: {
-  ticket: any;
-  roleName: string;
-  fallbackNo: string;
-}) {
-  return (
-    <>
-      <p className="text-sm text-slate-400">Support / Tickets / View</p>
-      <h1 className="mt-1 text-2xl font-bold text-navy">{ticket.subject}</h1>
-      <section className="mt-7 rounded-xl border bg-white p-5 sm:p-7">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Info
-            label="Ticket No"
-            value={ticket.ticket_no || fallbackNo.slice(0, 8).toUpperCase()}
-          />
-          <Info label="Priority" value={ticket.priority} />
-          <Info label="Status" value={ticket.status?.replace("_", " ")} />
-          <Info
-            label="Created"
-            value={new Date(ticket.created_at).toLocaleString("en-GB")}
-          />
-        </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Info label="Role" value={roleName || "Not assigned"} />
-          <Info
-            label="Created By"
-            value={
-              ticket.creator?.full_name ||
-              ticket.student?.full_name ||
-              "Unknown"
-            }
-          />
-        </div>
-        <div
-          className="prose mt-6 max-w-none"
-          dangerouslySetInnerHTML={{ __html: ticket.description }}
-        />
-        {ticket.attachment_url && (
-          <a
-            href={ticket.attachment_url}
-            target="_blank"
-            className="btn-secondary mt-6"
-          >
-            View Attachment
-          </a>
-        )}
-      </section>
-    </>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-xs font-bold uppercase text-slate-400">
-        {label}
-      </span>
-      <b className="mt-1 block capitalize text-navy">{value}</b>
-    </div>
-  );
-}

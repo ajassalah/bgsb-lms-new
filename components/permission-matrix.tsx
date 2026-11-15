@@ -1,4 +1,5 @@
 "use client";
+import { Toggle as DsToggle } from "@/components/portal/controls";
 
 import {
   CheckCircle2,
@@ -378,20 +379,5 @@ function Toggle({
   checked: boolean;
   onChange: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={(event) => {
-        event.preventDefault();
-        onChange();
-      }}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? "bg-red" : "bg-slate-300"}`}
-    >
-      <span
-        className={`absolute top-1 size-4 rounded-full bg-white shadow transition ${checked ? "left-6" : "left-1"}`}
-      />
-    </button>
-  );
+  return <DsToggle checked={checked} onChange={() => onChange()} />;
 }

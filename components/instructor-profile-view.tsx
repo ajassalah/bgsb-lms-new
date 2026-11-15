@@ -102,7 +102,7 @@ export function InstructorProfileView({
               {instructor.expertises.map((x) => (
                 <span
                   key={x}
-                  className="rounded-full bg-red/10 px-3 py-1 text-xs font-semibold text-red"
+                  className="rounded-[3px] bg-[#091E420F] px-1.5 py-0.5 text-xs font-medium text-[#42526E]"
                 >
                   {x}
                 </span>
@@ -110,7 +110,7 @@ export function InstructorProfileView({
             </div>
           </section>
           <section className="mt-6 border-t pt-5">
-            <h3 className="font-bold text-navy">Personal Information</h3>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.04em] text-[#6B778C]">Personal information</h3>
             <Info label="First Name" value={instructor.first_name} />
             <Info label="Last Name" value={instructor.last_name} />
             <Info label="Phone Number" value={instructor.phone} />
@@ -125,34 +125,34 @@ export function InstructorProfileView({
           </section>
         </aside>
         <main className="min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white">
-          <div className="flex gap-2 overflow-x-auto border-b p-2">
+          <div role="tablist" className="ds-tabs flex overflow-x-auto border-b px-5">
             <button
               onClick={() => setTab("courses")}
-              className={`rounded-lg px-5 py-3 text-sm font-semibold ${tab === "courses" ? "bg-red text-white" : "text-slate-500"}`}
+              className={`ds-tab ${tab === "courses" ? "ds-tab-active" : ""}`}
             >
               Courses
             </button>
             <button
               onClick={() => setTab("live")}
-              className={`rounded-lg px-5 py-3 text-sm font-semibold ${tab === "live" ? "bg-red text-white" : "text-slate-500"}`}
+              className={`ds-tab ${tab === "live" ? "ds-tab-active" : ""}`}
             >
               Live Classes
             </button>
             <button
               onClick={() => setTab("education")}
-              className={`rounded-lg px-5 py-3 text-sm font-semibold ${tab === "education" ? "bg-red text-white" : "text-slate-500"}`}
+              className={`ds-tab ${tab === "education" ? "ds-tab-active" : ""}`}
             >
               Education Background
             </button>
             <button
               onClick={() => setTab("professional")}
-              className={`rounded-lg px-5 py-3 text-sm font-semibold ${tab === "professional" ? "bg-red text-white" : "text-slate-500"}`}
+              className={`ds-tab ${tab === "professional" ? "ds-tab-active" : ""}`}
             >
               Professional Details
             </button>
             <button
               onClick={() => setTab("documents")}
-              className={`whitespace-nowrap rounded-lg px-5 py-3 text-sm font-semibold ${tab === "documents" ? "bg-red text-white" : "text-slate-500"}`}
+              className={`ds-tab ${tab === "documents" ? "ds-tab-active" : ""}`}
             >
               Documents
             </button>
@@ -339,9 +339,9 @@ function Info({
   value: string | null | undefined;
 }) {
   return (
-    <div className="mt-4">
-      <small className="block text-slate-400">{label}</small>
-      <b className="block text-sm text-navy">{value || "—"}</b>
+    <div className="ds-detail-row grid grid-cols-[110px_minmax(0,1fr)] gap-3 py-2.5 text-left">
+      <span className="text-sm text-[#6B778C]">{label}</span>
+      <span className="min-w-0 break-words text-sm font-medium text-[#172B4D]">{value || "—"}</span>
     </div>
   );
 }

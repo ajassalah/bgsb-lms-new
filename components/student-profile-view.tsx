@@ -125,7 +125,7 @@ export function StudentProfileView({
           </h2>
           <p className="text-sm text-slate-400">{student.email}</p>
           <div className="mt-6 border-t pt-5 text-left">
-            <h3 className="font-bold text-navy">Personal Information</h3>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.04em] text-[#6B778C]">Personal information</h3>
             <Info label="Phone" value={student.phone} />
             <Info label="Country" value={student.country} />
             <Info label="Address" value={student.address} />
@@ -142,12 +142,12 @@ export function StudentProfileView({
           </div>
         </aside>
         <main className="min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white">
-          <div className="flex overflow-x-auto border-b p-2">
+          <div role="tablist" className="ds-tabs flex overflow-x-auto border-b px-5">
             {tabs.map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`whitespace-nowrap rounded-lg px-4 py-3 text-sm font-semibold ${tab === key ? "bg-red text-white" : "text-slate-500 hover:bg-slate-50"}`}
+                className={`ds-tab ${tab === key ? "ds-tab-active" : ""}`}
               >
                 {label}
               </button>
@@ -309,9 +309,9 @@ function Info({
   value: string | null | undefined;
 }) {
   return (
-    <div className="mt-4">
-      <small className="block text-slate-400">{label}</small>
-      <b className="block capitalize text-sm text-navy">{value || "—"}</b>
+    <div className="ds-detail-row grid grid-cols-[110px_minmax(0,1fr)] gap-3 py-2.5 text-left">
+      <span className="text-sm text-[#6B778C]">{label}</span>
+      <span className="min-w-0 break-words text-sm font-medium capitalize text-[#172B4D]">{value || "—"}</span>
     </div>
   );
 }

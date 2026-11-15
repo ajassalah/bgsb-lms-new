@@ -57,33 +57,18 @@ export function DashboardNavigationLoader() {
   return <DashboardLoadingVisual />;
 }
 
+/** Atlassian-style page transition: thin brand progress bar + spinner. */
 export function DashboardLoadingVisual() {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-label="Loading page"
-      className="dashboard-route-loader fixed inset-0 z-[30000] grid place-items-center bg-[#07111f]/95 p-6 backdrop-blur-md"
-    >
-      <div className="text-center">
-        <div className="dashboard-loader-mark relative mx-auto grid size-28 place-items-center rounded-full sm:size-32">
-          <span className="dashboard-loader-ring absolute inset-0 rounded-full border-2 border-white/15 border-t-red" />
-          <span className="absolute inset-2 rounded-full border border-white/10" />
-          <img
-            src="/BGS Logo White-01.png"
-            alt="BGSB"
-            className="dashboard-loader-logo relative z-10 h-16 w-20 object-contain sm:h-20 sm:w-24"
-          />
-        </div>
-        <p className="mt-5 text-sm font-bold uppercase tracking-[0.28em] text-white">
-          Loading
-        </p>
-        <div className="mx-auto mt-3 flex w-fit gap-1.5" aria-hidden="true">
-          <span className="dashboard-loader-dot size-2 rounded-full bg-red" />
-          <span className="dashboard-loader-dot size-2 rounded-full bg-red" />
-          <span className="dashboard-loader-dot size-2 rounded-full bg-red" />
-        </div>
-      </div>
+    <div role="status" aria-live="polite" aria-label="Loading page" className="ds-route-loader">
+      <span className="ds-route-progress" aria-hidden="true" />
+      <span className="ds-route-blanket" aria-hidden="true" />
+      <span className="ds-route-spinner-wrap">
+        <svg className="ds-spinner" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" />
+        </svg>
+        <span className="sr-only">Loading</span>
+      </span>
     </div>
   );
 }
