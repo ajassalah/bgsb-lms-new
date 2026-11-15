@@ -19,8 +19,24 @@ const flag = (code: string) =>
     .replace(/./g, (character) =>
       String.fromCodePoint(127397 + character.charCodeAt(0)),
     );
-export function AdminProfileForm({ value }: { value: Value }) {
-  const initial =
+const EMPTY: Value = {
+  first_name: null,
+  last_name: null,
+  email: "",
+  phone: null,
+  phone_country_code: null,
+  address: null,
+  avatar_url: null,
+};
+export function AdminProfileForm({
+  value: input,
+  fallback,
+}: {
+  value: Partial<Value> | null | undefined;
+  fallback?: Partial<Value>;
+}) {
+  const value: Value = { ...EMPTY, ...fallback, ...(input ?? {}) },
+    initial =
       countries.find((x) => x.dial === value.phone_country_code) ||
       countries.find((x) => x.code === "LK")!,
     [country, setCountry] = useState(initial),

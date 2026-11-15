@@ -10,10 +10,10 @@ export default async function InstructorProfile() {
         "first_name,last_name,email,phone,phone_country_code,address,avatar_url",
       )
       .eq("id", profile.id)
-      .single();
+      .maybeSingle();
   return (
     <DashboardShell role="instructor" name={profile.full_name}>
-      <AdminProfileForm value={data!} />
+      <AdminProfileForm value={data} fallback={{ email: profile.email ?? "", avatar_url: profile.avatar_url ?? null }} />
     </DashboardShell>
   );
 }

@@ -10,7 +10,7 @@ export default async function StaffProfile() {
         "first_name,last_name,email,phone,phone_country_code,address,avatar_url",
       )
       .eq("id", p.id)
-      .single();
+      .maybeSingle();
   return (
     <DashboardShell
       role="admin_staff"
@@ -18,7 +18,7 @@ export default async function StaffProfile() {
       email={p.email}
       avatar={p.avatar_url}
     >
-      <AdminProfileForm value={data!} />
+      <AdminProfileForm value={data} fallback={{ email: p.email ?? "", avatar_url: p.avatar_url ?? null }} />
     </DashboardShell>
   );
 }
