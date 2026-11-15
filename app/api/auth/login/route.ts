@@ -37,12 +37,20 @@ export async function POST(request: NextRequest) {
       { status: 401 },
     );
 
-  const { data: profile, error: profileError } = await db
+  // Read the profile with the service-role client: the new session cookies are
+  // only on the response at this point, so a user-scoped query can run as
+  // anonymous and be filtered out by RLS. The user is already authenticated.
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("role,status")
     .eq("id", data.user.id)
-    .single();
+    .maybeSingle();
   if (profileError || !profile) {
+    console.error("[login] profile lookup failed", {
+      userId: data.user.id,
+      error: profileError?.message ?? "no profile row",
+    });
     await db.auth.signOut();
     return NextResponse.json(
       {
@@ -60,7 +68,6 @@ export async function POST(request: NextRequest) {
     );
   }
   const route = `/dashboard/${profile.role.replace("_", "-")}`;
-  const admin = createAdminClient();
   const { data: currentTerms } = await admin
     .from("legal_terms")
     .select("id,version")
