@@ -2137,7 +2137,12 @@ table:has(td.relative > div.absolute) {
 .admin-dark .ds-detail-row + .ds-detail-row { border-top-color: #38414a; }
 
 /* ADS tabs (profile views). */
-.ds-tabs { gap: 20px; }
+.ds-tabs {
+  gap: 20px;
+  overflow-y: hidden;
+  scrollbar-width: none; /* still scrolls sideways on narrow screens, no visible bar */
+}
+.ds-tabs::-webkit-scrollbar { display: none; }
 .ds-tab {
   position: relative;
   flex-shrink: 0;
@@ -2152,7 +2157,7 @@ table:has(td.relative > div.absolute) {
 .ds-tab::after {
   content: "";
   position: absolute;
-  inset: auto 0 -1px;
+  inset: auto 0 0;
   height: 2px;
   border-radius: 1px;
   background: transparent;
