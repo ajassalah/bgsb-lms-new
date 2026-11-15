@@ -25,7 +25,7 @@ export default async function TermsAcceptancePage() {
     .maybeSingle();
   if (acceptance) redirect(dashboard);
   return (
-    <main className="fixed inset-0 z-[99999] grid min-h-screen place-items-center overflow-y-auto bg-[#07111f]/90 p-4 backdrop-blur-md">
+    <main className="fixed inset-0 z-[99999] grid min-h-screen place-items-center overflow-y-auto bg-[#091E427D] p-4">
       <TermsAcceptanceForm version={terms.version} />
     </main>
   );

@@ -353,7 +353,7 @@ select.field:hover {
 .legal-terms-content span,
 .legal-terms-content strong,
 .legal-terms-content b {
-  color: #334155 !important;
+  color: #172b4d !important;
 }
 .legal-terms-content h1,
 .legal-terms-content h2,
@@ -361,10 +361,10 @@ select.field:hover {
 .legal-terms-content h4,
 .legal-terms-content h5,
 .legal-terms-content h6 {
-  color: #17233c !important;
+  color: #172b4d !important;
 }
 .legal-terms-content a {
-  color: #cf2529 !important;
+  color: #0052cc !important;
 }
 .admin-dark .legal-terms-content,
 .admin-dark .legal-terms-content p,
@@ -1681,3 +1681,48 @@ table:has(td.relative > div.absolute) {
   background: #fff;
   padding: 2px 6px;
 }
+
+/* Terms & Conditions document (Confluence-style page). */
+.ds-terms .legal-prose {
+  font-size: 16px;
+  line-height: 1.75;
+}
+.ds-terms .legal-prose :is(h1, h2, h3, h4) {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 88px;
+}
+.ds-terms .legal-prose h1 { font-size: 28px; font-weight: 600; }
+.ds-terms .legal-prose h2 { font-size: 22px; font-weight: 600; margin-top: 2em; }
+.ds-terms .legal-prose h3 { font-size: 18px; font-weight: 600; }
+.ds-terms .legal-prose h4 { font-size: 16px; font-weight: 600; }
+.ds-terms .legal-prose li::marker { color: #6b778c; }
+.ds-terms .legal-prose blockquote {
+  border-left: 0;
+  border-radius: 3px;
+  background: #deebff;
+  padding: 12px 16px;
+  font-style: normal;
+}
+.ds-terms .legal-prose hr { border-color: #dfe1e6; }
+.ds-terms .legal-prose :is(th, td) { border-color: #dfe1e6; }
+.ds-terms .legal-prose th { background: #f4f5f7; font-weight: 600; }
+.admin-dark .ds-terms .legal-prose blockquote { background: #1c2b41; }
+.admin-dark .ds-terms .legal-prose th { background: #22272b; }
+.admin-dark .ds-terms .legal-prose :is(th, td),
+.admin-dark .ds-terms .legal-prose hr { border-color: var(--dk-border); }
+.admin-dark .ds-terms .legal-terms-content :is(p, li, span, strong, b) { color: #b6c2cf !important; }
+.admin-dark .ds-terms .legal-terms-content :is(h1, h2, h3, h4, h5, h6) { color: #dee4ea !important; }
+.admin-dark .ds-terms .legal-terms-content a { color: #85b8ff !important; }
+.admin-dark .ds-terms .border-\[\#DFE1E6\],
+.admin-dark .ds-terms .divide-\[\#DFE1E6\] > * { border-color: var(--dk-border) !important; }
+.admin-dark .ds-terms nav a.text-\[\#42526E\]:hover { color: #85b8ff !important; }
+.admin-dark .ds-terms-dialog {
+  background: #282e33 !important;
+  box-shadow: 0 0 0 1px var(--dk-border), 0 8px 16px rgb(3 4 4 / 0.36) !important;
+}
+.admin-dark .ds-terms-dialog label { background: #22272b !important; border-color: #38414a !important; color: #dee4ea !important; }
+.admin-dark .ds-terms-dialog .text-\[\#42526E\] { color: #b6c2cf !important; }
+.admin-dark .ds-terms-dialog .bg-\[\#DEEBFF\] { background: #1c2b41 !important; }
+.admin-dark .ds-terms-dialog .text-\[\#0052CC\],
+.admin-dark .ds-terms-dialog .text-\[\#0747A6\] { color: #85b8ff !important; }
