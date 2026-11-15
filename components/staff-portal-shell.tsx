@@ -1,134 +1,85 @@
 "use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
-  Bell,
   BookCopy,
   CalendarDays,
   CalendarRange,
-  ChevronDown,
+  CircleHelp,
   ClipboardCheck,
   FileBarChart,
   FolderLock,
   GraduationCap,
   LayoutDashboard,
   LibraryBig,
-  ListTree,
   LifeBuoy,
-  Menu,
+  ListTree,
+  Mail,
+  Megaphone,
   MessageSquareMore,
-  Settings,
   School,
   ScrollText,
-  ShieldCheck,
+  Settings,
+  Tags,
   UserCog,
+  UserPlus,
   Users,
   Video,
-  X,
 } from "lucide-react";
-import { StaffTopbar } from "./staff-topbar";
+import { AppShell, type CreateLink, type NavGroup, type NavItem } from "./portal/app-shell";
 import { StaffPermissionProvider } from "./staff-permission-context";
+
 type Actions = Record<string, boolean>;
-type MenuItem = {
-  label: string;
-  icon: typeof LayoutDashboard;
-  href?: string;
-  modules?: string[];
-  children?: {
-    label: string;
-    href: string;
-    modules: string[];
-    icon?: typeof LayoutDashboard;
-  }[];
+const base = "/dashboard/admin-staff";
+const curriculumAction = (path: string) =>
+  /^\/dashboard\/admin-staff\/courses\/[^/]+\/curriculum(?:\/|$)/.test(path);
+const under = (href: string) => (path: string) =>
+  path === href || path.startsWith(`${href}/`);
+
+/** Nav model with the permission modules each entry requires. */
+type Gated<T> = T & { modules?: string[] };
+type GatedItem = Gated<Omit<NavItem, "children">> & {
+  children?: Gated<NonNullable<NavItem["children"]>[number]>[];
 };
-const groups: { label: string; items: MenuItem[] }[] = [
+const groups: { label: string; items: GatedItem[] }[] = [
   {
-    label: "Main",
-    items: [
-      {
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        href: "/dashboard/admin-staff",
-      },
-    ],
+    label: "Overview",
+    items: [{ label: "Dashboard", icon: LayoutDashboard, href: base, exact: true }],
   },
   {
     label: "Academic",
     items: [
-      {
-        label: "Enrollment",
-        icon: LibraryBig,
-        href: "/dashboard/admin-staff/enrollments",
-        modules: ["enrollment"],
-      },
-      {
-        label: "Intake",
-        icon: CalendarRange,
-        href: "/dashboard/admin-staff/intakes",
-        modules: ["intakes"],
-      },
-      {
-        label: "Batch",
-        icon: ListTree,
-        href: "/dashboard/admin-staff/batches",
-        modules: ["batches"],
-      },
-      {
-        label: "Manage Student",
-        icon: Users,
-        href: "/dashboard/admin-staff/students",
-        modules: ["students"],
-      },
+      { label: "Enrollment", icon: LibraryBig, href: `${base}/enrollments`, modules: ["enrollment"] },
+      { label: "Intakes", icon: CalendarRange, href: `${base}/intakes`, modules: ["intakes"] },
+      { label: "Batches", icon: ListTree, href: `${base}/batches`, modules: ["batches"] },
+      { label: "Students", icon: Users, href: `${base}/students`, modules: ["students"] },
       {
         label: "Courses",
         icon: BookCopy,
-        modules: [
-          "courses",
-          "curriculum",
-          "curriculum_overview",
-          "curriculum_assignments",
-          "categories",
-          "certificates",
-          "certificate_students",
-        ],
         children: [
           {
-            label: "Course List",
-            icon: BookCopy,
-            href: "/dashboard/admin-staff/courses",
+            label: "Course list",
+            href: `${base}/courses`,
             modules: ["courses", "curriculum", "curriculum_assignments"],
+            isActive: (p) => under(`${base}/courses`)(p) && !curriculumAction(p),
           },
-          {
-            label: "Category",
-            icon: ShieldCheck,
-            href: "/dashboard/admin-staff/category",
-            modules: ["categories"],
-          },
+          { label: "Categories", href: `${base}/category`, modules: ["categories"] },
           {
             label: "Curriculum",
-            icon: ListTree,
-            href: "/dashboard/admin-staff/curriculum",
+            href: `${base}/curriculum`,
             modules: ["curriculum_overview"],
+            isActive: (p) => p === `${base}/curriculum` || curriculumAction(p),
           },
           {
             label: "Certificates",
-            icon: ShieldCheck,
-            href: "/dashboard/admin-staff/certificates",
+            href: `${base}/certificates`,
             modules: ["certificates", "certificate_students"],
           },
         ],
       },
-      {
-        label: "Live Classes",
-        icon: Video,
-        href: "/dashboard/admin-staff/live-classes",
-        modules: ["live_classes"],
-      },
+      { label: "Live classes", icon: Video, href: `${base}/live-classes`, modules: ["live_classes"] },
       {
         label: "Assignments",
         icon: ClipboardCheck,
-        href: "/dashboard/admin-staff/assignments",
+        href: `${base}/assignments`,
         modules: [
           "assignments",
           "assignment_tab",
@@ -140,31 +91,15 @@ const groups: { label: string; items: MenuItem[] }[] = [
     ],
   },
   {
-    label: "CLASS",
+    label: "Classes",
     items: [
       {
-        label: "Class",
-        icon: LayoutDashboard,
-        modules: ["class_attendance", "class_management", "class_reports"],
+        label: "Class management",
+        icon: School,
         children: [
-          {
-            label: "Attendance",
-            icon: ClipboardCheck,
-            href: "/dashboard/admin-staff/class/attendance",
-            modules: ["class_attendance"],
-          },
-          {
-            label: "Class",
-            icon: School,
-            href: "/dashboard/admin-staff/class/classes",
-            modules: ["class_management"],
-          },
-          {
-            label: "Report",
-            icon: FileBarChart,
-            href: "/dashboard/admin-staff/class/reports",
-            modules: ["class_reports"],
-          },
+          { label: "Attendance", href: `${base}/class/attendance`, modules: ["class_attendance"] },
+          { label: "Classes", href: `${base}/class/classes`, modules: ["class_management"] },
+          { label: "Reports", href: `${base}/class/reports`, modules: ["class_reports"] },
         ],
       },
     ],
@@ -172,29 +107,13 @@ const groups: { label: string; items: MenuItem[] }[] = [
   {
     label: "People",
     items: [
-      {
-        label: "Instructors",
-        icon: GraduationCap,
-        href: "/dashboard/admin-staff/instructors",
-        modules: ["instructors"],
-      },
+      { label: "Instructors", icon: GraduationCap, href: `${base}/instructors`, modules: ["instructors"] },
       {
         label: "Staff",
         icon: UserCog,
-        modules: ["staff", "roles"],
         children: [
-          {
-            label: "All Staff",
-            icon: UserCog,
-            href: "/dashboard/admin-staff/staff",
-            modules: ["staff"],
-          },
-          {
-            label: "Roles & Permissions",
-            icon: ShieldCheck,
-            href: "/dashboard/admin-staff/roles",
-            modules: ["roles"],
-          },
+          { label: "All staff", href: `${base}/staff`, modules: ["staff"] },
+          { label: "Roles & permissions", href: `${base}/roles`, modules: ["roles"] },
         ],
       },
     ],
@@ -202,50 +121,23 @@ const groups: { label: string; items: MenuItem[] }[] = [
   {
     label: "Communication",
     items: [
-      {
-        label: "Announcements",
-        icon: Bell,
-        href: "/dashboard/admin-staff/announcements",
-        modules: ["announcements"],
-      },
+      { label: "Announcements", icon: Megaphone, href: `${base}/announcements`, modules: ["announcements"] },
       {
         label: "Messages",
         icon: MessageSquareMore,
-        href: "/dashboard/admin-staff/messages",
+        href: `${base}/messages`,
         modules: ["messages"],
+        badge: "messages",
       },
-      {
-        label: "Calendar",
-        icon: CalendarDays,
-        href: "/dashboard/admin-staff/calendar",
-        modules: ["calendar"],
-      },
-      {
-        label: "Email Templates",
-        icon: MessageSquareMore,
-        href: "/dashboard/admin-staff/email-templates",
-        modules: ["email_templates"],
-      },
+      { label: "Calendar", icon: CalendarDays, href: `${base}/calendar`, modules: ["calendar"] },
+      { label: "Email templates", icon: Mail, href: `${base}/email-templates`, modules: ["email_templates"] },
       {
         label: "Support",
         icon: LifeBuoy,
-        modules: ["tickets", "faq"],
         children: [
-          {
-            label: "Tickets",
-            href: "/dashboard/admin-staff/support/tickets",
-            modules: ["tickets"],
-          },
-          {
-            label: "Support Assistants",
-            href: "/dashboard/admin-staff/support/assistants",
-            modules: ["support_assistants"],
-          },
-          {
-            label: "FAQ",
-            href: "/dashboard/admin-staff/support/faq",
-            modules: ["faq"],
-          },
+          { label: "Tickets", href: `${base}/support/tickets`, modules: ["tickets"] },
+          { label: "Support assistants", href: `${base}/support/assistants`, modules: ["support_assistants"] },
+          { label: "FAQ", href: `${base}/support/faq`, modules: ["faq"] },
         ],
       },
     ],
@@ -253,55 +145,41 @@ const groups: { label: string; items: MenuItem[] }[] = [
   {
     label: "Platform",
     items: [
+      { label: "Reports", icon: FileBarChart, href: `${base}/reports`, modules: ["reports"] },
+      { label: "Private files", icon: FolderLock, href: `${base}/private-files`, modules: ["private_files"] },
+      { label: "Help & support", icon: CircleHelp, href: `${base}/support/help`, modules: ["help_support"] },
       {
-        label: "Reports",
-        icon: FileBarChart,
-        href: "/dashboard/admin-staff/reports",
-        modules: ["reports"],
-      },
-      {
-        label: "Private File",
-        icon: FolderLock,
-        href: "/dashboard/admin-staff/private-files",
-        modules: ["private_files"],
-      },
-      {
-        label: "Help & Support",
-        icon: LifeBuoy,
-        href: "/dashboard/admin-staff/support/help",
-        modules: ["help_support"],
-      },
-      {
-        label: "Terms & Conditions",
+        label: "Terms & conditions",
         icon: ScrollText,
-        href: "/dashboard/admin-staff/terms-and-conditions",
+        href: `${base}/terms-and-conditions`,
         modules: ["terms_conditions"],
       },
       {
-        label: "System Settings",
+        label: "System settings",
         icon: Settings,
-        modules: ["email_configuration", "recent_activities", "all_users"],
         children: [
-          {
-            label: "All Users",
-            href: "/dashboard/admin-staff/settings/users",
-            modules: ["all_users"],
-          },
-          {
-            label: "Email Configuration",
-            href: "/dashboard/admin-staff/settings/email",
-            modules: ["email_configuration"],
-          },
-          {
-            label: "Recent Activities",
-            href: "/dashboard/admin-staff/settings/activity",
-            modules: ["recent_activities"],
-          },
+          { label: "All users", href: `${base}/settings/users`, modules: ["all_users"] },
+          { label: "Email configuration", href: `${base}/settings/email`, modules: ["email_configuration"] },
+          { label: "Recent activity", href: `${base}/settings/activity`, modules: ["recent_activities"] },
         ],
       },
     ],
   },
 ];
+
+const createLinks: (CreateLink & { module: string; action: string })[] = [
+  { label: "Course", href: `${base}/courses/new`, icon: BookCopy, module: "courses", action: "create" },
+  { label: "Category", href: `${base}/category`, icon: Tags, module: "categories", action: "create" },
+  { label: "Live class", href: `${base}/live-classes`, icon: Video, module: "live_classes", action: "create" },
+  { label: "Student", href: `${base}/students/new`, icon: UserPlus, module: "students", action: "create" },
+  { label: "Instructor", href: `${base}/instructors/new`, icon: GraduationCap, module: "instructors", action: "create" },
+  { label: "Staff member", href: `${base}/staff/new`, icon: UserCog, module: "staff", action: "create" },
+  { label: "Support ticket", href: `${base}/support/tickets/new`, icon: LifeBuoy, module: "tickets", action: "create" },
+  { label: "Announcement", href: `${base}/announcements/new`, icon: Megaphone, module: "announcements", action: "create" },
+  { label: "FAQ", href: `${base}/support/faq/new`, icon: CircleHelp, module: "faq", action: "create" },
+  { label: "Email template", href: `${base}/email-templates/new`, icon: Mail, module: "email_templates", action: "create" },
+];
+
 export function StaffPortalShell({
   name,
   roleName,
@@ -313,10 +191,6 @@ export function StaffPortalShell({
   permissions: Record<string, Actions>;
   children: React.ReactNode;
 }) {
-  const path = usePathname() || "",
-    [mobile, setMobile] = useState(false),
-    [expanded, setExpanded] = useState(true),
-    [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const isManager = roleName.trim().toLowerCase() === "manager";
   const hasModule = (modules?: string[]) =>
     !modules ||
@@ -325,166 +199,34 @@ export function StaffPortalShell({
         ? isManager
         : Object.values(permissions[key] || {}).some(Boolean),
     );
-  const visibleGroups = groups
+  const visible: NavGroup[] = groups
     .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => hasModule(item.modules)),
+      label: group.label,
+      items: group.items
+        .map((item) => {
+          const children = item.children?.filter((child) => hasModule(child.modules));
+          if (item.children) return children?.length ? { ...item, children } : null;
+          return hasModule(item.modules) ? item : null;
+        })
+        .filter(Boolean) as NavItem[],
     }))
     .filter((group) => group.items.length);
+  const shortcuts = createLinks.filter(
+    (link) => permissions[link.module]?.full_access || permissions[link.module]?.[link.action],
+  );
   return (
-    <div
-      data-admin-shell
-      className={`min-h-screen bg-slate-50 ${expanded ? "lg:pl-[278px]" : "lg:pl-[84px]"}`}
-    >
-      <aside
-        className={`${mobile ? "flex" : "hidden"} fixed inset-y-0 left-0 z-50 w-[278px] flex-col bg-[#111827] text-white lg:flex ${expanded ? "lg:w-[278px]" : "lg:w-[84px]"}`}
-      >
-        <div className="flex h-[78px] items-center gap-2 border-b border-white/10 p-3">
-          <Link
-            href="/dashboard/admin-staff"
-            className="flex h-14 flex-1 items-center justify-center overflow-hidden rounded-xl bg-white p-2"
-          >
-            <img
-              src={expanded ? "https://bgsb.lk/bgs-logo.png" : "/cropped-.png"}
-              className="sidebar-logo-light h-full max-w-full object-contain"
-              alt="BGSB"
-            />
-            <img
-              src={
-                expanded ? "/BGS Logo White-01.png" : "/BGS Logo White-01.png"
-              }
-              className="sidebar-logo-dark h-full max-w-full object-contain"
-              alt="BGSB"
-            />
-          </Link>
-          <button onClick={() => setMobile(false)} className="lg:hidden">
-            <X />
-          </button>
-        </div>
-        <p
-          className={`px-6 pt-5 text-xs font-bold uppercase tracking-widest text-white/35 ${expanded ? "" : "lg:hidden"}`}
-        >
-          {roleName}
-        </p>
-        <nav className="mt-3 flex-1 space-y-1 overflow-y-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {visibleGroups.map((group) => (
-            <div className="mb-5" key={group.label}>
-              <p
-                className={`mb-2 px-3 text-xs font-bold uppercase tracking-[.18em] text-white/30 ${expanded ? "" : "lg:hidden"}`}
-              >
-                {group.label}
-              </p>
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const children = item.children?.filter((child) =>
-                    hasModule(child.modules),
-                  );
-                  const active = item.href
-                    ? path === item.href || path.startsWith(item.href + "/")
-                    : children?.some(
-                        (child) =>
-                          path === child.href ||
-                          path.startsWith(child.href + "/"),
-                      );
-                  if (children?.length) {
-                    const opened = openMenus[item.label] ?? !!active;
-                    return (
-                      <div key={item.label}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOpenMenus((current) => ({
-                              ...current,
-                              [item.label]: !opened,
-                            }))
-                          }
-                          title={expanded ? undefined : item.label}
-                          className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm ${active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"} ${expanded ? "" : "lg:justify-center lg:px-0"}`}
-                        >
-                          <Icon className="size-[18px] shrink-0" />
-                          <span className={expanded ? "" : "lg:hidden"}>
-                            {item.label}
-                          </span>
-                          <ChevronDown
-                            className={`ml-auto size-4 transition ${opened ? "rotate-180" : ""} ${expanded ? "" : "lg:hidden"}`}
-                          />
-                        </button>
-                        {opened && expanded && (
-                          <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
-                            {children.map((child) => {
-                              const ChildIcon = child.icon;
-                              const curriculumAction =
-                                /^\/dashboard\/admin-staff\/courses\/[^/]+\/curriculum(?:\/|$)/.test(
-                                  path,
-                                );
-                              const childActive =
-                                child.label === "Curriculum"
-                                  ? path === child.href || curriculumAction
-                                  : child.label === "Course List"
-                                    ? (path === child.href ||
-                                        path.startsWith(child.href + "/")) &&
-                                      !curriculumAction
-                                    : path === child.href ||
-                                      path.startsWith(child.href + "/");
-                              return (
-                                <Link
-                                  key={child.href}
-                                  href={child.href}
-                                  onClick={() => setMobile(false)}
-                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] ${childActive ? "bg-red text-white" : "text-white/45 hover:bg-white/5 hover:text-white"}`}
-                                >
-                                  {ChildIcon ? (
-                                    <ChildIcon className="size-3.5 shrink-0" />
-                                  ) : null}
-                                  {child.label}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.label}
-                      href={item.href!}
-                      onClick={() => setMobile(false)}
-                      title={expanded ? undefined : item.label}
-                      className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${active ? "bg-red text-white" : "text-white/60 hover:bg-white/5 hover:text-white"} ${expanded ? "" : "lg:justify-center lg:px-0"}`}
-                    >
-                      <Icon className="size-[18px] shrink-0" />
-                      <span className={expanded ? "" : "lg:hidden"}>
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </aside>
-      {mobile && (
-        <button
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setMobile(false)}
-        />
+    <AppShell
+      homeHref={base}
+      portalLabel="Staff"
+      user={{ name, subtitle: roleName || "Staff", avatar: "/api/account/avatar" }}
+      groups={visible}
+      createLinks={shortcuts}
+      accountLinks={{ profile: `${base}/profile`, password: `${base}/change-password` }}
+      wrapContent={(content) => (
+        <StaffPermissionProvider permissions={permissions}>{content}</StaffPermissionProvider>
       )}
-      <main>
-        <StaffTopbar
-          name={name}
-          roleName={roleName}
-          permissions={permissions}
-          expanded={expanded}
-          openMobile={() => setMobile(true)}
-          toggleSidebar={() => setExpanded((x) => !x)}
-        />
-        <StaffPermissionProvider permissions={permissions}>
-          <div className="p-3 sm:p-6 lg:p-8">{children}</div>
-        </StaffPermissionProvider>
-      </main>
-    </div>
+    >
+      {children}
+    </AppShell>
   );
 }

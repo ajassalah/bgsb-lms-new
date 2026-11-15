@@ -1,9 +1,20 @@
 "use client";
-import { PartyPopper, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { BookOpen, Building2, GraduationCap, PartyPopper, TrendingUp, Users } from "lucide-react";
 import { courses } from "@/lib/demo";
-import type { Role } from "@/lib/types";
+import { roleLabels, type Role } from "@/lib/types";
+import {
+  Lozenge,
+  PageHeader,
+  Panel,
+  ProgressBar,
+  StatCard,
+  WelcomeDialog,
+  greetingFor,
+  useNow,
+} from "./portal/ui";
 
+/** Organization / Org Staff overview. Figures are sample data until org reporting is wired up. */
 export function DashboardHome({
   role,
   name,
@@ -15,114 +26,103 @@ export function DashboardHome({
   staffRole?: string;
   showStaffWelcome?: boolean;
 }) {
+  const now = useNow();
   const [welcomeOpen, setWelcomeOpen] = useState(showStaffWelcome);
-  const student = role === "student",
-    instructor = role === "instructor";
-  const stats = student
-    ? [
-        ["3", "Active courses"],
-        ["72%", "Best progress"],
-        ["2", "Upcoming sessions"],
-        ["1", "Certificate"],
-      ]
-    : instructor
-      ? [
-          ["6", "My courses"],
-          ["184", "Students"],
-          ["12", "To grade"],
-          ["3", "Live sessions"],
-        ]
-      : [
-          ["1,248", "Students"],
-          ["38", "Courses"],
-          ["14", "Organizations"],
-          ["86%", "Completion"],
-        ];
-  async function closeWelcome() {
+  const closeWelcome = useCallback(() => {
     setWelcomeOpen(false);
-    await fetch("/api/staff/welcome", { method: "POST" }).catch(() => null);
-  }
+    fetch("/api/staff/welcome", { method: "POST" }).catch(() => null);
+  }, []);
+  const first = (name || "").split(/\s+/)[0] || "there";
+
   return (
     <>
-      {welcomeOpen && (
-        <div className="fixed inset-0 z-[250] grid place-items-center bg-black/65 p-4 backdrop-blur-sm">
-          <section className="relative w-full max-w-xl rounded-3xl border bg-white p-6 shadow-2xl sm:p-9">
-            <button
-              onClick={closeWelcome}
-              aria-label="Close welcome message"
-              className="absolute right-5 top-5 grid size-9 place-items-center rounded-full border text-slate-500"
-            >
-              <X className="size-4" />
-            </button>
-            <span className="grid size-14 place-items-center rounded-2xl bg-red/10 text-red">
-              <PartyPopper className="size-7" />
-            </span>
-            <p className="mt-6 font-bold text-red">🎉 Welcome to BGSB LMS!</p>
-            <h2 className="mt-2 text-2xl font-bold text-navy">
-              Welcome, {name}!
-            </h2>
-            <p className="mt-4 leading-7 text-slate-600">
-              Your <strong className="text-navy">{staffRole || "Staff"}</strong>{" "}
-              account is ready.
-            </p>
-            <p className="mt-3 leading-7 text-slate-600">
-              You can now access the LMS features and tools available to your
-              role.
-            </p>
-            <p className="mt-3 leading-7 text-slate-600">
-              Take a moment to explore your dashboard and get familiar with your
-              workspace.
-            </p>
-            <p className="mt-4 font-bold text-navy">
-              We&apos;re glad to have you on the BGSB LMS team!
-            </p>
-            <button onClick={closeWelcome} className="btn-primary mt-7 w-full">
-              Get Started
-            </button>
-          </section>
-        </div>
-      )}
-      <div>
-        <h1 className="text-3xl font-bold text-navy">Dashboard</h1>
-        <p className="mt-2 text-slate-500">
-          Here&apos;s what&apos;s happening across your learning space.
+      <WelcomeDialog
+        open={welcomeOpen}
+        icon={PartyPopper}
+        title={`Welcome to BGSB LMS, ${name || ""}`}
+        cta="Get started"
+        onClose={closeWelcome}
+      >
+        <p>
+          Your <strong className="text-[#172B4D]">{staffRole || "Staff"}</strong> account is
+          ready. You can now access the LMS features available to your role.
         </p>
+      </WelcomeDialog>
+
+      <PageHeader
+        title={`${roleLabels[role]} dashboard`}
+        description={
+          <span suppressHydrationWarning>
+            {greetingFor(now)}, {first}. Here&apos;s what&apos;s happening across your learners.
+          </span>
+        }
+        actions={<Lozenge tone="neutral">Sample data</Lozenge>}
+      />
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Learners" value="1,248" icon={Users} tone="blue" meta="Across your organization" />
+        <StatCard label="Courses" value="38" icon={BookOpen} tone="purple" meta="Available to your learners" />
+        <StatCard label="Instructors" value="14" icon={GraduationCap} tone="teal" meta="Teaching your cohorts" />
+        <StatCard label="Completion rate" value="86%" icon={TrendingUp} tone="green" meta="Average across programmes" />
       </div>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map(([number, title]) => (
-          <div className="card" key={title}>
-            <b className="text-3xl text-navy">{number}</b>
-            <p className="mt-1 text-sm text-slate-500">{title}</p>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <Panel
+          className="xl:col-span-2"
+          title="Programme progress"
+          description="Average learner progress per course"
+          bodyClassName="px-0 pb-2 pt-3"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="px-5 py-2">Course</th>
+                  <th className="px-5 py-2">Level</th>
+                  <th className="hidden px-5 py-2 sm:table-cell">Duration</th>
+                  <th className="w-56 px-5 py-2">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#091E4224]">
+                {courses.map((course) => (
+                  <tr key={course.slug}>
+                    <td className="px-5 py-3">
+                      <b className="block font-medium text-[#172B4D]">{course.title}</b>
+                      <span className="text-xs text-[#6B778C]">{course.school}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <Lozenge tone={course.level === "Advanced" ? "purple" : "blue"}>{course.level}</Lozenge>
+                    </td>
+                    <td className="hidden px-5 py-3 text-[#42526E] sm:table-cell">{course.weeks} weeks</td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <ProgressBar value={course.progress} tone={course.progress >= 60 ? "green" : "blue"} />
+                        <span className="w-9 shrink-0 text-right text-xs font-semibold text-[#172B4D]">
+                          {course.progress}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
-      <div className="mt-8 card">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-navy">
-            {student ? "Continue learning" : "Recent activity"}
-          </h2>
-          <button className="text-sm font-semibold text-red">View all</button>
-        </div>
-        <div className="mt-6 divide-y">
-          {courses.map((course) => (
-            <div
-              className="grid gap-3 py-5 md:grid-cols-[1fr_200px_60px] md:items-center"
-              key={course.slug}
-            >
-              <div>
-                <b className="text-navy">{course.title}</b>
-                <p className="text-sm text-slate-500">{course.school}</p>
-              </div>
-              <div className="h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-red"
-                  style={{ width: `${course.progress}%` }}
-                />
-              </div>
-              <span className="text-sm font-semibold">{course.progress}%</span>
-            </div>
-          ))}
-        </div>
+        </Panel>
+        <Panel title="Organization" description="Account summary">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-[6px] bg-[#FFF4E5] text-[#974F0C]">
+              <Building2 aria-hidden className="size-5" />
+            </span>
+            <span>
+              <b className="block text-sm font-semibold text-[#172B4D]">{name}</b>
+              <span className="text-xs text-[#6B778C]">{roleLabels[role]}</span>
+            </span>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-[#42526E]">
+            Detailed organization reporting is coming soon. Contact BGSB support
+            to enrol learners or request reports for your cohorts.
+          </p>
+        </Panel>
       </div>
     </>
   );

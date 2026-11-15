@@ -2,12 +2,17 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import { Inter } from "next/font/google";
 import { MobileTableCards } from "@/components/mobile-table-cards";
 import { FloatingActionMenus } from "@/components/floating-action-menus";
 import { SessionInactivity } from "@/components/session-inactivity";
 import { ActivityTracker } from "@/components/activity-tracker";
 import { DashboardNavigationLoader } from "@/components/dashboard-navigation-loader";
 import { PortalEntryNotification } from "@/components/portal-entry-notification";
+
+// App-wide UI font (Inter, the open-source base of Atlassian Sans). Declared here so its
+// CSS ships in the root layout chunk that every page loads.
+const uiFont = Inter({ subsets: ["latin"], variable: "--font-ui", display: "swap" });
 
 export const metadata: Metadata = {
   title: {
@@ -32,7 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }}
         />
       </head>
-      <body>
+      <body className={uiFont.variable}>
         <MobileTableCards />
         <FloatingActionMenus />
         <SessionInactivity />
@@ -40,7 +45,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <DashboardNavigationLoader />
         <PortalEntryNotification />
         {children}
-        <Toaster richColors />
+        <Toaster
+          position="bottom-right"
+          closeButton
+          gap={8}
+          duration={5000}
+          toastOptions={{ className: "ds-flag" }}
+        />
       </body>
     </html>
   );

@@ -1,24 +1,50 @@
 "use client";
-
+import Link from "next/link";
+import { useCallback, useMemo, useState } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
+  Activity,
+  BarChart3,
   BookOpen,
   Building2,
-  CalendarClock,
-  CheckCircle2,
-  Clock3,
+  CalendarDays,
   GraduationCap,
-  MoreHorizontal,
+  LibraryBig,
+  PartyPopper,
+  Plus,
+  ShieldCheck,
   UserCog,
   Users,
-  ChevronLeft,
-  ChevronRight,
-  PartyPopper,
-  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  AgendaList,
+  CourseRanking,
+  EmptyState,
+  MiniCalendar,
+  PageHeader,
+  Panel,
+  PanelLink,
+  StatCard,
+  WelcomeDialog,
+  greetingFor,
+  toneHex,
+  useNow,
+  type Tone,
+} from "./portal/ui";
+import { Avatar } from "./portal/app-shell";
 
 type Counts = {
   students: number;
@@ -28,6 +54,60 @@ type Counts = {
   enrollments: number;
   completed: number;
 };
+
+const COLOMBO = "Asia/Colombo";
+const tooltipStyle = {
+  borderRadius: 3,
+  border: "none",
+  boxShadow: "0 8px 12px rgba(9,30,66,.15), 0 0 1px rgba(9,30,66,.31)",
+  fontSize: 12,
+  padding: "6px 8px",
+};
+
+/** Count of ISO dates per month for the last `months` months (oldest first). */
+function monthlySeries(dates: string[], months = 6) {
+  const now = new Date();
+  return Array.from({ length: months }, (_, index) => {
+    const from = new Date(now.getFullYear(), now.getMonth() - (months - 1 - index), 1);
+    const to = new Date(from.getFullYear(), from.getMonth() + 1, 1);
+    return {
+      label: from.toLocaleDateString("en-GB", { month: "short" }),
+      value: dates.filter((d) => {
+        const at = new Date(d);
+        return at >= from && at < to;
+      }).length,
+    };
+  });
+}
+
+function Sparkline({ data, tone }: { data: { label: string; value: number }[]; tone: Tone }) {
+  const color = toneHex[tone];
+  return (
+    <div className="mt-3 h-10" aria-hidden>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={`spark-${tone}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Tooltip contentStyle={tooltipStyle} labelFormatter={(_, p) => p?.[0]?.payload?.label} />
+          <Area
+            type="monotone"
+            dataKey="value"
+            name="New"
+            stroke={color}
+            strokeWidth={2}
+            fill={`url(#spark-${tone})`}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export function SuperAdminHome({
   counts,
   bestCourses,
@@ -39,9 +119,9 @@ export function SuperAdminHome({
   upcomingSessions,
   staffWelcome,
   basePath = "/dashboard/super-admin",
-  dashboardTitle = "Admin Dashboard",
+  dashboardTitle = "Admin dashboard",
   showRecentActivity = true,
-  manpowerLabels = { users: "Users", admins: "Total Admin" },
+  manpowerLabels = { users: "Users", admins: "Total admin" },
   enrollmentActivity = [],
 }: {
   counts: Counts;
@@ -57,19 +137,8 @@ export function SuperAdminHome({
     status: string;
     meetingUrl: string | null;
   }[];
-  recentActivity: {
-    id: string;
-    name: string;
-    avatar: string | null;
-    event: string;
-    date: string;
-  }[];
-  upcomingSessions: {
-    id: string;
-    title: string;
-    start: string;
-    meetingUrl: string | null;
-  }[];
+  recentActivity: { id: string; name: string; avatar: string | null; event: string; date: string }[];
+  upcomingSessions: { id: string; title: string; start: string; meetingUrl: string | null }[];
   staffWelcome?: { show: boolean; role: string };
   basePath?: string;
   dashboardTitle?: string;
@@ -77,741 +146,375 @@ export function SuperAdminHome({
   manpowerLabels?: { users: string; admins: string };
   enrollmentActivity?: string[];
 }) {
-  const [now, setNow] = useState(() => new Date());
-  const [month, setMonth] = useState(() => new Date());
-  const [videoFinished, setVideoFinished] = useState(false);
-  const [staffWelcomeOpen, setStaffWelcomeOpen] = useState(
-    !!staffWelcome?.show,
-  );
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30000);
-    return () => window.clearInterval(timer);
+  const now = useNow();
+  const [welcomeOpen, setWelcomeOpen] = useState(!!staffWelcome?.show);
+  const closeWelcome = useCallback(() => {
+    setWelcomeOpen(false);
+    fetch("/api/staff/welcome", { method: "POST" }).catch(() => null);
   }, []);
-  const sriLankaHour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Colombo",
-      hour: "2-digit",
-      hour12: false,
-    }).format(now),
+  const isSuperAdmin = basePath === "/dashboard/super-admin";
+  const firstName = admin.name.trim().split(/\s+/)[0] || "there";
+
+  const thisMonth = (dates: string[]) => {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return dates.filter((d) => new Date(d) >= start).length;
+  };
+  const series = useMemo(
+    () => ({
+      students: monthlySeries(movement.students),
+      instructors: monthlySeries(movement.instructors),
+      courses: monthlySeries(movement.courses),
+      enrollments: monthlySeries(enrollmentActivity),
+    }),
+    [movement, enrollmentActivity],
   );
-  const greeting =
-    sriLankaHour < 12
-      ? "Good morning"
-      : sriLankaHour < 17
-        ? "Good afternoon"
-        : "Good evening";
-  async function closeStaffWelcome() {
-    setStaffWelcomeOpen(false);
-    await fetch("/api/staff/welcome", { method: "POST" }).catch(() => null);
-  }
-  const firstName = admin.name.trim().split(/\s+/)[0] || "Administrator";
-  const calendarDays = useMemo(() => {
-    const year = month.getFullYear();
-    const monthIndex = month.getMonth();
-    const firstWeekday = new Date(year, monthIndex, 1).getDay();
-    const days = new Date(year, monthIndex + 1, 0).getDate();
-    return [
-      ...Array.from({ length: firstWeekday }, () => null),
-      ...Array.from({ length: days }, (_, index) => index + 1),
-    ];
-  }, [month]);
-  const eventsForDay = (day: number) =>
-    appointments.filter((item) => {
-      const dateParts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Colombo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date(item.start));
-      return (
-        dateParts ===
-        `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-      );
-    });
-  const upcomingAppointments = appointments
+
+  const daily = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, offset) => {
+        const day = new Date(now);
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() - (13 - offset));
+        const next = new Date(day);
+        next.setDate(next.getDate() + 1);
+        return {
+          label: day.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          value: enrollmentActivity.filter((d) => {
+            const at = new Date(d);
+            return at >= day && at < next;
+          }).length,
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [enrollmentActivity, now.toDateString()],
+  );
+  const dailyTotal = daily.reduce((sum, d) => sum + d.value, 0);
+
+  const completionPct = counts.enrollments
+    ? Math.round((counts.completed / counts.enrollments) * 100)
+    : 0;
+  const inProgress = Math.max(0, counts.enrollments - counts.completed);
+
+  const agenda = appointments
     .filter((item) => new Date(item.start) >= now)
-    .sort((a, b) => +new Date(a.start) - +new Date(b.start));
-  const cards = [
-    [
-      "Total students",
-      counts.students,
-      Users,
-      "+12.5%",
-      true,
-      movement.students,
-    ],
-    [
-      "Instructors",
-      counts.instructors,
-      GraduationCap,
-      "+4.2%",
-      true,
-      movement.instructors,
-    ],
-    [
-      "Published courses",
-      counts.courses,
-      BookOpen,
-      "+2.8%",
-      true,
-      movement.courses,
-    ],
-  ] as const;
-  const max = Math.max(
-    counts.students,
-    counts.instructors,
-    counts.courses,
-    counts.organizations,
-    1,
-  );
-  const activityBars = Array.from({ length: 7 }, (_, offset) => {
-    const day = new Date(now);
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - offset));
-    const next = new Date(day);
-    next.setDate(next.getDate() + 1);
-    return enrollmentActivity.filter((date) => {
-      const value = new Date(date);
-      return value >= day && value < next;
-    }).length;
-  });
-  const bars = enrollmentActivity.length
-    ? activityBars
-    : [
-        counts.students,
-        Math.max(1, Math.round(counts.students * 0.72)),
-        Math.max(1, Math.round(counts.students * 0.84)),
-        Math.max(1, Math.round(counts.students * 0.65)),
-        Math.max(1, Math.round(counts.students * 0.92)),
-        Math.max(1, counts.enrollments),
-        Math.max(1, Math.round(counts.enrollments * 1.1)),
-      ];
+    .sort((a, b) => +new Date(a.start) - +new Date(b.start))
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      start: item.start,
+      kind: item.status === "appointment" ? "Appointment" : "Live class",
+      meetingUrl: item.meetingUrl,
+    }));
+  const sessionsAgenda = upcomingSessions.map((s) => ({ ...s, kind: "Live class" }));
+
+  const dateLine = new Intl.DateTimeFormat("en-GB", {
+    timeZone: COLOMBO,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
+
   return (
     <>
-      {staffWelcomeOpen && (
-        <div className="fixed inset-0 z-[250] grid place-items-center bg-black/65 p-4 backdrop-blur-sm">
-          <section className="relative w-full max-w-xl rounded-3xl border bg-white p-6 shadow-2xl sm:p-9">
-            <button
-              onClick={closeStaffWelcome}
-              aria-label="Close welcome message"
-              className="absolute right-5 top-5 grid size-9 place-items-center rounded-full border text-slate-500"
-            >
-              <X className="size-4" />
-            </button>
-            <span className="grid size-14 place-items-center rounded-2xl bg-red/10 text-red">
-              <PartyPopper className="size-7" />
-            </span>
-            <p className="mt-6 font-bold text-red">🎉 Welcome to BGSB LMS!</p>
-            <h2 className="mt-2 text-2xl font-bold text-navy">
-              Welcome, {admin.name}!
-            </h2>
-            <p className="mt-4 leading-7 text-slate-600">
-              Your{" "}
-              <strong className="text-navy">
-                {staffWelcome?.role || "Staff"}
-              </strong>{" "}
-              account is ready.
-            </p>
-            <p className="mt-3 leading-7 text-slate-600">
-              You can now access the LMS features and tools available to your
-              role.
-            </p>
-            <p className="mt-3 leading-7 text-slate-600">
-              Take a moment to explore your dashboard and get familiar with your
-              workspace.
-            </p>
-            <p className="mt-4 font-bold text-navy">
-              We&apos;re glad to have you on the BGSB LMS team!
-            </p>
-            <button
-              onClick={closeStaffWelcome}
-              className="btn-primary mt-7 w-full"
-            >
-              Get Started
-            </button>
-          </section>
-        </div>
-      )}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-400">Overview</p>
-          <h1 className="mt-1 text-2xl font-bold text-[#17233c]">
-            {dashboardTitle}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Monitor learning activity and manage the BGSB platform.
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <div className="order-2 mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {cards.map(([label, value, Icon, delta, up, dates], i) => (
-            <div className="rounded-xl border bg-white p-5" key={label}>
-              <div className="flex items-start justify-between">
-                <span
-                  className={`grid size-11 place-items-center rounded-xl ${["bg-blue-50 text-blue-600", "bg-violet-50 text-violet-600", "bg-amber-50 text-amber-600", "bg-emerald-50 text-emerald-600"][i]}`}
-                >
-                  <Icon className="size-5" />
-                </span>
-                <button className="text-slate-300">
-                  <MoreHorizontal className="size-5" />
-                </button>
-              </div>
-              <p className="mt-5 text-sm text-slate-500">{label}</p>
-              <div className="mt-1 flex items-end justify-between">
-                <b className="text-2xl text-[#17233c]">
-                  {value.toLocaleString()}
-                </b>
-                <span
-                  className={`flex items-center text-xs font-semibold ${up ? "text-emerald-600" : "text-red-500"}`}
-                >
-                  {up ? (
-                    <ArrowUpRight className="size-3.5" />
-                  ) : (
-                    <ArrowDownRight className="size-3.5" />
-                  )}
-                  {delta}
-                </span>
-              </div>
-              <div className="mt-3 h-14">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={Array.from({ length: 7 }, (_, index) => {
-                      const date = new Date();
-                      date.setMonth(date.getMonth() - 6 + index, 1);
-                      const next = new Date(
-                        date.getFullYear(),
-                        date.getMonth() + 1,
-                        1,
-                      );
-                      return {
-                        day: date.toLocaleDateString("en-GB", {
-                          month: "short",
-                        }),
-                        value: dates.filter((item) => {
-                          const created = new Date(item);
-                          return created >= date && created < next;
-                        }).length,
-                      };
-                    })}
-                  >
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 8,
-                        fontSize: 10,
-                        padding: 6,
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke={["#2563eb", "#7c3aed", "#d97706"][i]}
-                      fill={["#dbeafe", "#ede9fe", "#fef3c7"][i]}
-                      strokeWidth={2}
-                      activeDot={{ r: 4 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="order-1 mt-7 grid gap-5 xl:grid-cols-[3fr_1fr]">
-          <section className="relative min-h-[300px] overflow-hidden rounded-2xl bg-navy p-7 text-white shadow-sm sm:p-9">
-            <img
-              src="/Thumimage.jpeg"
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 size-full scale-105 object-cover blur-[3px]"
-            />
-            <video
-              src="/thum_video.mp4"
-              poster="/Thumimage.jpeg"
-              autoPlay
-              muted
-              playsInline
-              onEnded={() => setVideoFinished(true)}
-              onError={() => setVideoFinished(true)}
-              className={`absolute inset-0 size-full object-cover transition-opacity duration-700 ${videoFinished ? "opacity-0" : "opacity-100"}`}
-            />
-            <div className="absolute inset-0 bg-navy/70" />
-            <div className="absolute -right-16 -top-20 size-64 rounded-full bg-red/25" />
-            <div className="absolute -bottom-24 -left-16 size-64 rounded-full bg-white/5" />
-            <div className="relative flex h-full flex-col justify-between gap-10">
-              <div className="flex items-start justify-between gap-5">
-                <div className="rounded-2xl border border-white/10 bg-black/15 p-4 backdrop-blur-md sm:p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
-                    Sri Lanka time
-                  </p>
-                  <p
-                    suppressHydrationWarning
-                    className="mt-3 text-3xl font-bold sm:text-4xl"
-                  >
-                    {new Intl.DateTimeFormat("en-LK", {
-                      timeZone: "Asia/Colombo",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    }).format(now)}
-                  </p>
-                  <p
-                    suppressHydrationWarning
-                    className="mt-2 text-sm text-white/60"
-                  >
-                    {new Intl.DateTimeFormat("en-LK", {
-                      timeZone: "Asia/Colombo",
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    }).format(now)}
-                  </p>
-                </div>
-                {admin.avatarUrl ? (
-                  <img
-                    src={admin.avatarUrl}
-                    alt={admin.name}
-                    className="size-28 rounded-2xl border-2 border-white/30 object-cover shadow-2xl sm:size-36"
-                  />
-                ) : (
-                  <span className="grid size-28 place-items-center rounded-2xl bg-white/10 text-4xl font-bold shadow-2xl sm:size-36">
-                    {firstName[0]?.toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-white/55">Welcome back</p>
-                <h2
-                  suppressHydrationWarning
-                  className="mt-2 text-3xl font-bold sm:text-4xl"
-                >
-                  {greeting}, {firstName}!
-                </h2>
-                <p className="mt-3 max-w-md text-sm leading-6 text-white/65">
-                  Here is your time breakdown and today&apos;s scheduled
-                  learning activity.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="flex h-[520px] min-h-0 flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-bold text-navy">Calendar</h2>
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Scheduled appointments
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  aria-label="Previous month"
-                  onClick={() =>
-                    setMonth(
-                      new Date(month.getFullYear(), month.getMonth() - 1, 1),
-                    )
-                  }
-                  className="grid size-7 place-items-center rounded-md border text-slate-500 hover:bg-slate-50"
-                >
-                  <ChevronLeft className="size-3.5" />
-                </button>
-                <b className="min-w-20 text-center text-[11px] text-navy">
-                  {month.toLocaleDateString("en-GB", {
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </b>
-                <button
-                  aria-label="Next month"
-                  onClick={() =>
-                    setMonth(
-                      new Date(month.getFullYear(), month.getMonth() + 1, 1),
-                    )
-                  }
-                  className="grid size-7 place-items-center rounded-md border text-slate-500 hover:bg-slate-50"
-                >
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </div>
-            </div>
-            <div className="mt-3 grid shrink-0 grid-cols-7 gap-0.5 text-center text-[8px] font-bold uppercase text-slate-400">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <span className="py-2" key={day}>
-                  {day}
-                </span>
-              ))}
-              {calendarDays.map((day, index) => {
-                const events = day ? eventsForDay(day) : [];
-                const isToday =
-                  day ===
-                    Number(
-                      new Intl.DateTimeFormat("en-US", {
-                        timeZone: "Asia/Colombo",
-                        day: "numeric",
-                      }).format(now),
-                    ) &&
-                  month.getMonth() ===
-                    Number(
-                      new Intl.DateTimeFormat("en-US", {
-                        timeZone: "Asia/Colombo",
-                        month: "numeric",
-                      }).format(now),
-                    ) -
-                      1 &&
-                  month.getFullYear() ===
-                    Number(
-                      new Intl.DateTimeFormat("en-US", {
-                        timeZone: "Asia/Colombo",
-                        year: "numeric",
-                      }).format(now),
-                    );
-                return (
-                  <div
-                    onClick={() =>
-                      day &&
-                      window.location.assign(
-                        `${basePath}/calendar?date=${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-                      )
-                    }
-                    key={`${day}-${index}`}
-                    title={
-                      day
-                        ? `Book an appointment${events.length ? ` · ${events.length} scheduled event${events.length === 1 ? "" : "s"}` : ""}`
-                        : ""
-                    }
-                    className={`relative min-h-8 rounded-md border p-0.5 text-left ${day ? "cursor-pointer bg-white hover:border-red" : "border-transparent bg-slate-50/50"} ${isToday ? "border-red ring-1 ring-red/20" : "border-slate-100"}`}
-                  >
-                    {day && (
-                      <>
-                        <span
-                          className={`grid size-4 place-items-center rounded-full text-[8px] ${isToday ? "bg-red font-bold text-white" : "text-slate-600"}`}
-                        >
-                          {day}
-                        </span>
-                        {events.length > 0 && (
-                          <span className="mx-auto mt-0.5 block size-1.5 rounded-full bg-red" />
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex min-h-0 flex-1 flex-col border-t pt-3">
-              <div className="flex items-center justify-between">
-                <b className="text-sm text-navy">Upcoming events</b>
-                <a
-                  href={`${basePath}/calendar`}
-                  className="text-xs font-semibold text-red"
-                >
-                  View calendar
-                </a>
-              </div>
-              <div className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1">
-                {upcomingAppointments.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2.5"
-                  >
-                    <span
-                      className={`size-2 shrink-0 rounded-full ${event.status === "appointment" ? "bg-red" : "bg-blue-500"}`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-navy">
-                        {event.title}
-                      </span>
-                      <span className="mt-0.5 block text-[9px] font-semibold text-slate-400">
-                        {event.status === "appointment"
-                          ? "Appointment"
-                          : "Live class"}{" "}
-                        ·{" "}
-                        {new Date(event.start).toLocaleString("en-LK", {
-                          timeZone: "Asia/Colombo",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    {event.meetingUrl && (
-                      <a
-                        href={event.meetingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 rounded-md bg-red px-2 py-1 text-[10px] font-bold text-white"
-                      >
-                        Join
-                      </a>
-                    )}
-                  </div>
-                ))}
-                {!upcomingAppointments.length && (
-                  <p className="py-2 text-center text-[9px] text-slate-400">
-                    No upcoming events
-                  </p>
-                )}
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <section className="min-w-0 overflow-hidden rounded-xl border bg-white p-4 sm:p-6">
-          <h2 className="font-bold text-[#17233c]">Best Courses</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Top five courses by student enrollments
-          </p>
-          <div className="mt-5 divide-y">
-            {bestCourses.map((course, index) => (
-              <div
-                key={course.title}
-                className="flex min-w-0 items-center gap-2 py-3 sm:gap-4"
-              >
-                <span className="grid size-9 place-items-center rounded-lg bg-navy text-xs font-bold text-white">
-                  {index + 1}
-                </span>
-                <b className="min-w-0 flex-1 truncate text-sm text-navy">
-                  {course.title}
-                </b>
-                <span className="shrink-0 rounded-full bg-red/10 px-2 py-1 text-[10px] font-bold text-red sm:px-3 sm:text-xs">
-                  Enroll · {course.enrollments}
-                </span>
-              </div>
-            ))}
-            {!bestCourses.length && (
-              <p className="py-8 text-center text-sm text-slate-400">
-                No enrollment data available.
-              </p>
-            )}
-          </div>
-        </section>
-        <section className="min-w-0 overflow-hidden rounded-xl border bg-white p-4 sm:p-6">
-          <h2 className="font-bold text-[#17233c]">Manpower Information</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Current platform user totals
-          </p>
-          <div className="mt-6 space-y-4">
-            <div className="rounded-xl bg-blue-50 p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                <Users className="size-4" />
-                {manpowerLabels.users}
-              </p>
-              <b className="mt-2 block text-3xl text-navy">{manpower.users}</b>
-            </div>
-            <div className="rounded-xl bg-violet-50 p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold text-violet-700">
-                <UserCog className="size-4" />
-                {manpowerLabels.admins}
-              </p>
-              <b className="mt-2 block text-3xl text-navy">{manpower.admins}</b>
-            </div>
-          </div>
-        </section>
-      </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-        <section className="rounded-xl border bg-white p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="font-bold text-[#17233c]">Enrollment overview</h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Student enrollment activity this week
-              </p>
-            </div>
-            <select className="rounded-lg border px-3 py-2 text-xs text-slate-500">
-              <option>Last 7 days</option>
-            </select>
-          </div>
-          <div className="mt-8 flex h-60 items-end gap-3 border-b border-l px-4">
-            {bars.map((bar, i) => (
-              <div className="group flex h-full flex-1 items-end" key={i}>
-                <div
-                  className="w-full rounded-t-md bg-navy/90 transition hover:bg-red"
-                  style={{
-                    height: `${Math.max(10, (bar / Math.max(max, ...bars)) * 100)}%`,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 grid grid-cols-7 text-center text-[10px] text-slate-400">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((x) => (
-              <span key={x}>{x}</span>
-            ))}
-          </div>
-        </section>
-        <section className="rounded-xl border bg-white p-6">
-          <h2 className="font-bold text-[#17233c]">Course completion</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Overall learner performance
-          </p>
-          <div
-            className="mx-auto mt-8 grid size-40 place-items-center rounded-full"
-            style={{
-              background: `conic-gradient(#c62828 ${counts.enrollments ? Math.round((counts.completed / counts.enrollments) * 100) : 0}%, #eef1f5 0)`,
-            }}
-          >
-            <div className="grid size-28 place-items-center rounded-full bg-white text-center">
-              <span>
-                <b className="block text-3xl text-[#17233c]">
-                  {counts.enrollments
-                    ? Math.round((counts.completed / counts.enrollments) * 100)
-                    : 0}
-                  %
-                </b>
-                <small className="text-slate-400">Completed</small>
-              </span>
-            </div>
-          </div>
-          <div className="mt-7 grid grid-cols-2 gap-3 text-center">
-            <div className="rounded-lg bg-slate-50 p-3">
-              <b>{counts.enrollments}</b>
-              <p className="text-[10px] text-slate-400">Enrollments</p>
-            </div>
-            <div className="rounded-lg bg-slate-50 p-3">
-              <b>{counts.completed}</b>
-              <p className="text-[10px] text-slate-400">Completed</p>
-            </div>
-          </div>
-        </section>
-      </div>
-      <div
-        className={`mt-5 grid gap-5 ${showRecentActivity ? "xl:grid-cols-[1.65fr_1fr]" : "xl:grid-cols-1"}`}
+      <WelcomeDialog
+        open={welcomeOpen}
+        icon={PartyPopper}
+        title={`Welcome to BGSB LMS, ${admin.name}`}
+        cta="Get started"
+        onClose={closeWelcome}
       >
-        {showRecentActivity && (
-          <section className="rounded-xl border bg-white">
-            <div className="flex items-center justify-between border-b px-6 py-5">
-              <div>
-                <h2 className="font-bold text-[#17233c]">Recent activity</h2>
-                <p className="mt-1 text-xs text-slate-400">
-                  Latest platform events
-                </p>
-              </div>
-              <button className="text-xs font-semibold text-red">
-                View all
-              </button>
-            </div>
-            <div className="divide-y">
-              {recentActivity.map((activity) => (
-                <div
-                  className="flex items-center gap-4 px-4 py-4 sm:px-6"
-                  key={activity.id}
-                >
-                  {activity.avatar ? (
-                    <img
-                      src={activity.avatar}
-                      alt=""
-                      className="size-10 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-navy">
-                      {activity.name
-                        .split(/\s+/)
-                        .map((x) => x[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <b className="block text-sm text-[#17233c]">
-                      {activity.name}
-                    </b>
-                    <p className="truncate text-xs text-slate-500">
-                      {activity.event}
-                    </p>
-                  </div>
-                  <span className="hidden text-[11px] text-slate-400 sm:block">
-                    {new Date(activity.date).toLocaleString("en-LK", {
-                      timeZone: "Asia/Colombo",
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              ))}
-              {!recentActivity.length && (
-                <p className="p-8 text-center text-sm text-slate-400">
-                  No recent activity.
-                </p>
-              )}
-            </div>
-          </section>
-        )}
-        <section className="rounded-xl border bg-white p-6">
-          <h2 className="font-bold text-[#17233c]">Upcoming sessions</h2>
-          <p className="mt-1 text-xs text-slate-400">Classes scheduled next</p>
-          {upcomingSessions.map((session, i) => (
-            <div className="mt-5 flex items-center gap-3" key={session.id}>
-              <span
-                className={`grid size-10 shrink-0 place-items-center rounded-lg ${i === 0 ? "bg-red text-white" : "bg-slate-100 text-navy"}`}
-              >
-                <CalendarClock className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <b className="block truncate text-sm text-[#17233c]">
-                  {session.title}
-                </b>
-                <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <Clock3 className="size-3" />
-                  {new Date(session.start).toLocaleString("en-LK", {
-                    timeZone: "Asia/Colombo",
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-              {session.meetingUrl && (
-                <a
-                  href={session.meetingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg bg-red px-3 py-2 text-xs font-bold text-white"
-                >
-                  Join
-                </a>
-              )}
-            </div>
-          ))}
-          {!upcomingSessions.length && (
-            <p className="py-8 text-center text-sm text-slate-400">
-              No upcoming sessions.
+        <p>
+          Your <strong className="text-[#172B4D]">{staffWelcome?.role || "Staff"}</strong>{" "}
+          account is ready. You can now use the LMS tools available to your role.
+        </p>
+        <p>Take a moment to explore your dashboard and get familiar with your workspace. We&apos;re glad to have you on the team.</p>
+      </WelcomeDialog>
+
+      <PageHeader
+        title={dashboardTitle}
+        description={
+          <span suppressHydrationWarning>
+            {greetingFor(now)}, {firstName}. {dateLine}
+          </span>
+        }
+        actions={
+          <>
+            <Link href={`${basePath}/calendar`} className="btn btn-secondary">
+              <CalendarDays aria-hidden className="size-4" />
+              Calendar
+            </Link>
+            {isSuperAdmin && (
+              <>
+                <Link href={`${basePath}/reports`} className="btn btn-secondary">
+                  <BarChart3 aria-hidden className="size-4" />
+                  Reports
+                </Link>
+                <Link href={`${basePath}/students/new`} className="btn btn-primary">
+                  <Plus aria-hidden className="size-4" />
+                  Add student
+                </Link>
+              </>
+            )}
+          </>
+        }
+      />
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Students"
+          value={counts.students.toLocaleString()}
+          icon={Users}
+          tone="blue"
+          meta={`${thisMonth(movement.students)} joined this month`}
+          href={`${basePath}/students`}
+        >
+          <Sparkline data={series.students} tone="blue" />
+        </StatCard>
+        <StatCard
+          label="Instructors"
+          value={counts.instructors.toLocaleString()}
+          icon={GraduationCap}
+          tone="purple"
+          meta={`${thisMonth(movement.instructors)} added this month`}
+          href={`${basePath}/instructors`}
+        >
+          <Sparkline data={series.instructors} tone="purple" />
+        </StatCard>
+        <StatCard
+          label="Published courses"
+          value={counts.courses.toLocaleString()}
+          icon={BookOpen}
+          tone="teal"
+          meta={`${thisMonth(movement.courses)} published this month`}
+          href={`${basePath}/courses`}
+        >
+          <Sparkline data={series.courses} tone="teal" />
+        </StatCard>
+        <StatCard
+          label="Enrollments"
+          value={counts.enrollments.toLocaleString()}
+          icon={LibraryBig}
+          tone="green"
+          meta={`${counts.completed.toLocaleString()} completed · ${completionPct}% completion`}
+          href={`${basePath}/enrollments`}
+        >
+          <Sparkline data={series.enrollments} tone="green" />
+        </StatCard>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <Panel
+          className="xl:col-span-2"
+          title="Enrollment activity"
+          description={`New enrollments over the last 14 days · ${dailyTotal} total`}
+          action={<PanelLink href={`${basePath}/enrollments`}>View enrollments</PanelLink>}
+        >
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={daily} margin={{ top: 8, right: 4, bottom: 0, left: -24 }}>
+                <CartesianGrid vertical={false} stroke="#091E4224" />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: "#6B778C" }}
+                  interval="preserveStartEnd"
+                  minTickGap={16}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: "#6B778C" }}
+                />
+                <Tooltip
+                  cursor={{ fill: "#091E420F" }}
+                  contentStyle={tooltipStyle}
+                  formatter={(value) => [value, "Enrollments"]}
+                />
+                <Bar dataKey="value" fill="#0065FF" radius={[3, 3, 0, 0]} maxBarSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {dailyTotal === 0 && (
+            <p className="mt-2 text-center text-xs text-[#6B778C]">
+              No enrollments in the last 14 days.
             </p>
           )}
-          {false &&
-            [
-              ["Strategic Leadership", "Today · 4:00 PM"],
-              ["Digital Marketing", "Tomorrow · 10:30 AM"],
-              ["Financial Management", "Fri · 2:00 PM"],
-            ].map(([title, time], i) => (
-              <div className="mt-5 flex gap-3" key={title}>
-                <span
-                  className={`grid size-10 shrink-0 place-items-center rounded-lg ${i === 0 ? "bg-red text-white" : "bg-slate-100 text-navy"}`}
-                >
-                  <CalendarClock className="size-4" />
-                </span>
-                <div>
-                  <b className="block text-sm text-[#17233c]">{title}</b>
-                  <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                    <Clock3 className="size-3" />
-                    {time}
-                  </span>
-                </div>
-              </div>
-            ))}
-          <a
-            href={`${basePath}/calendar`}
-            className="mt-6 block w-full rounded-lg border py-2.5 text-center text-xs font-semibold text-navy"
-          >
-            Open calendar
-          </a>
-        </section>
+        </Panel>
+
+        <Panel
+          title="Calendar"
+          description="Classes and appointments"
+          action={<PanelLink href={`${basePath}/calendar`}>Open</PanelLink>}
+        >
+          <MiniCalendar events={appointments} calendarHref={`${basePath}/calendar`} />
+        </Panel>
       </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <Panel
+          title="Top courses"
+          description="By number of enrolled students"
+          action={<PanelLink href={`${basePath}/courses`}>All courses</PanelLink>}
+        >
+          <CourseRanking
+            courses={bestCourses}
+            emptyTitle="No enrollment data yet"
+            emptyDescription="Courses will be ranked here once students enroll."
+          />
+        </Panel>
+
+        <Panel title="Course completion" description="Completed vs. in-progress enrollments">
+          <div className="flex items-center gap-5">
+            <div className="relative size-36 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Completed", value: counts.completed },
+                      { name: "In progress", value: inProgress || (counts.completed ? 0 : 1) },
+                    ]}
+                    dataKey="value"
+                    innerRadius={50}
+                    outerRadius={68}
+                    startAngle={90}
+                    endAngle={-270}
+                    stroke="none"
+                    isAnimationActive={false}
+                  >
+                    <Cell fill="#36B37E" />
+                    <Cell fill="#DFE1E6" />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 grid place-items-center text-center">
+                <span>
+                  <b className="block text-2xl font-semibold text-[#172B4D]">{completionPct}%</b>
+                  <span className="text-[11px] text-[#6B778C]">completed</span>
+                </span>
+              </div>
+            </div>
+            <dl className="min-w-0 flex-1 space-y-3 text-sm">
+              {[
+                ["Completed", counts.completed, "#36B37E"],
+                ["In progress", inProgress, "#97A0AF"],
+                ["Total enrollments", counts.enrollments, "#0065FF"],
+              ].map(([label, value, color]) => (
+                <div key={label as string} className="flex items-center justify-between gap-2">
+                  <dt className="flex items-center gap-2 text-[#42526E]">
+                    <span className="size-2 rounded-full" style={{ background: color as string }} />
+                    {label}
+                  </dt>
+                  <dd className="font-semibold text-[#172B4D]">{(value as number).toLocaleString()}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </Panel>
+
+        <Panel title="People" description="Current platform totals">
+          <ul className="space-y-2">
+            {(
+              [
+                [manpowerLabels.users, manpower.users, Users, "blue", `${basePath}/students`],
+                [manpowerLabels.admins, manpower.admins, UserCog, "purple", `${basePath}/staff`],
+                ["Instructors", counts.instructors, GraduationCap, "teal", `${basePath}/instructors`],
+                ["Organizations", counts.organizations, Building2, "orange", null],
+              ] as const
+            ).map(([label, value, Icon, tone, href]) => {
+              const row = (
+                <>
+                  <span
+                    className={`grid size-8 place-items-center rounded-[6px] ${
+                      {
+                        blue: "bg-[#DEEBFF] text-[#0747A6]",
+                        purple: "bg-[#EAE6FF] text-[#403294]",
+                        teal: "bg-[#E6FCFF] text-[#00849B]",
+                        orange: "bg-[#FFF4E5] text-[#974F0C]",
+                      }[tone]
+                    }`}
+                  >
+                    <Icon aria-hidden className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm text-[#42526E]">{label}</span>
+                  <b className="text-sm font-semibold text-[#172B4D]">{value.toLocaleString()}</b>
+                </>
+              );
+              return (
+                <li key={label}>
+                  {href ? (
+                    <Link
+                      href={href}
+                      className="flex items-center gap-3 rounded-[4px] p-2 hover:bg-[#091E420F]"
+                    >
+                      {row}
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-3 p-2">{row}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      </div>
+
+      <div className={`mt-4 grid gap-4 ${showRecentActivity ? "lg:grid-cols-2" : ""}`}>
+        <Panel
+          title="Upcoming schedule"
+          description="Next live classes and appointments"
+          action={<PanelLink href={`${basePath}/live-classes`}>Live classes</PanelLink>}
+        >
+          <AgendaList items={agenda.length ? agenda : sessionsAgenda} emptyText="Nothing scheduled yet" />
+        </Panel>
+        {showRecentActivity && (
+          <Panel
+            title="Recent activity"
+            description="Latest sign-ins and platform events"
+            action={<PanelLink href={`${basePath}/settings/activity`}>View all</PanelLink>}
+          >
+            {recentActivity.length ? (
+              <ul className="divide-y divide-[#091E4224]">
+                {recentActivity.map((item) => (
+                  <li key={item.id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
+                    <Avatar name={item.name} src={item.avatar} size={32} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-[#172B4D]">
+                        {item.name}
+                      </span>
+                      <span className="block truncate text-xs text-[#6B778C]">{item.event}</span>
+                    </span>
+                    <time className="shrink-0 text-xs text-[#6B778C]" dateTime={item.date}>
+                      {new Date(item.date).toLocaleString("en-GB", {
+                        timeZone: COLOMBO,
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                icon={Activity}
+                title="No recent activity"
+                description="Sign-ins and changes made by your team will appear here."
+              />
+            )}
+          </Panel>
+        )}
+      </div>
+
+      {isSuperAdmin && (
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[#6B778C]">
+          <ShieldCheck aria-hidden className="size-3.5" />
+          You are signed in with full administrator access.
+        </p>
+      )}
     </>
   );
 }

@@ -1,14 +1,30 @@
 "use client";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 import {
+  Award,
   BookOpen,
-  CalendarClock,
+  CalendarDays,
+  CircleHelp,
   ClipboardList,
   GraduationCap,
+  LifeBuoy,
   Radio,
-  X,
 } from "lucide-react";
-import { BestCoursesCard } from "./best-courses-card";
+import {
+  AgendaList,
+  EmptyState,
+  MiniCalendar,
+  PageHeader,
+  Panel,
+  PanelLink,
+  QuickLinks,
+  StatCard,
+  WelcomeDialog,
+  greetingFor,
+  useNow,
+} from "./portal/ui";
+
 type Session = {
   id: string;
   title: string;
@@ -16,9 +32,10 @@ type Session = {
   start: string;
   meetingUrl: string | null;
 };
+const base = "/dashboard/student";
+
 export function StudentDashboard({
   name,
-  avatar,
   counts,
   bestCourses,
   sessions,
@@ -33,225 +50,135 @@ export function StudentDashboard({
   showWelcome: boolean;
   welcomeCourse: string;
 }) {
-  const dateKey = (date: Date) =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Colombo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(date);
-  const [month, setMonth] = useState(new Date()),
-    [welcomeOpen, setWelcomeOpen] = useState(showWelcome),
-    days = useMemo(() => {
-      const y = month.getFullYear(),
-        m = month.getMonth();
-      return [
-        ...Array.from({ length: new Date(y, m, 1).getDay() }, () => null),
-        ...Array.from(
-          { length: new Date(y, m + 1, 0).getDate() },
-          (_, i) => i + 1,
-        ),
-      ];
-    }, [month]);
-  const hour = Number(
-      new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Colombo",
-        hour: "2-digit",
-        hour12: false,
-      }).format(new Date()),
-    ),
-    greeting =
-      hour < 12
-        ? "Good morning"
-        : hour < 17
-          ? "Good afternoon"
-          : "Good evening",
-    cards = [
-      ["My Courses", counts.courses, BookOpen, "bg-violet-50 text-violet-600"],
-      [
-        "Due Assignments",
-        counts.due,
-        ClipboardList,
-        "bg-amber-50 text-amber-600",
-      ],
-      [
-        "Total Meetings",
-        counts.meetings,
-        Radio,
-        "bg-emerald-50 text-emerald-600",
-      ],
-    ] as const;
-  async function closeWelcome() {
+  const now = useNow();
+  const [welcomeOpen, setWelcomeOpen] = useState(showWelcome);
+  const closeWelcome = useCallback(() => {
     setWelcomeOpen(false);
-    await fetch("/api/student/welcome", { method: "POST" }).catch(() => null);
-  }
+    fetch("/api/student/welcome", { method: "POST" }).catch(() => null);
+  }, []);
+  const upcoming = sessions.filter((s) => new Date(s.start) >= now);
+
   return (
     <>
-      {welcomeOpen && (
-        <div className="fixed inset-0 z-[250] grid place-items-center bg-black/65 p-4 backdrop-blur-sm">
-          <section className="relative w-full max-w-xl rounded-3xl border bg-white p-6 shadow-2xl sm:p-9">
-            <button
-              onClick={closeWelcome}
-              aria-label="Close welcome message"
-              className="absolute right-5 top-5 grid size-9 place-items-center rounded-full border text-slate-500 hover:bg-slate-50"
-            >
-              <X className="size-4" />
-            </button>
-            <span className="grid size-14 place-items-center rounded-2xl bg-red/10 text-red">
-              <GraduationCap className="size-7" />
-            </span>
-            <h2 className="mt-6 pr-10 text-2xl font-bold text-navy">
-              Welcome to BGSB, {name}! 🎓
-            </h2>
-            <p className="mt-4 leading-7 text-slate-600">
-              We are pleased to confirm that your student account for{" "}
-              <strong className="text-navy">{welcomeCourse}</strong> has been
-              successfully created. Your journey with BGSB starts here, and we
-              look forward to supporting you throughout your studies.
-            </p>
-            <button onClick={closeWelcome} className="btn-primary mt-7 w-full">
-              Continue to Dashboard
-            </button>
-          </section>
+      <WelcomeDialog
+        open={welcomeOpen}
+        icon={GraduationCap}
+        title={`Welcome to BGSB, ${name}`}
+        cta="Continue to dashboard"
+        onClose={closeWelcome}
+      >
+        <p>
+          We are pleased to confirm that your student account for{" "}
+          <strong className="text-[#172B4D]">{welcomeCourse}</strong> has been
+          successfully created. Your journey with BGSB starts here, and we look
+          forward to supporting you throughout your studies.
+        </p>
+      </WelcomeDialog>
+
+      <PageHeader
+        title={<span suppressHydrationWarning>{greetingFor(now)}, {name.split(/\s+/)[0]}</span>}
+        description="Pick up where you left off and keep track of what's due."
+        actions={
+          <>
+            <Link href={`${base}/calendar`} className="btn btn-secondary">
+              <CalendarDays aria-hidden className="size-4" />
+              Calendar
+            </Link>
+            <Link href={`${base}/courses`} className="btn btn-primary">
+              <BookOpen aria-hidden className="size-4" />
+              My courses
+            </Link>
+          </>
+        }
+      />
+
+      {counts.due > 0 && (
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-[4px] border-l-4 border-[#FFAB00] bg-[#FFFAE6] px-4 py-3">
+          <ClipboardList aria-hidden className="size-5 text-[#974F0C]" />
+          <p className="min-w-0 flex-1 text-sm text-[#172B4D]">
+            You have <b className="font-semibold">{counts.due}</b> assignment
+            {counts.due === 1 ? "" : "s"} due soon.
+          </p>
+          <Link href={`${base}/assignments`} className="btn btn-secondary !min-h-8 bg-white">
+            View assignments
+          </Link>
         </div>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]">
-        <section className="relative min-h-[360px] overflow-hidden rounded-2xl bg-navy p-8 text-white">
-          <img
-            src="/Thumimage.jpeg"
-            className="absolute inset-0 size-full object-cover opacity-30 blur-[2px]"
-            alt=""
-          />
-          <div className="relative flex h-full flex-col justify-between">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em] text-white/60">
-                  Sri Lanka Time
-                </p>
-                <b suppressHydrationWarning className="mt-3 block text-3xl">
-                  {new Intl.DateTimeFormat("en-US", {
-                    timeZone: "Asia/Colombo",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date())}
-                </b>
-              </div>
-              {avatar && (
-                <img
-                  src={avatar}
-                  className="size-24 rounded-2xl object-cover ring-4 ring-white/20"
-                  alt=""
-                />
-              )}
-            </div>
-            <div>
-              <p>Welcome back</p>
-              <h1 suppressHydrationWarning className="mt-2 text-3xl font-bold">
-                {greeting}, {name.split(" ")[0]}!
-              </h1>
-            </div>
-          </div>
-        </section>
-        <section className="rounded-2xl border bg-white p-5">
-          <div className="flex justify-between">
-            <button
-              onClick={() =>
-                setMonth(new Date(month.getFullYear(), month.getMonth() - 1))
-              }
-            >
-              ‹
-            </button>
-            <b>
-              {month.toLocaleDateString("en-GB", {
-                month: "long",
-                year: "numeric",
-              })}
-            </b>
-            <button
-              onClick={() =>
-                setMonth(new Date(month.getFullYear(), month.getMonth() + 1))
-              }
-            >
-              ›
-            </button>
-          </div>
-          <div className="mt-5 grid grid-cols-7 gap-1 text-center text-xs">
-            {"SMTWTFS".split("").map((x, i) => (
-              <b key={i} className="py-2 text-slate-400">
-                {x}
-              </b>
-            ))}
-            {days.map((day, i) => {
-              const key = day
-                ? `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                : "";
-              const dayEvents = sessions.filter(
-                (session) => dateKey(new Date(session.start)) === key,
-              );
-              return (
-                <span
-                  key={i}
-                  title={dayEvents
-                    .map(
-                      (event) =>
-                        `${event.title} — ${new Date(event.start).toLocaleString("en-LK", { timeZone: "Asia/Colombo" })}${event.description ? ` — ${event.description}` : ""}`,
-                    )
-                    .join("\n")}
-                  className={`relative rounded-lg py-2 ${day === new Date().getDate() && month.getMonth() === new Date().getMonth() ? "bg-red text-white" : ""}`}
-                >
-                  {day}
-                  {dayEvents.length > 0 && (
-                    <i className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-blue-500" />
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        </section>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Enrolled courses" value={counts.courses} icon={BookOpen} tone="blue" meta="Active programmes" href={`${base}/courses`} />
+        <StatCard label="Assignments due" value={counts.due} icon={ClipboardList} tone={counts.due ? "orange" : "green"} meta={counts.due ? "Submit before the deadline" : "You're all caught up"} href={`${base}/assignments`} />
+        <StatCard label="Live meetings" value={counts.meetings} icon={Radio} tone="purple" meta={`${upcoming.length} upcoming`} href={`${base}/meetings`} />
       </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {cards.map(([label, value, Icon, color]) => (
-          <article key={label} className="rounded-2xl border bg-white p-5">
-            <span
-              className={`grid size-11 place-items-center rounded-xl ${color}`}
-            >
-              <Icon className="size-5" />
-            </span>
-            <b className="mt-4 block text-3xl text-navy">{value}</b>
-            <p className="text-sm text-slate-500">{label}</p>
-          </article>
-        ))}
-      </div>
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <BestCoursesCard courses={bestCourses} empty="No enrolled courses." />
-        <section className="rounded-2xl border bg-white p-6">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-navy">
-            <CalendarClock className="size-5" />
-            Upcoming Sessions
-          </h2>
-          <div className="mt-5 space-y-3">
-            {sessions.slice(0, 5).map((session) => (
-              <article key={session.id} className="rounded-xl border p-4">
-                <b className="text-sm text-navy">{session.title}</b>
-                <p className="mt-1 text-xs text-slate-400">
-                  {new Date(session.start).toLocaleString("en-GB")}
-                </p>
-                {session.meetingUrl && (
-                  <a
-                    href={session.meetingUrl}
-                    target="_blank"
-                    className="mt-2 inline-block text-xs font-bold text-blue-600"
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <Panel
+          className="xl:col-span-2"
+          title="My courses"
+          description="Programmes you are enrolled in"
+          action={<PanelLink href={`${base}/courses`}>View all</PanelLink>}
+        >
+          {bestCourses.length ? (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {bestCourses.slice(0, 4).map((course, index) => (
+                <li key={course.title + index}>
+                  <Link
+                    href={`${base}/courses`}
+                    className="flex h-full items-center gap-3 rounded-[4px] border border-[#DFE1E6] p-3 transition-colors hover:border-[#0052CC] hover:bg-[#F4F5F7]"
                   >
-                    Join Session
-                  </a>
-                )}
-              </article>
-            ))}
-            {!sessions.length && (
-              <p className="text-sm text-slate-400">No upcoming sessions.</p>
-            )}
-          </div>
-        </section>
+                    <span className="grid size-11 shrink-0 place-items-center rounded-[6px] bg-[#DEEBFF] text-[#0747A6]">
+                      <BookOpen aria-hidden className="size-5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-sm font-medium text-[#172B4D]">{course.title}</span>
+                      <span className="mt-0.5 block text-xs text-[#6B778C]">
+                        {course.enrollments} learner{course.enrollments === 1 ? "" : "s"} enrolled
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              icon={BookOpen}
+              title="No enrolled courses yet"
+              description="Once your enrollment is approved, your courses will appear here."
+            />
+          )}
+        </Panel>
+        <Panel title="Calendar" action={<PanelLink href={`${base}/calendar`}>Open</PanelLink>}>
+          <MiniCalendar events={sessions} calendarHref={`${base}/calendar`} />
+        </Panel>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Panel
+          title="Upcoming sessions"
+          description="Live classes and appointments"
+          action={<PanelLink href={`${base}/meetings`}>Meetings</PanelLink>}
+        >
+          <AgendaList
+            items={upcoming.map((s) => ({
+              id: s.id,
+              title: s.title,
+              start: s.start,
+              kind: s.description === "Live class" ? "Live class" : "Appointment",
+              meetingUrl: s.meetingUrl,
+            }))}
+            emptyText="No upcoming sessions"
+          />
+        </Panel>
+        <Panel title="Quick links" description="Everything else you might need">
+          <QuickLinks
+            links={[
+              { label: "Assignments", description: "Submit and track your work", href: `${base}/assignments`, icon: ClipboardList, tone: "blue" },
+              { label: "Quizzes", description: "Test your knowledge", href: `${base}/quiz`, icon: CircleHelp, tone: "purple" },
+              { label: "Certificates", description: "Download your awards", href: `${base}/certificates`, icon: Award, tone: "green" },
+              { label: "Get support", description: "Raise a ticket or read FAQs", href: `${base}/support/help`, icon: LifeBuoy, tone: "orange" },
+            ]}
+          />
+        </Panel>
       </div>
     </>
   );

@@ -14,3 +14,4 @@ const body = Plus_Jakarta_Sans({
 
 // Wrapper classes for public-facing pages (see .public-site in globals.css).
 export const publicSiteClass = `public-site ${display.variable} ${body.variable}`;
+

@@ -26,24 +26,32 @@ export function PublicNav() {
     } catch {}
   }
   return (
-    <header className="public-nav sticky top-0 z-50 border-b bg-transparent backdrop-blur-sm">
-      <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-6">
+    <header className="ds-public ds-nav sticky top-0 z-50 border-b border-[#DFE1E6] bg-white/95 px-4 backdrop-blur sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4">
         <Link href="/" className="shrink-0" aria-label="BGSB Home">
           <img
             src="/bgsb-logo-trimmed.png"
             alt="British Graduates School of Business"
-            className="h-12 w-auto object-contain"
+            className="h-10 w-auto object-contain"
           />
         </Link>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={dark ? "Use light mode" : "Use dark mode"}
-          title={dark ? "Light mode" : "Dark mode"}
-          className="grid size-11 place-items-center rounded-xl border text-navy"
-        >
-          {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={dark ? "Use light mode" : "Use dark mode"}
+            title={dark ? "Light mode" : "Dark mode"}
+            className="grid size-10 place-items-center rounded-full text-[#42526E] transition-colors hover:bg-[#091E420F] hover:text-[#172B4D]"
+          >
+            {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+          </button>
+          <Link
+            href="/login"
+            className="inline-flex h-9 items-center rounded-[3px] bg-[#0052CC] px-4 text-sm font-medium text-white transition-colors hover:bg-[#0065FF] active:bg-[#0747A6]"
+          >
+            Log in
+          </Link>
+        </div>
       </div>
     </header>
   );
