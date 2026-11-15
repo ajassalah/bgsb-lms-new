@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminActorCan } from "@/lib/staff-permissions";
-import { sendAccountCredentials } from "@/lib/email";
+import { sendAccountCredentials, sendPasswordResetLink } from "@/lib/email";
 import { z } from "zod";
 export async function PATCH(
   req: Request,
@@ -48,12 +48,20 @@ export async function PATCH(
       : Response.json({ message: "Account status updated" });
   }
   if (parsed.data.action === "reset") {
-    const { error } = await admin.auth.resetPasswordForEmail(target.email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin}/password-reset`,
-    });
-    return error
-      ? Response.json({ error: error.message }, { status: 400 })
-      : Response.json({ message: "Password reset link sent" });
+    try {
+      const sent = await sendPasswordResetLink({
+        email: target.email,
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin,
+      });
+      return sent
+        ? Response.json({ message: "Password reset link sent" })
+        : Response.json({ error: "No login account exists for this user" }, { status: 400 });
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Could not send reset link" },
+        { status: 500 },
+      );
+    }
   }
   if (!parsed.data.value || parsed.data.value.length < 8)
     return Response.json(

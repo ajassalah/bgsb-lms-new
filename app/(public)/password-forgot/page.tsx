@@ -1,1 +1,10 @@
-import {ResetForm} from '@/components/reset-form';export default function Forgot(){return <main className="grid min-h-[70vh] place-items-center px-6"><ResetForm/></main>}
+import { ResetForm } from "@/components/reset-form";
+import { AuthLayout } from "@/components/auth-layout";
+
+export default function Forgot() {
+  return (
+    <AuthLayout>
+      <ResetForm />
+    </AuthLayout>
+  );
+}

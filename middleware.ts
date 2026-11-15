@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -127,19 +128,37 @@ export async function middleware(req: NextRequest) {
       },
     },
   );
+  // The session is verified by Supabase Auth; everything after that is read
+  // with the service-role client so it doesn't depend on the database API
+  // accepting the user's JWT.
   const {
     data: { user },
+    error: userError,
   } = await db.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", req.url));
-  const { data: profile } = await db
+  if (!user) {
+    if (req.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-")))
+      console.warn("[middleware] session rejected", {
+        path: req.nextUrl.pathname,
+        error: userError?.message,
+      });
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("role,status")
     .eq("id", user.id)
-    .single();
-  if (!profile || profile.status !== "active")
+    .maybeSingle();
+  if (!profile || profile.status !== "active") {
+    console.warn("[middleware] profile check failed", {
+      userId: user.id,
+      status: profile?.status,
+      error: profileError?.message ?? (profile ? undefined : "no profile row"),
+    });
     return NextResponse.redirect(new URL("/login", req.url));
+  }
 
-  const { data: currentTerms } = await db
+  const { data: currentTerms } = await admin
     .from("legal_terms")
     .select("version")
     .eq("is_published", true)
@@ -147,7 +166,7 @@ export async function middleware(req: NextRequest) {
     .limit(1)
     .maybeSingle();
   if (currentTerms) {
-    const { data: acceptance } = await db
+    const { data: acceptance } = await admin
       .from("terms_acceptances")
       .select("id")
       .eq("user_id", user.id)
@@ -176,19 +195,19 @@ export async function middleware(req: NextRequest) {
     );
     if (match) {
       const [{ data: rows }, { data: staffProfile }] = await Promise.all([
-        db
+        admin
           .from("admin_permissions")
           .select("module,actions")
           .eq("admin_staff_id", user.id)
           .in("module", match[1]),
-        db
+        admin
           .from("profiles")
           .select("staff_role")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
       const { data: assignedRole } = staffProfile?.staff_role
-        ? await db
+        ? await admin
             .from("staff_roles")
             .select("permissions")
             .ilike("name", staffProfile.staff_role.trim())

@@ -96,3 +96,55 @@ export async function sendAccountCredentials({
         : `<h2>Welcome ${safeName}</h2><p>Your BGSB ${role} account is ready.</p><p><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a><br><strong>Login email:</strong> ${to}<br><strong>Temporary password:</strong> ${temporaryPassword}</p><p>Please sign in and change your temporary password immediately.</p>`,
   });
 }
+
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[
+        character
+      ]!,
+  );
+
+/**
+ * Creates a Supabase recovery token and emails the reset link through the
+ * LMS SMTP configuration (Supabase's own mailer is not configured).
+ * Returns false when the email has no account (callers should not reveal it).
+ */
+export async function sendPasswordResetLink({
+  email,
+  siteUrl,
+}: {
+  email: string;
+  siteUrl: string;
+}) {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+  });
+  if (error || !data?.properties?.hashed_token) return false;
+
+  const config = await getEmailConfiguration();
+  if (!config?.smtp_host || !config.from_email)
+    throw new Error("SMTP email configuration is incomplete");
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", data.user.id)
+    .maybeSingle();
+  const name = escapeHtml(profile?.full_name || "there");
+  const resetUrl = `${siteUrl.replace(/\/$/, "")}/password-reset?token_hash=${encodeURIComponent(
+    data.properties.hashed_token,
+  )}&type=recovery`;
+
+  await emailTransport(config).sendMail({
+    from: `${config.from_name} <${config.from_email}>`,
+    to: email,
+    subject: "Reset your BGSB LMS password",
+    text: `Hi ${profile?.full_name || "there"},\n\nWe received a request to reset the password for your BGSB LMS account.\n\nReset your password: ${resetUrl}\n\nThis link can be used once and expires soon. If you didn't ask for this, you can ignore this email.\n\nBGSB LMS`,
+    html: `<div style="background:#f4f5f7;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#172b4d"><div style="max-width:520px;margin:auto;background:#fff;border-radius:3px;padding:32px 40px;box-shadow:0 0 10px rgba(0,0,0,0.1)"><h1 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#172b4d">Reset your password</h1><p style="margin:0 0 12px;font-size:14px;line-height:20px;color:#42526e">Hi ${name},</p><p style="margin:0 0 24px;font-size:14px;line-height:20px;color:#42526e">We received a request to reset the password for your BGSB LMS account. Select the button below to choose a new password.</p><a href="${resetUrl}" style="display:inline-block;background:#0052cc;color:#fff;text-decoration:none;font-size:14px;font-weight:500;line-height:20px;padding:10px 16px;border-radius:3px">Reset password</a><p style="margin:24px 0 0;font-size:12px;line-height:16px;color:#6b778c">This link can be used once and expires soon. If you didn't ask for a reset, you can safely ignore this email &mdash; your password won't change.</p><hr style="border:0;border-top:1px solid #dfe1e6;margin:24px 0"><p style="margin:0;font-size:12px;line-height:16px;color:#6b778c">British Graduates School of Business &middot; <a href="https://www.bgsb.lk" style="color:#0052cc">bgsb.lk</a></p></div></div>`,
+  });
+  return true;
+}

@@ -6,7 +6,7 @@ import { PublicNav } from "./public-nav";
 
 export function PublicLayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname(),
-    loginPage = pathname === "/login";
+    loginPage = ["/login", "/password-forgot", "/password-reset"].includes(pathname ?? "");
   return (
     <>
       {!loginPage && <PublicNav />}

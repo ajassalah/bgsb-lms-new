@@ -5,7 +5,6 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { DashboardHome } from "@/components/dashboard-home";
 import { SuperAdminShell } from "@/components/super-admin-shell";
 import { SuperAdminHome } from "@/components/super-admin-home";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { InstructorDashboard } from "@/components/instructor-dashboard";
 import { StudentDashboard } from "@/components/student-dashboard";
@@ -21,7 +20,7 @@ export default async function Dashboard({
   if (!roles.includes(role)) notFound();
   const p = await requireProfile(role);
   if (role === "super_admin") {
-    const db = createClient();
+    const db = createAdminClient(); // role already verified by requireProfile
     const queries = await Promise.all([
       db
         .from("profiles")
