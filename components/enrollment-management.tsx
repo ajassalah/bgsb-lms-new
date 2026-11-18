@@ -187,36 +187,9 @@ export function EnrollmentManagement({
                           </button>
                         )}
                         {canStatus && (
-                          <div>
-                            <button
-                              onClick={() =>
-                                setStatusMenu(statusMenu === r.id ? null : r.id)
-                              }
-                              className="row-action"
-                            >
-                              <Check />
-                              Status
-                              <ChevronRight className="ml-auto" />
-                            </button>
-                            {statusMenu === r.id && (
-                              <div className="enrollment-status-menu mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
-                                <button
-                                  onClick={() => status(r, "approved")}
-                                  className="row-action"
-                                >
-                                  <Check className="text-emerald-600" />
-                                  Approved
-                                </button>
-                                <button
-                                  onClick={() => status(r, "declined")}
-                                  className="row-action"
-                                >
-                                  <XCircle className="text-red" />
-                                  Decline
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          <button onClick={() => { setStatusMenu(r.id); setMenu(null); }} className="row-action">
+                            <Check /> Status
+                          </button>
                         )}
                         {canDelete && (
                           <button
@@ -273,14 +246,18 @@ export function EnrollmentManagement({
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleting && remove(deleting)}
       />
+      {statusMenu && rows.find((row) => row.id === statusMenu) && (() => {
+        const row = rows.find((item) => item.id === statusMenu)!;
+        return <div className="fixed inset-0 z-[250] grid place-items-center bg-black/50 p-4"><div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-navy">Update enrollment status</h2><button onClick={() => setStatusMenu(null)}><X /></button></div><p className="mt-2 text-sm text-slate-500">{row.student} — {row.course}</p><div className="mt-6 grid grid-cols-2 gap-3"><button onClick={() => status(row, "approved")} className="rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white">Approve</button><button onClick={() => status(row, "declined")} className="rounded-xl bg-red px-4 py-3 font-bold text-white">Decline</button></div></div></div>;
+      })()}
       {adding && (
         <Add
           students={students}
           courses={courses}
           batches={batches}
           close={() => setAdding(false)}
-          saved={(r) => {
-            setRows((x) => [r, ...x]);
+          saved={(added) => {
+            setRows((x) => [...added, ...x]);
             setAdding(false);
           }}
         />
@@ -376,23 +353,29 @@ function Add({
   courses: Option[];
   batches: BatchOption[];
   close: () => void;
-  saved: (r: EnrollmentRow) => void;
+  saved: (rows: EnrollmentRow[]) => void;
 }) {
   const [busy, setBusy] = useState(false),
-    [studentId, setStudentId] = useState(""),
+    [studentIds, setStudentIds] = useState<string[]>([]),
+    [studentSearch, setStudentSearch] = useState(""),
     [courseId, setCourseId] = useState(""),
     [batchId, setBatchId] = useState("");
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!studentIds.length) return toast.error("Select at least one student");
     setBusy(true);
     const res = await fetch("/api/admin/enrollments", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))),
+      body: JSON.stringify({
+        student_ids: studentIds,
+        course_id: courseId,
+        batch_id: batchId,
+      }),
     });
     if (res.ok) {
       saved(await res.json());
-      toast.success("Student added");
+      toast.success(`${studentIds.length} student${studentIds.length === 1 ? "" : "s"} added`);
     } else {
       toast.error("Could not add student");
       setBusy(false);
@@ -411,14 +394,13 @@ function Add({
           </button>
         </div>
         <div className="mt-6">
-          <SearchSelect
-            name="student_id"
-            label="Student"
-            placeholder="Select student"
-            options={students}
-            value={studentId}
-            onChange={setStudentId}
-          />
+          <div className="text-sm font-bold">Students
+            <label className="relative mt-2 block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" /><input value={studentSearch} onChange={(event) => setStudentSearch(event.target.value)} className="field pl-10" placeholder="Search students..." /></label>
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border p-2">
+              {students.filter((student) => student.name.toLowerCase().includes(studentSearch.toLowerCase())).map((student) => <label key={student.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-50"><input type="checkbox" checked={studentIds.includes(student.id)} onChange={() => setStudentIds((ids) => ids.includes(student.id) ? ids.filter((id) => id !== student.id) : [...ids, student.id])} /><span className="font-normal">{student.name}</span></label>)}
+            </div>
+            <span className="mt-2 block text-xs font-normal text-slate-400">{studentIds.length} student{studentIds.length === 1 ? "" : "s"} selected</span>
+          </div>
         </div>
         <div className="mt-4">
           <SearchSelect

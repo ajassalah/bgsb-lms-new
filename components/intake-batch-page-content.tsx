@@ -27,6 +27,7 @@ import {
   type IntakeRow,
 } from "./intake-batch-management";
 import { BatchForm, IntakeForm } from "./intake-batch-forms";
+import { BatchLearnersPanel } from "./batch-learners-panel";
 
 export async function IntakeListContent({ basePath }: { basePath: string }) {
   const { data } = await createAdminClient()
@@ -185,15 +186,36 @@ export async function BatchViewContent({
   basePath: string;
   id: string;
 }) {
-  const { data } = await createAdminClient()
-    .from("batches")
-    .select(
-      "*,course:courses(title),intake:intakes(name,ref_no),batch_learners(count)",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const admin = createAdminClient();
+  const [{ data }, { data: configuration }] = await Promise.all([
+    admin
+      .from("batches")
+      .select(
+        "*,course:courses(title),intake:intakes(name,ref_no),batch_learners(student_id,student:profiles!batch_learners_student_id_fkey(id,full_name,email))",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    admin
+      .from("email_configuration")
+      .select("from_email")
+      .eq("id", 1)
+      .maybeSingle(),
+  ]);
   if (!data) notFound();
-  const learners = data.batch_learners?.[0]?.count || 0;
+  const learnerRows = (data.batch_learners || [])
+    .map((item: any) => {
+      const learner = Array.isArray(item.student) ? item.student[0] : item.student;
+      return learner
+        ? {
+            id: learner.id,
+            learnerNo: learner.id.slice(0, 8).toUpperCase(),
+            name: learner.full_name || "Learner",
+            email: learner.email || "No email",
+          }
+        : null;
+    })
+    .filter(Boolean);
+  const learners = learnerRows.length;
   return (
     <DetailPage
       title={data.batch_name}
@@ -258,6 +280,18 @@ export async function BatchViewContent({
             { label: "Start date", value: formatDate(data.start_date), icon: CalendarDays },
             { label: "End date", value: formatDate(data.end_date), icon: CalendarCheck },
           ]}
+        />
+      </DetailSection>
+      <DetailSection title="Learner communication">
+        <p className="mb-4 text-sm text-[#6B778C]">
+          View the learners enrolled in this batch or send a message to selected learners.
+        </p>
+        <BatchLearnersPanel
+          batchId={id}
+          batchName={data.batch_name}
+          learners={learnerRows}
+          fromEmail={configuration?.from_email || "Not configured"}
+          basePath={basePath}
         />
       </DetailSection>
     </DetailPage>

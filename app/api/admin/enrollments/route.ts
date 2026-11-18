@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const parsed = z
     .object({
-      student_id: z.string().uuid(),
+      student_id: z.string().uuid().optional(),
+      student_ids: z.array(z.string().uuid()).min(1).optional(),
       course_id: z.string().uuid(),
       batch_id: z
         .union([z.string().uuid(), z.literal("")])
@@ -21,17 +22,17 @@ export async function POST(req: Request) {
         .optional(),
     })
     .safeParse(await req.json());
-  if (!parsed.success)
+  if (!parsed.success || (!parsed.data.student_id && !parsed.data.student_ids?.length))
     return Response.json(
       { error: "Select a student and course" },
       { status: 400 },
     );
-  const [{ data: student }, { data: course }] = await Promise.all([
+  const studentIds = parsed.data.student_ids || [parsed.data.student_id!];
+  const [{ data: students }, { data: course }] = await Promise.all([
     admin
       .from("profiles")
-      .select("full_name,email,organization_id")
-      .eq("id", parsed.data.student_id)
-      .single(),
+      .select("id,full_name,email,organization_id")
+      .in("id", studentIds),
     admin
       .from("courses")
       .select("title")
@@ -40,16 +41,18 @@ export async function POST(req: Request) {
   ]);
   const { data, error } = await admin
     .from("enrollments")
-    .insert({
-      student_id: parsed.data.student_id,
-      course_id: parsed.data.course_id,
-      batch_id: parsed.data.batch_id || null,
-      organization_id: student?.organization_id || null,
-      enrolled_via: "manual",
-      status: "pending",
-    })
-    .select("id,status,enrolled_at")
-    .single();
+    .insert(
+      studentIds.map((student_id) => ({
+        student_id,
+        course_id: parsed.data.course_id,
+        batch_id: parsed.data.batch_id || null,
+        organization_id: students?.find((student) => student.id === student_id)?.organization_id || null,
+        enrolled_via: "manual",
+        status: "pending",
+      })),
+    )
+    .select("id,student_id,status,enrolled_at")
+    ;
   if (error)
     return Response.json(
       {
@@ -63,19 +66,9 @@ export async function POST(req: Request) {
   if (parsed.data.batch_id)
     await admin
       .from("batch_learners")
-      .upsert({
-        batch_id: parsed.data.batch_id,
-        student_id: parsed.data.student_id,
-      });
-  return Response.json({
-    id: data.id,
-    studentId: parsed.data.student_id,
-    student: student?.full_name || "Student",
-    studentEmail: student?.email || "",
-    courseId: parsed.data.course_id,
-    course: course?.title || "Course",
-    date: data.enrolled_at,
-    status: data.status,
-    batchId: parsed.data.batch_id || "",
-  });
+      .upsert(studentIds.map((student_id) => ({ batch_id: parsed.data.batch_id, student_id })));
+  return Response.json((data || []).map((item) => {
+    const student = students?.find((profile) => profile.id === item.student_id);
+    return { id: item.id, studentId: item.student_id, student: student?.full_name || "Student", studentEmail: student?.email || "", courseId: parsed.data.course_id, course: course?.title || "Course", date: item.enrolled_at, status: item.status, batchId: parsed.data.batch_id || "" };
+  }));
 }

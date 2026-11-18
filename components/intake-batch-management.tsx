@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Eye,
   MoreVertical,
+  Mail,
   Pencil,
   Plus,
   ShieldCheck,
@@ -58,7 +59,8 @@ export function IntakeBatchManagement({
     canView = useStaffCan(kind, "view"),
     canEdit = useStaffCan(kind, "edit"),
     canDelete = useStaffCan(kind, "delete"),
-    canStatus = useStaffCan(kind, "verify");
+    canStatus = useStaffCan(kind, "verify"),
+    canEmail = useStaffCan(kind, "send_email");
   const pages = Math.max(1, Math.ceil(rows.length / 20)),
     visible = rows.slice((page - 1) * 20, page * 20),
     menuRow = rows.find((row) => row.id === menu);
@@ -269,6 +271,13 @@ export function IntakeBatchManagement({
                 <ShieldCheck className="size-4 text-emerald-600" />
                 Verify
               </button>
+            )}
+            {kind === "batches" && canEmail && (
+              <Action
+                href={`${basePath}/${menuRow.id}?compose=1`}
+                icon={Mail}
+                label="Send a Mail"
+              />
             )}
             {canDelete && (
               <button

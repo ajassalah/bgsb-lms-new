@@ -31,7 +31,7 @@ export async function POST(
     );
   const { data: existing } = await admin
     .from("assignment_submissions")
-    .select("file_url,review_status")
+    .select("id,file_url,review_status")
     .eq("assignment_id", params.assignmentId)
     .eq("student_id", user.id)
     .maybeSingle();
@@ -81,23 +81,28 @@ export async function POST(
       { error: "Upload an assignment attachment" },
       { status: 400 },
     );
-  const { data, error } = await admin
-    .from("assignment_submissions")
-    .upsert(
-      {
-        assignment_id: params.assignmentId,
-        student_id: user.id,
-        file_url,
-        description,
-        submitted_at: new Date().toISOString(),
-        review_status: "submitted",
-        score: null,
-        feedback: null,
-        graded_by: null,
-        graded_at: null,
-      },
-      { onConflict: "assignment_id,student_id" },
-    )
+  // Some existing deployments predate the unique assignment/student index.
+  // Updating a known submission or inserting a new one works in both schemas;
+  // an upsert with `onConflict` fails when that index has not been migrated.
+  const submission = {
+    assignment_id: params.assignmentId,
+    student_id: user.id,
+    file_url,
+    description,
+    submitted_at: new Date().toISOString(),
+    review_status: "submitted",
+    score: null,
+    feedback: null,
+    graded_by: null,
+    graded_at: null,
+  };
+  const write = existing?.id
+    ? admin
+        .from("assignment_submissions")
+        .update(submission)
+        .eq("id", existing.id)
+    : admin.from("assignment_submissions").insert(submission);
+  const { data, error } = await write
     .select("id,file_url,description,submitted_at,review_status")
     .single();
   if (error) return Response.json({ error: error.message }, { status: 400 });

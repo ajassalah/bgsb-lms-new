@@ -232,17 +232,37 @@ export function StudentAssignmentTable({
                       ? new Date(row.submittedAt).toLocaleString("en-GB")
                       : "—"}
                   </td>
-                  <td className="p-4 capitalize">
-                    {row.status.replace("_", " ")}
+                  <td className="p-4">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize ${
+                        row.status === "submitted" || row.status === "accepted"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : row.status === "resubmit" || row.status === "declined"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {row.status.replace("_", " ")}
+                    </span>
                   </td>
                   <td className="relative p-4">
-                    <button
-                      onClick={() => setMenu(menu === row.id ? null : row.id)}
-                      className="ml-auto grid size-9 place-items-center rounded-lg border bg-white"
-                    >
-                      <MoreVertical className="size-4" />
-                    </button>
-                    {menu === row.id && (
+                    {row.submittedAt && (
+                      <Link
+                        href={`/dashboard/student/assignments/${courseId}/${row.id}`}
+                        className="mr-2 inline-flex h-9 items-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
+                      >
+                        Submitted
+                      </Link>
+                    )}
+                    {row.status !== "accepted" && (
+                      <button
+                        onClick={() => setMenu(menu === row.id ? null : row.id)}
+                        className="ml-auto grid size-9 place-items-center rounded-lg border bg-white"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                    )}
+                    {row.status !== "accepted" && menu === row.id && (
                       <div className="absolute right-4 top-14 z-[120] w-48 rounded-xl border bg-white p-1 shadow-2xl">
                         {canSubmit(row) && (
                           <button
@@ -262,7 +282,8 @@ export function StudentAssignmentTable({
                           href={`/dashboard/student/assignments/${courseId}/${row.id}`}
                           className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"
                         >
-                          <Eye className="size-4" /> View
+                          <Eye className="size-4" />
+                          {row.submittedAt ? "View Submission" : "View"}
                         </Link>
                       </div>
                     )}

@@ -51,16 +51,12 @@ export function HomeAboutSections() {
               be accessible to everyone, everywhere.
             </p>
           </div>
-          <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <div className="mt-12 grid gap-4 md:grid-cols-2 text-justify">
             <InfoCard icon={Target} title="Our Mission" tone="bg-[#0052CC] text-white">
-              To make internationally accredited higher education accessible,
-              affordable and applicable—meeting learners where they are and
-              equipping them for the work ahead.
+              BGS champions the right to education for everyone.We strive to make higher education universally available and equally accessible, based on merit. Our mission focuses on the full development of the human personality and enhancing respect for human rights and fundamental freedoms. By leveraging online platforms, BGS aims to break down barriers and boundaries, ensuring education is accessible to all.
             </InfoCard>
             <InfoCard icon={Lightbulb} title="Our Vision" tone="bg-[#6554C0] text-white">
-              A Sri Lanka where a student&apos;s postcode, income or age never
-              limits the credential they can earn or the career they can
-              build.
+              Education is essential for every family, offering the best investment for prosperity, health, and independence. BGS supports parents’ rights to choose their children’s education, recognizing it as a fundamental right and gateway to development. Despite barriers in countries with only 5% GDP allocation for education, BGS is committed to ensuring inclusive, equitable, and quality education, and promoting lifelong learning opportunities for all.
             </InfoCard>
           </div>
         </div>

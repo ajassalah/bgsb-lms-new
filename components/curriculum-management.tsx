@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
@@ -460,61 +460,7 @@ export function CurriculumManagement({
                         <FileText />
                         Add Assignment
                       </a>
-                      <div>
-                        <button
-                          onClick={() =>
-                            setLessonMenu(lessonMenu === m.id ? null : m.id)
-                          }
-                          className="action-row"
-                        >
-                          <Plus />
-                          Add Lesson
-                          <ChevronRight className="ml-auto" />
-                        </button>
-                        {lessonMenu === m.id && (
-                          <div className="mx-1 mb-1 rounded-lg border-y bg-slate-50 p-1">
-                            <button
-                              onClick={() =>
-                                setModal({
-                                  type: "lesson",
-                                  module: m,
-                                  lessonType: "video",
-                                })
-                              }
-                              className="action-row"
-                            >
-                              <Video />
-                              Add Video Lesson
-                            </button>
-                            <button
-                              onClick={() =>
-                                setModal({
-                                  type: "lesson",
-                                  module: m,
-                                  lessonType: "audio",
-                                })
-                              }
-                              className="action-row"
-                            >
-                              <FileAudio />
-                              Add Audio Lesson
-                            </button>
-                            <button
-                              onClick={() =>
-                                setModal({
-                                  type: "lesson",
-                                  module: m,
-                                  lessonType: "document",
-                                })
-                              }
-                              className="action-row"
-                            >
-                              <FileText />
-                              Add Document Lesson
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <button onClick={() => { setLessonMenu(m.id); setMenu(null); }} className="action-row"><Plus /> Add Lesson</button>
                       <button
                         onClick={() => {
                           setDeleting(m);
@@ -556,6 +502,14 @@ export function CurriculumManagement({
           );
         })}
       </div>
+      {lessonMenu && modules.find((module) => module.id === lessonMenu) && (() => {
+        const module = modules.find((item) => item.id === lessonMenu)!;
+        const choose = (lessonType: "video" | "audio" | "document") => {
+          setModal({ type: "lesson", module, lessonType });
+          setLessonMenu(null);
+        };
+        return <div className="fixed inset-0 z-[210] grid place-items-center bg-black/50 p-4"><div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-sm text-slate-400">{module.title}</p><h2 className="text-xl font-bold text-navy">Add lesson</h2></div><button onClick={() => setLessonMenu(null)}><X /></button></div><div className="mt-6 grid gap-3"><button onClick={() => choose("video")} className="btn-secondary justify-start gap-3"><Video className="text-red" /> Video lesson</button><button onClick={() => choose("audio")} className="btn-secondary justify-start gap-3"><FileAudio className="text-red" /> Audio lesson</button><button onClick={() => choose("document")} className="btn-secondary justify-start gap-3"><FileText className="text-red" /> Document lesson</button></div></div></div>;
+      })()}
       {modal && (
         <EditorModal
           courseId={courseId}
@@ -913,6 +867,8 @@ function EditorModal({
     state.type === "quiz" ? state.quiz?.quiz_questions?.[0] : undefined;
   const [busy, setBusy] = useState(false),
     [file, setFile] = useState(""),
+    [uploadStatus, setUploadStatus] = useState(""),
+    uploadController = useRef<AbortController | null>(null),
     [quizCreateMode, setQuizCreateMode] = useState(false),
     [questionType, setQuestionType] = useState<
       "single_radio" | "single_dropdown"
@@ -962,6 +918,13 @@ function EditorModal({
     )
       return toast.error("Enter a valid time limit");
     setBusy(true);
+    setUploadStatus(
+      state.type === "lesson"
+        ? state.lesson
+          ? "Uploading replacement file…"
+          : "Uploading lesson file…"
+        : "Saving changes…",
+    );
     let url = "",
       method = "POST",
       body: BodyInit,
@@ -1008,9 +971,22 @@ function EditorModal({
       if (state.type === "quiz" && state.quiz && !quizCreateMode)
         method = "PATCH";
     }
-    const res = await fetch(url, { method, headers, body });
+    let res: Response;
+    try {
+      uploadController.current = new AbortController();
+      res = await fetch(url, { method, headers, body, signal: uploadController.current.signal });
+    } catch {
+      setBusy(false);
+      setUploadStatus("");
+      toast.error(uploadController.current?.signal.aborted ? "Upload cancelled" : "Upload failed. Check your connection and try again.");
+      uploadController.current = null;
+      return;
+    }
+    uploadController.current = null;
     if (res.ok) {
       saved(await res.json(), saveAnother);
+      if (state.type === "lesson") toast.success("Lesson uploaded successfully");
+      setUploadStatus("");
       if (saveAnother && state.type === "quiz") {
         setQuizCreateMode(true);
         setQuestion("");
@@ -1024,6 +1000,7 @@ function EditorModal({
       const d = await res.json().catch(() => ({}));
       toast.error(d.error || "Save failed");
       setBusy(false);
+      setUploadStatus("");
     }
   }
   const accept =
@@ -1034,6 +1011,18 @@ function EditorModal({
         : "*/*";
   return (
     <div className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-sm sm:p-4">
+      {uploadStatus && (
+        <div className="fixed inset-0 z-[140] grid place-items-center bg-navy/35 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <span className="mx-auto grid size-14 animate-pulse place-items-center rounded-full bg-blue-50 text-blue-600"><Upload className="size-7" /></span>
+            <h3 className="mt-4 text-lg font-bold text-navy">Uploading lesson</h3>
+            <p className="mt-2 text-sm text-slate-500">{uploadStatus}</p>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><span className="block h-full w-2/3 animate-pulse rounded-full bg-blue-600" /></div>
+            <p className="mt-3 text-xs text-slate-400">Please keep this page open.</p>
+            <button type="button" onClick={() => uploadController.current?.abort()} className="btn-secondary mt-5">Cancel upload</button>
+          </div>
+        </div>
+      )}
       <form
         onSubmit={submit}
         className="my-auto max-h-[94dvh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-4 sm:max-w-lg sm:rounded-2xl sm:p-6"
@@ -1199,7 +1188,10 @@ function EditorModal({
                 accept={accept}
                 required={!state.lesson}
                 className="mt-4 text-xs"
-                onChange={(e) => setFile(e.target.files?.[0]?.name || "")}
+                onChange={(e) => {
+                  const selected = e.target.files?.[0];
+                  setFile(selected ? `${selected.name} (${(selected.size / 1024 / 1024).toFixed(1)} MB)` : "");
+                }}
               />
               {file && (
                 <span className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
@@ -1207,6 +1199,11 @@ function EditorModal({
                 </span>
               )}
             </label>
+            {uploadStatus && (
+              <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+                {uploadStatus} Please keep this page open until it finishes.
+              </div>
+            )}
             <label className="mt-5 block text-sm font-semibold">
               Description
               <textarea
@@ -1219,7 +1216,7 @@ function EditorModal({
         )}
         <div className="mt-6 flex justify-end gap-2">
           <button disabled={busy} className="btn-primary">
-            {busy ? "Saving..." : state.type === "quiz" ? "Save" : "Submit"}
+            {busy ? uploadStatus || "Saving..." : state.type === "quiz" ? "Save" : "Submit"}
           </button>
           {state.type === "quiz" && (
             <button

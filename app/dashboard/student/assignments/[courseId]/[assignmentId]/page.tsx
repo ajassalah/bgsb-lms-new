@@ -27,7 +27,7 @@ export default async function AssignmentView({
     admin
       .from("assignments")
       .select(
-        "id,title,max_score,file_url,course:courses(title),module:course_modules(title,position)",
+        "id,title,description,due_date,max_score,file_url,course:courses(title),module:course_modules(title,position)",
       )
       .eq("id", params.assignmentId)
       .eq("course_id", params.courseId)
@@ -67,6 +67,8 @@ export default async function AssignmentView({
           moduleNo: module?.position || null,
           moduleName: module?.title || null,
           assignmentName: assignment.title,
+          assignmentDescription: assignment.description || null,
+          dueDate: assignment.due_date || null,
           marks: submission?.score ?? null,
           maxMarks: assignment.max_score || 100,
           submittedAt: submission?.submitted_at || null,

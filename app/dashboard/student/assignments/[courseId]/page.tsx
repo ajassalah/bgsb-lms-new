@@ -24,8 +24,7 @@ export default async function StudentCourseAssignments({
       admin
         .from("assignments")
         .select("id,title,created_at,due_date,module:course_modules(position)")
-        .eq("course_id", params.courseId)
-        .order("due_date"),
+        .eq("course_id", params.courseId),
       admin
         .from("assignment_submissions")
         .select("assignment_id,file_url,description,review_status,submitted_at")
@@ -35,6 +34,28 @@ export default async function StudentCourseAssignments({
   const submitted = new Map(
     (submissions || []).map((x: any) => [x.assignment_id, x]),
   );
+  const assignmentRows = (assignments || [])
+    .map((a: any) => {
+      const s = submitted.get(a.id) as any,
+        module = Array.isArray(a.module) ? a.module[0] : a.module;
+      return {
+        id: a.id,
+        moduleNo: module?.position || null,
+        title: a.title,
+        start: a.created_at,
+        due: a.due_date,
+        submittedAt: s?.submitted_at || null,
+        status: s?.review_status || "not_submitted",
+        fileUrl: s?.file_url || null,
+        description: s?.description || null,
+      };
+    })
+    .sort((a, b) => {
+      const moduleA = a.moduleNo ?? Number.MAX_SAFE_INTEGER;
+      const moduleB = b.moduleNo ?? Number.MAX_SAFE_INTEGER;
+      if (moduleA !== moduleB) return moduleA - moduleB;
+      return new Date(a.due).getTime() - new Date(b.due).getTime();
+    });
   return (
     <DashboardShell
       role="student"
@@ -45,21 +66,7 @@ export default async function StudentCourseAssignments({
       <StudentAssignmentTable
         courseId={params.courseId}
         courseTitle={course.title}
-        assignments={(assignments || []).map((a: any) => {
-          const s = submitted.get(a.id) as any,
-            module = Array.isArray(a.module) ? a.module[0] : a.module;
-          return {
-            id: a.id,
-            moduleNo: module?.position || null,
-            title: a.title,
-            start: a.created_at,
-            due: a.due_date,
-            submittedAt: s?.submitted_at || null,
-            status: s?.review_status || "not_submitted",
-            fileUrl: s?.file_url || null,
-            description: s?.description || null,
-          };
-        })}
+        assignments={assignmentRows}
       />
     </DashboardShell>
   );

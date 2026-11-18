@@ -13,6 +13,8 @@ export type StudentAssignmentDetail = {
   moduleNo: number | null;
   moduleName: string | null;
   assignmentName: string;
+  assignmentDescription: string | null;
+  dueDate: string | null;
   marks: number | null;
   maxMarks: number;
   submittedAt: string | null;
@@ -88,6 +90,7 @@ export function StudentAssignmentDetails({
         : details.moduleName || "—",
     ],
     ["Assignment Name", details.assignmentName],
+    ["Deadline", details.dueDate ? new Date(details.dueDate).toLocaleString("en-GB") : "No deadline"],
     [
       "Marks",
       details.marks === null
@@ -150,6 +153,14 @@ export function StudentAssignmentDetails({
             <FileText className="size-4" />
             Open Assignment PDF
           </a>
+        </section>
+      )}
+      {details.assignmentDescription && (
+        <section className="mt-6 rounded-2xl border bg-white p-5">
+          <h2 className="text-lg font-bold text-navy">Assignment Instructions</h2>
+          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-600">
+            {details.assignmentDescription}
+          </p>
         </section>
       )}
       <section className="mt-6 overflow-hidden rounded-2xl border bg-white">

@@ -202,7 +202,12 @@ export function AppShell({
   wrapContent?: (content: ReactNode) => ReactNode;
   children: ReactNode;
 }) {
-  const path = usePathname() || "";
+  const pathname = usePathname() || "";
+  // Keep the first client render identical to the server. In particular, the
+  // sidebar's active nested item may otherwise differ while Next hydrates.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const path = hydrated ? pathname : "";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});

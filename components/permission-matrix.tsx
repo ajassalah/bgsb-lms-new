@@ -37,7 +37,7 @@ export const permissionModules: PermissionModule[] = [
   {
     key: "batches",
     label: "Batch",
-    actions: ["create", "view", "edit", "delete", "verify"],
+    actions: ["create", "view", "edit", "delete", "verify", "send_email"],
   },
   {
     key: "courses",
